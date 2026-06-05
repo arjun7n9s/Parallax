@@ -1,18 +1,31 @@
-# PARALLAX — API Design Specification
+# PARALLAX  --  API Design Specification
 ## Complete REST API Reference
+
+> **V2 NOTE:** This document is part of the original planning suite. The authoritative
+> design now lives in:
+> - `PARALLAX_VISION.md`  --  anchor vision document
+> - `02b_ARCHITECTURE_REVISED.md`  --  revised architecture with hypothesis-driven loop
+> - `02_ARCHITECTURE.md`  --  original (this doc references it)
+>
+> Key v2 additions: AI Reverse Engineering Workbench, Hypothesis Loop, AI-Guided
+> Dynamic Exploration, Adaptive Hook Planning, Malware Pattern Memory, Risk
+> Calibration Engine, IRT distillation, Fraud Attack Chain, Approval Modes.
+> Read `PARALLAX_VISION.md` first for the anchor view.
+
+---
 
 ---
 
 ## 1. API Design Principles
 
-1. **RESTful** — resource-oriented, HTTP semantics
-2. **Versioned** — `/api/v1/` prefix, future-proof
-3. **Async-first** — long-running analyses return submission_id, poll for status
-4. **OpenAPI 3.1** — auto-generated docs at `/docs`
-5. **Pydantic schemas** — request/response validation
-6. **Structured errors** — consistent error format across all endpoints
-7. **Webhooks** — push notifications for completion + alerts
-8. **Auth** — JWT bearer tokens (OIDC compatible)
+1. **RESTful**  --  resource-oriented, HTTP semantics
+2. **Versioned**  --  `/api/v1/` prefix, future-proof
+3. **Async-first**  --  long-running analyses return submission_id, poll for status
+4. **OpenAPI 3.1**  --  auto-generated docs at `/docs`
+5. **Pydantic schemas**  --  request/response validation
+6. **Structured errors**  --  consistent error format across all endpoints
+7. **Webhooks**  --  push notifications for completion + alerts
+8. **Auth**  --  JWT bearer tokens (OIDC compatible)
 
 ---
 
@@ -40,7 +53,7 @@ X-API-Key: <key>
 
 ---
 
-## 3. Endpoints — Ingestion
+## 3. Endpoints  --  Ingestion
 
 ### 3.1 Submit APK for Analysis
 
@@ -128,7 +141,7 @@ Authorization: Bearer <jwt>
 
 ---
 
-## 4. Endpoints — Status & Results
+## 4. Endpoints  --  Status & Results
 
 ### 4.1 Get Analysis Status
 
@@ -275,7 +288,7 @@ Authorization: Bearer <jwt>
 
 ---
 
-## 5. Endpoints — Outputs
+## 5. Endpoints  --  Outputs
 
 ### 5.1 Download Report (PDF)
 
@@ -387,7 +400,7 @@ Authorization: Bearer <jwt>
 
 ---
 
-## 6. Endpoints — TAIG Graph
+## 6. Endpoints  --  TAIG Graph
 
 ### 6.1 Execute Cypher Query (read-only)
 
@@ -482,7 +495,7 @@ Authorization: Bearer <jwt>
 
 ---
 
-## 7. Endpoints — Threat Hunting
+## 7. Endpoints  --  Threat Hunting
 
 ### 7.1 Structured Hunt
 
@@ -539,7 +552,7 @@ Authorization: Bearer <jwt>
 
 ---
 
-## 8. Endpoints — Webhooks (incoming)
+## 8. Endpoints  --  Webhooks (incoming)
 
 Banks can register webhooks to receive push notifications:
 
@@ -582,7 +595,7 @@ expected = hmac.new(secret.encode(), json.dumps(payload).encode(), hashlib.sha25
 
 ---
 
-## 9. Endpoints — Admin
+## 9. Endpoints  --  Admin
 
 ### 9.1 Stats Overview
 
@@ -821,4 +834,418 @@ FastAPI auto-generates OpenAPI 3.1 spec at `/openapi.json`. Use to generate:
 
 ---
 
-*This is the complete API surface for PARALLAX v1.*
+## 16. V2 Resources -- Investigation Loop APIs
+
+### 16.1 Hypotheses
+
+**Resource:** `Hypothesis` -- a claim the investigation engine forms and tests
+
+```
+GET    /api/v1/analyses/{submission_id}/hypotheses
+       Returns all hypotheses for an investigation, ordered by formed_at.
+       Query params:
+         ?status=CONFIRMED|REJECTED|UNRESOLVED|PENDING
+         ?expose_in_irt=true  (only IRT-visible ones)
+
+GET    /api/v1/hypotheses/{hypothesis_id}
+       Returns a single hypothesis with full internal trace.
+       Requires role: analyst | auditor (not available to "service" role)
+
+Response schema (single hypothesis):
+{
+  "hypothesis_id": "H1-abc12345-def67890",
+  "apk_sha256": "...",
+  "claim": "Accessibility service abuse for overlay attack",
+  "category": "behavioral",
+  "status": "CONFIRMED",          // PENDING | CONFIRMED | REJECTED | UNRESOLVED
+  "initial_confidence": 0.85,
+  "final_confidence": 0.98,
+  "expose_in_irt": true,
+  "irt_label": "Accessibility overlay attack confirmed",
+  "formed_by_agent": "triage_agent",
+  "formed_at": "2025-01-15T10:22:01Z",
+  "resolved_at": "2025-01-15T10:24:47Z",
+  "spawned_from": null,
+  "experiments": [
+    {
+      "experiment_id": "E1-H1-abc-001",
+      "type": "static_check",
+      "description": "Check for AccessibilityService subclass in decompiled code",
+      "tool_used": "re_workbench",
+      "result": "CONFIRMED",
+      "result_summary": "AccessibilityService subclass found: com.fake.sbi.AccessibilityStealer",
+      "duration_ms": 1240
+    },
+    {
+      "experiment_id": "E2-H1-abc-002",
+      "type": "dynamic_test",
+      "description": "Install mock SBI YONO and bring to foreground",
+      "tool_used": "droidbot_gpt",
+      "result": "CONFIRMED",
+      "result_summary": "Overlay drawn at T+22s on top of mock SBI YONO",
+      "duration_ms": 22000
+    }
+  ],
+  // Note: raw_output and failed_attempts NOT returned in API response.
+  // Available only via internal audit endpoint (requires auditor role + trace_id).
+  "observations_count": 3
+}
+
+GET /api/v1/analyses/{submission_id}/hypotheses/irt
+    Returns only IRT-ready hypotheses (expose_in_irt=true, status CONFIRMED or UNRESOLVED).
+    This is the clean set the report generator uses.
+
+Response:
+{
+  "submission_id": "...",
+  "irt_hypotheses": [
+    {
+      "status": "CONFIRMED",
+      "irt_label": "Accessibility overlay attack confirmed",
+      "final_confidence": 0.98,
+      "evidence_summary": "Static + dynamic verification with mock SBI installation"
+    },
+    {
+      "status": "UNRESOLVED",
+      "irt_label": "Possible crypto wallet targeting",
+      "unresolved_reason": "No wallet app present in test environment",
+      "recommended_next_step": "Re-run with Unocoin or Zebpay app installed"
+    }
+  ]
+}
+```
+
+---
+
+### 16.2 Experiments
+
+**Resource:** `Experiment` -- one action taken to test a Hypothesis
+
+```
+GET  /api/v1/hypotheses/{hypothesis_id}/experiments
+     Returns all experiments for a hypothesis, ordered by started_at.
+
+GET  /api/v1/experiments/{experiment_id}
+     Returns one experiment. raw_output field requires auditor role.
+
+Response schema:
+{
+  "experiment_id": "E2-H1-abc-002",
+  "hypothesis_id": "H1-abc12345-def67890",
+  "type": "dynamic_test",
+  "description": "Install mock SBI YONO and bring to foreground",
+  "tool_used": "droidbot_gpt",
+  "agent": "dynamic_explorer",
+  "started_at": "2025-01-15T10:23:44Z",
+  "completed_at": "2025-01-15T10:24:06Z",
+  "duration_ms": 22000,
+  "result": "CONFIRMED",
+  "result_summary": "Overlay drawn at T+22s on top of mock SBI YONO",
+  "evidence_citations": ["screen_5.png", "frida_hook_T22.json"],
+  "failed_attempts": []
+  // raw_output: omitted unless ?include_raw=true AND role=auditor
+}
+```
+
+---
+
+### 16.3 Observations
+
+**Resource:** `Observation` -- a real-time event fired during dynamic analysis
+
+```
+GET  /api/v1/analyses/{submission_id}/observations
+     Returns all runtime observations, ordered by timestamp_offset_ms.
+     Query params:
+       ?type=OVERLAY_DRAWN|NETWORK_POST|SMS_INTERCEPTED|...
+       ?min_confidence=0.8
+       ?updates_hypothesis={hypothesis_id}
+
+Response:
+{
+  "observations": [
+    {
+      "observation_id": "obs-001",
+      "observation_type": "OVERLAY_DRAWN",
+      "timestamp_offset_ms": 22000,
+      "hook_source": "accessibility_abuse.js",
+      "target_package": "com.sbi.lotus",
+      "confidence": 0.98,
+      "updates_hypothesis": "H1-abc12345-def67890",
+      "update_direction": "CONFIRMS"
+      // raw_data: omitted by default. Include with ?include_raw=true + auditor role.
+    },
+    {
+      "observation_id": "obs-002",
+      "observation_type": "NETWORK_POST",
+      "timestamp_offset_ms": 27000,
+      "hook_source": "network_logger.js",
+      "target_package": null,
+      "confidence": 0.99,
+      "updates_hypothesis": "H2-abc12345-xyz12345",
+      "update_direction": "CONFIRMS"
+    }
+  ],
+  "total": 14
+}
+```
+
+---
+
+### 16.4 Hook Plans
+
+**Resource:** `HookPlan` -- the adaptive Frida instrumentation plan for a session
+
+```
+GET  /api/v1/analyses/{submission_id}/hook-plan
+     Returns the hook plan as it stood at the END of the session
+     (includes any mid-run additions).
+
+Response:
+{
+  "submission_id": "...",
+  "hooks": [
+    {
+      "script": "accessibility_abuse.js",
+      "targets": ["AccessibilityService", "AccessibilityEvent"],
+      "capture": ["package_transitions", "overlay_windows", "event_text"],
+      "enabled_at": "static",     // "static" = pre-planned; "dynamic" = added mid-run
+      "enabled_at_ms": null,      // null if pre-planned
+      "fired_count": 4
+    },
+    {
+      "script": "dynamic_class_loader.js",
+      "targets": ["DexClassLoader", "PathClassLoader"],
+      "capture": ["loaded_class_names", "source_paths"],
+      "enabled_at": "dynamic",    // added mid-run
+      "enabled_at_ms": 45000,     // added when DEX_CLASS_LOADED observation fired
+      "fired_count": 1
+    }
+  ],
+  "hooks_pre_planned": 4,
+  "hooks_added_mid_run": 1,
+  "total_hooks": 5
+}
+
+POST /api/v1/sessions/{session_id}/hook-plan/update
+     Allows the Hook Planning Agent to add a hook mid-session.
+     Internal use only (service role). Not exposed to analysts.
+
+Body:
+{
+  "script": "crypto_extraction.js",
+  "reason": "CRYPTO_API_FIRED observation at T+60s",
+  "triggered_by_observation": "obs-007"
+}
+```
+
+---
+
+### 16.5 Investigation Reasoning Trace (IRT)
+
+**Resource:** `IRT` -- the clean external investigation trace for report consumption
+
+```
+GET  /api/v1/analyses/{submission_id}/irt
+     Returns the distilled IRT. This is what analysts and the report generator see.
+     Internal traces are NOT returned here -- use /audit-trace for those.
+
+Response:
+{
+  "submission_id": "...",
+  "apk_sha256": "...",
+  "generated_at": "2025-01-15T10:30:00Z",
+  "generated_by": "synthesis_agent",
+  "confirmed": [
+    {
+      "label": "Accessibility overlay attack",
+      "description": "The APK draws a pixel-perfect overlay over SBI YONO, capturing user credentials via fake login form.",
+      "confidence": 0.98,
+      "evidence": ["Static: AccessibilityService subclass found", "Dynamic: Overlay fired at T+22s"]
+    },
+    {
+      "label": "SMS OTP interception",
+      "description": "Broadcast receiver intercepts incoming SMS and posts body to C2 within 200ms.",
+      "confidence": 0.99,
+      "evidence": ["Static: SmsReceiver with network POST", "Dynamic: Simulated OTP intercepted at T+37s"]
+    }
+  ],
+  "unresolved": [
+    {
+      "label": "Possible crypto wallet targeting",
+      "reason": "No wallet app present in test environment",
+      "recommended_next_step": "Re-run with Unocoin or Zebpay app installed"
+    }
+  ],
+  "total_hypotheses_tested": 8,
+  "confirmed_count": 4,
+  "rejected_count": 3,
+  "unresolved_count": 1,
+  "internal_trace_id": "tr-abc-20250115-001"
+  // Note: rejected hypotheses are deliberately NOT returned here.
+  // Use /audit-trace to see all including rejected and partial states.
+}
+
+GET  /api/v1/analyses/{submission_id}/audit-trace
+     Returns the complete internal trace including rejected hypotheses,
+     failed experiments, partial states, intermediate reasoning.
+     Requires role: auditor only.
+     Used by: deep audit, compliance review, developer debugging.
+
+Response:
+{
+  "trace_id": "tr-abc-20250115-001",
+  "all_hypotheses": [...],      // including rejected and partial
+  "all_experiments": [...],     // including failed attempts
+  "all_observations": [...],    // raw hook data included
+  "agent_reasoning_log": [...], // every agent's internal reasoning step
+  "cycle_count": 3,
+  "total_duration_ms": 487000,
+  "tools_invoked": ["androguard", "jadx", "frida", "droidbot_gpt", "unicorn"]
+}
+```
+
+---
+
+### 16.6 Fraud Attack Chain
+
+**Resource:** `FraudChain` -- the bank-specific fraud narrative
+
+```
+GET  /api/v1/analyses/{submission_id}/fraud-chain
+     Returns the full ordered fraud attack chain for this APK.
+
+Response:
+{
+  "submission_id": "...",
+  "apk_sha256": "...",
+  "chain_confidence": 0.94,
+  "stages": [
+    {
+      "stage_order": 1,
+      "stage_type": "distribution_vector",
+      "description": "APK distributed via WhatsApp forwarded message with shortened URL.",
+      "evidence": ["honeypot_capture_jan15.json"],
+      "attck_techniques": ["T1660"],
+      "confidence": 0.87
+    },
+    {
+      "stage_order": 2,
+      "stage_type": "brand_impersonation",
+      "description": "Impersonates com.sbi.lotus (SBI YONO) with 97% visual similarity.",
+      "evidence": ["visual_similarity_score.json", "screen_2.png"],
+      "attck_techniques": ["T1655"],
+      "confidence": 0.97,
+      "target_brand": "com.sbi.lotus"
+    },
+    {
+      "stage_order": 3,
+      "stage_type": "permission_acquisition",
+      "description": "Requests BIND_ACCESSIBILITY_SERVICE first, then RECEIVE_SMS after 3 interactions.",
+      "evidence": ["manifest_analysis.json"],
+      "attck_techniques": ["T1624"],
+      "confidence": 0.95
+    },
+    {
+      "stage_order": 4,
+      "stage_type": "credential_capture",
+      "description": "Draws fullscreen overlay matching SBI YONO login when real app is in foreground.",
+      "evidence": ["frida_hook_T22.json", "screen_5.png"],
+      "attck_techniques": ["T1516", "T1417"],
+      "confidence": 0.98
+    },
+    {
+      "stage_order": 5,
+      "stage_type": "otp_interception",
+      "description": "SMS receiver intercepts OTP and posts to C2 within 200ms.",
+      "evidence": ["frida_hook_T37.json"],
+      "attck_techniques": ["T1412"],
+      "confidence": 0.99
+    },
+    {
+      "stage_order": 9,
+      "stage_type": "exfiltration",
+      "description": "Credentials and OTP exfiltrated to 185.220.101.47:8080 via HTTP POST, Base64 encoded.",
+      "evidence": ["network_capture.pcap", "mitmproxy_T27.json"],
+      "attck_techniques": ["T1646"],
+      "confidence": 0.99,
+      "c2_destinations": ["185.220.101.47:8080", "c2-backup.evil.com"]
+    },
+    {
+      "stage_order": 10,
+      "stage_type": "recommended_fraud_control",
+      "description": "Block transaction if device has active accessibility service AND app matching com.sbi.yono.* pattern is installed.",
+      "recommended_control": "RULE: block_txn IF device.accessibility_service_active AND device.app_installed LIKE 'com.sbi.yono.*'",
+      "approval_mode": "HELD",
+      "evidence": ["re_workbench_output.json"]
+    }
+  ]
+}
+```
+
+---
+
+### 16.7 Approval Decisions
+
+**Resource:** `ApprovalDecision` -- analyst approval/rejection of recommended actions
+
+```
+GET  /api/v1/analyses/{submission_id}/approvals
+     Returns all recommended actions with their current approval status.
+
+Response:
+{
+  "submission_id": "...",
+  "actions": [
+    {
+      "action_id": "act-001",
+      "action_type": "block_ip",
+      "description": "Block 185.220.101.47 at perimeter firewall",
+      "approval_mode": "APPROVED",
+      "current_status": "PENDING_ANALYST",
+      "recommended_by": "synthesis_agent",
+      "confidence": 0.99
+    },
+    {
+      "action_id": "act-002",
+      "action_type": "add_yara_rule",
+      "description": "Add YARA rule BankingTrojan_SBI_Overlay_v3 to library",
+      "approval_mode": "AUTO_LOW_RISK",
+      "current_status": "AUTO_DEPLOYED",
+      "deployed_at": "2025-01-15T10:31:00Z"
+    },
+    {
+      "action_id": "act-003",
+      "action_type": "modify_fraud_rule",
+      "description": "Add accessibility service block rule to fraud engine",
+      "approval_mode": "HELD",
+      "current_status": "AWAITING_SENIOR_ANALYST",
+      "hold_reason": "Customer-impacting rule. Requires senior analyst sign-off."
+    }
+  ]
+}
+
+POST /api/v1/analyses/{submission_id}/approvals/{action_id}/decide
+     Analyst approves or rejects a recommended action.
+     Requires role: analyst (APPROVED mode) or admin (HELD mode).
+
+Body:
+{
+  "decision": "APPROVE" | "REJECT",
+  "reason": "Confirmed C2 IP, safe to block",
+  "decided_by": "analyst@bank.com"
+}
+
+Response:
+{
+  "action_id": "act-001",
+  "decision": "APPROVE",
+  "deployed_at": "2025-01-15T11:05:22Z",
+  "deployment_result": "Firewall rule added: 185.220.101.47/32 DROP"
+}
+```
+
+---
+
+*This is the complete PARALLAX API surface -- v1 original + v2 investigation loop resources.*
+

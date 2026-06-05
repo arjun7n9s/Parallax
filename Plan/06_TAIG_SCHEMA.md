@@ -1,5 +1,18 @@
-# PARALLAX — TAIG Schema Specification
-## Temporal Adversarial Intelligence Graph — Complete Design
+# PARALLAX  --  TAIG Schema Specification
+## Temporal Adversarial Intelligence Graph  --  Complete Design
+
+> **V2 NOTE:** This document is part of the original planning suite. The authoritative
+> design now lives in:
+> - `PARALLAX_VISION.md`  --  anchor vision document
+> - `02b_ARCHITECTURE_REVISED.md`  --  revised architecture with hypothesis-driven loop
+> - `02_ARCHITECTURE.md`  --  original (this doc references it)
+>
+> Key v2 additions: AI Reverse Engineering Workbench, Hypothesis Loop, AI-Guided
+> Dynamic Exploration, Adaptive Hook Planning, Malware Pattern Memory, Risk
+> Calibration Engine, IRT distillation, Fraud Attack Chain, Approval Modes.
+> Read `PARALLAX_VISION.md` first for the anchor view.
+
+---
 
 ---
 
@@ -24,7 +37,7 @@ They stay synchronized: every Neo4j APK node has a Qdrant vector ID, and vice ve
 
 ---
 
-## 3. Neo4j Schema — Full Node Definitions
+## 3. Neo4j Schema  --  Full Node Definitions
 
 ### 3.1 APK Node (Primary Entity)
 
@@ -343,6 +356,309 @@ COUNTRY_PROPERTIES = {
 
 ---
 
+### 3.12 Hypothesis Node (V2 -- Investigation Loop)
+
+Persists every hypothesis the Hypothesis Engine forms during an investigation.
+Each row in the internal hypothesis scratchpad maps to one Hypothesis node,
+linked to the APK being analyzed and to the Experiments that test it.
+
+```cypher
+CREATE CONSTRAINT hypothesis_id_unique IF NOT EXISTS
+FOR (n:Hypothesis) REQUIRE n.hypothesis_id IS UNIQUE;
+
+CREATE INDEX hypothesis_status IF NOT EXISTS
+FOR (n:Hypothesis) ON (n.status);
+```
+
+```python
+HYPOTHESIS_PROPERTIES = {
+    # Identity
+    "hypothesis_id": str,        # "H1-{apk_sha256[:8]}-{uuid4[:8]}"
+    "apk_sha256": str,           # parent APK under investigation
+
+    # Content
+    "claim": str,                # "Accessibility service abuse for overlay attack"
+    "category": str,             # "static" | "behavioral" | "network" | "visual" | "evasion"
+    "initial_confidence": float, # 0.0-1.0 from triage signals
+    "final_confidence": float,   # updated after experiments
+
+    # Status lifecycle
+    "status": str,               # "PENDING" | "CONFIRMED" | "REJECTED" | "UNRESOLVED"
+    "status_reason": str,        # why it reached this status
+    "unresolved_reason": str,    # if UNRESOLVED: why it couldn't be resolved
+    "recommended_next_step": str,# if UNRESOLVED: what to do next
+
+    # Timing
+    "formed_at": datetime,
+    "resolved_at": datetime,     # null until resolved
+
+    # IRT exposure
+    "expose_in_irt": bool,       # true = shows in clean external IRT; false = internal only
+    "irt_label": str,            # "Accessibility overlay attack confirmed" (clean external text)
+
+    # Source
+    "formed_by_agent": str,      # "triage_agent" | "re_workbench" | "dynamic_explorer"
+    "spawned_from": str,         # hypothesis_id of parent hypothesis, if derived
+}
+```
+
+---
+
+### 3.13 Experiment Node (V2 -- Investigation Loop)
+
+One Experiment is one action taken to test a Hypothesis.
+A Hypothesis may have multiple Experiments (initial test, mutation test, retry).
+
+```cypher
+CREATE CONSTRAINT experiment_id_unique IF NOT EXISTS
+FOR (n:Experiment) REQUIRE n.experiment_id IS UNIQUE;
+
+CREATE INDEX experiment_hypothesis IF NOT EXISTS
+FOR (n:Experiment) ON (n.hypothesis_id);
+```
+
+```python
+EXPERIMENT_PROPERTIES = {
+    # Identity
+    "experiment_id": str,        # "E1-{hypothesis_id}-{seq}"
+    "hypothesis_id": str,        # parent Hypothesis
+
+    # Experiment definition
+    "type": str,                 # "static_check" | "dynamic_test" | "mutation" | "emulation"
+    "description": str,          # "Install mock SBI YONO and bring to foreground"
+    "tool_used": str,            # "frida" | "droidbot_gpt" | "unicorn" | "r2pipe" | "androguard"
+    "agent": str,                # "re_workbench" | "hook_planner" | "dynamic_explorer"
+
+    # Execution
+    "started_at": datetime,
+    "completed_at": datetime,
+    "duration_ms": int,
+
+    # Result
+    "result": str,               # "CONFIRMED" | "REJECTED" | "INCONCLUSIVE" | "ERROR"
+    "result_summary": str,       # "Overlay fired at T+22s when mock SBI in foreground"
+    "evidence_citations": list,  # ["screen_5.png", "frida_hook_T22.json"]
+
+    # Internal trace (never in external IRT)
+    "raw_output": str,           # full raw tool output (internal only)
+    "failed_attempts": list,     # list of sub-attempts that failed before success
+}
+```
+
+---
+
+### 3.14 Observation Node (V2 -- Runtime Events)
+
+Observations are real-time events fired during dynamic analysis.
+They feed directly into the Hypothesis Engine for real-time updates.
+
+```cypher
+CREATE CONSTRAINT observation_id_unique IF NOT EXISTS
+FOR (n:Observation) REQUIRE n.observation_id IS UNIQUE;
+
+CREATE INDEX observation_apk IF NOT EXISTS
+FOR (n:Observation) ON (n.apk_sha256);
+
+CREATE INDEX observation_type IF NOT EXISTS
+FOR (n:Observation) ON (n.observation_type);
+```
+
+```python
+OBSERVATION_PROPERTIES = {
+    # Identity
+    "observation_id": str,
+    "apk_sha256": str,
+    "session_id": str,           # dynamic analysis session
+
+    # Content
+    "observation_type": str,
+    # Types:
+    # "OVERLAY_DRAWN"            - APK drew a window over another app
+    # "NETWORK_POST"             - HTTP/S POST fired
+    # "SMS_INTERCEPTED"          - SMS receiver captured message
+    # "CRYPTO_API_FIRED"         - Cipher/SecretKeySpec/etc called
+    # "DEX_CLASS_LOADED"         - DexClassLoader loaded a class
+    # "PERMISSION_GRANTED"       - User-facing permission request
+    # "FOREGROUND_CHANGE"        - Package in foreground changed
+    # "C2_BEACON"                - periodic outbound to C2
+    # "ANTI_ANALYSIS_TRIGGERED"  - emulator/frida/debug detection attempt
+    # "LOCALE_TRIGGER"           - behavior changed on locale mutation
+    # "DORMANCY_DETECTED"        - no activity after N seconds
+    # "CRYPTO_WALLET_ACCESS"     - wallet API called
+
+    "timestamp_offset_ms": int,  # ms from analysis start
+    "hook_source": str,          # which Frida script fired this
+    "target_package": str,       # package that was the target of the action
+    "raw_data": dict,            # full hook capture payload
+    "confidence": float,
+
+    # Hypothesis linkage
+    "updates_hypothesis": str,   # hypothesis_id this observation affected
+    "update_direction": str,     # "CONFIRMS" | "REJECTS" | "SPAWNS_NEW"
+}
+```
+
+---
+
+### 3.15 TemporalFingerprint Node (V2 -- Pattern Memory)
+
+Captures timing-based behavioral signatures -- beacon intervals, dormancy
+periods, permission-request timing, activation delays. These are fingerprints
+no static analysis tool can detect.
+
+```cypher
+CREATE CONSTRAINT temporal_fp_id_unique IF NOT EXISTS
+FOR (n:TemporalFingerprint) REQUIRE n.fingerprint_id IS UNIQUE;
+
+CREATE INDEX temporal_fp_family IF NOT EXISTS
+FOR (n:TemporalFingerprint) ON (n.malware_family);
+```
+
+```python
+TEMPORAL_FINGERPRINT_PROPERTIES = {
+    # Identity
+    "fingerprint_id": str,
+    "name": str,                 # "GoldPickaxe_60s_beacon"
+
+    # Timing definition
+    "pattern_type": str,
+    # Types:
+    # "BEACON_INTERVAL"          - regular C2 check-in timing
+    # "DORMANCY_PERIOD"          - how long before activation
+    # "PERMISSION_DELAY"         - Nth user interaction triggers permission
+    # "ACTIVATION_TRIGGER"       - what event wakes dormant malware
+    # "EXFIL_LATENCY"            - ms between event and C2 post
+
+    "interval_ms": int,          # for BEACON_INTERVAL: exact ms between beacons
+    "interval_tolerance_ms": int,# allowed jitter
+    "dormancy_hours": float,     # for DORMANCY_PERIOD
+    "trigger_condition": str,    # for ACTIVATION_TRIGGER: what causes it
+    "exfil_latency_ms": int,     # for EXFIL_LATENCY: measured delay
+
+    # Attribution
+    "malware_family": str,       # "GoldPickaxe" | "FluBot" | "Anatsa" etc.
+    "confidence": float,
+    "observed_in_count": int,    # how many APKs show this fingerprint
+    "first_observed": datetime,
+    "last_observed": datetime,
+
+    # Source
+    "derived_from_apks": list,   # sha256 list of APKs this was extracted from
+}
+```
+
+---
+
+### 3.16 Pattern Node (V2 -- Malware Pattern Memory)
+
+Stores recognized malware patterns across the 8 categories of Pattern Memory.
+Each Pattern node is a queryable, reusable intelligence unit.
+
+```cypher
+CREATE CONSTRAINT pattern_id_unique IF NOT EXISTS
+FOR (n:Pattern) REQUIRE n.pattern_id IS UNIQUE;
+
+CREATE INDEX pattern_category IF NOT EXISTS
+FOR (n:Pattern) ON (n.category);
+
+CREATE INDEX pattern_family IF NOT EXISTS
+FOR (n:Pattern) ON (n.malware_family);
+```
+
+```python
+PATTERN_PROPERTIES = {
+    # Identity
+    "pattern_id": str,
+    "name": str,                 # "SBI_YONO_Overlay_Template_v3"
+
+    # Category (8 defined categories from Pattern Memory subsystem)
+    "category": str,
+    # "fraud_flow"               - known attack chain sequence
+    # "permission_api_chain"     - suspicious permission + API combination
+    # "code_idiom"               - recognizable code-level pattern
+    # "ui_phishing_template"     - visual UI template
+    # "c2_communication"         - C2 network behavior
+    # "certificate_reuse"        - cert fingerprint seen across APKs
+    # "packer_fingerprint"       - packer/obfuscator signature
+    # "behavioral_timing"        - temporal fingerprint (links to TemporalFingerprint)
+
+    # Pattern definition
+    "description": str,
+    "signature": str,            # the machine-matchable representation:
+                                 # YARA rule | Cypher pattern | embedding vector ID | regex
+    "signature_type": str,       # "yara" | "cypher" | "embedding" | "regex" | "ast_hash"
+    "qdrant_vector_id": str,     # if category requires semantic match
+
+    # Match statistics
+    "hit_count": int,            # how many APKs matched this pattern
+    "false_positive_rate": float,# estimated FP rate from analyst feedback
+    "confidence_when_matched": float, # how much to raise confidence on match
+
+    # Attribution
+    "malware_family": str,
+    "campaign": str,
+    "attck_techniques": list,    # ["T1412", "T1516"]
+
+    # Lifecycle
+    "created_at": datetime,
+    "last_updated": datetime,
+    "created_by": str,           # "system_auto" | "analyst:{id}"
+    "approved": bool,            # analyst-approved patterns get higher weight
+}
+```
+
+---
+
+### 3.17 FraudChainStage Node (V2 -- Fraud Attack Chain)
+
+Represents one stage in the Fraud Attack Chain for a specific APK.
+Together, a chain of FraudChainStage nodes linked to an APK reconstructs
+the full bank-specific fraud narrative.
+
+```cypher
+CREATE INDEX fraud_stage_apk IF NOT EXISTS
+FOR (n:FraudChainStage) ON (n.apk_sha256);
+
+CREATE INDEX fraud_stage_type IF NOT EXISTS
+FOR (n:FraudChainStage) ON (n.stage_type);
+```
+
+```python
+FRAUD_CHAIN_STAGE_PROPERTIES = {
+    # Identity
+    "stage_id": str,
+    "apk_sha256": str,
+    "stage_order": int,          # 1-10 following the standard chain
+
+    # Stage type (10 defined stages)
+    "stage_type": str,
+    # "distribution_vector"      - WhatsApp / SMS / phishing
+    # "brand_impersonation"      - which bank, how convincing
+    # "permission_acquisition"   - what permissions, in what order
+    # "credential_capture"       - overlay / keylogger / fake form
+    # "otp_interception"         - SMS receiver / accessibility / notification
+    # "device_fingerprinting"    - IMEI / contacts / location / app list
+    # "transaction_enablement"   - add payee / trigger UPI / net-banking
+    # "persistence_evasion"      - reboot survival / anti-analysis
+    # "exfiltration"             - C2 destination / encoding / protocol
+    # "recommended_fraud_control"- bank-specific DSL rule recommendation
+
+    # Evidence
+    "description": str,          # plain English: what the APK does at this stage
+    "evidence": list,            # citations: ["frida_hook_T27.json", "screen_5.png"]
+    "attck_techniques": list,
+    "confidence": float,
+
+    # Stage-specific metadata
+    "target_brand": str,         # for brand_impersonation
+    "c2_destinations": list,     # for exfiltration
+    "recommended_control": str,  # for recommended_fraud_control (bank DSL format)
+    "approval_mode": str,        # "SUGGEST" | "APPROVED" | "AUTO_LOW_RISK" | "HELD"
+}
+```
+
+---
+
 ## 4. Relationship Specifications
 
 ### 4.1 APK Relationships
@@ -454,6 +770,69 @@ COUNTRY_PROPERTIES = {
 (blob:CodeBlob)-[:FOUND_IN]->(apk:APK)
 ```
 
+### 4.3 V2 Investigation Loop Relationships
+
+```cypher
+// Hypothesis <-> APK
+(h:Hypothesis)-[:INVESTIGATES {
+    cycle: int,              // which investigation cycle this belongs to
+    priority: str            // "HIGH" | "MEDIUM" | "LOW"
+}]->(apk:APK)
+
+// Experiment tests Hypothesis
+(e:Experiment)-[:TESTS]->(h:Hypothesis)
+
+// Observation updates Hypothesis
+(o:Observation)-[:UPDATES {
+    direction: str           // "CONFIRMS" | "REJECTS" | "SPAWNS_NEW"
+}]->(h:Hypothesis)
+
+// Observation spawns new Hypothesis
+(o:Observation)-[:SPAWNED]->(h:Hypothesis)
+
+// Hypothesis spawned from parent hypothesis
+(h:Hypothesis)-[:DERIVED_FROM]->(h2:Hypothesis)
+
+// Experiment produced an Observation
+(e:Experiment)-[:PRODUCED]->(o:Observation)
+
+// APK has Observations from its dynamic session
+(apk:APK)-[:HAS_OBSERVATION]->(o:Observation)
+
+// APK has FraudChainStages
+(apk:APK)-[:HAS_FRAUD_STAGE {
+    stage_order: int
+}]->(fcs:FraudChainStage)
+
+// FraudChainStage links to next stage
+(fcs:FraudChainStage)-[:FOLLOWED_BY]->(fcs2:FraudChainStage)
+
+// APK matches Pattern
+(apk:APK)-[:MATCHES_PATTERN {
+    confidence: float,
+    matched_at: datetime,
+    evidence: str
+}]->(p:Pattern)
+
+// APK exhibits TemporalFingerprint
+(apk:APK)-[:EXHIBITS_TIMING {
+    observed_interval_ms: int,
+    match_confidence: float
+}]->(tf:TemporalFingerprint)
+
+// Pattern linked to TemporalFingerprint (category="behavioral_timing")
+(p:Pattern)-[:REFERENCES_TIMING]->(tf:TemporalFingerprint)
+
+// Pattern found in APK (what APKs originally defined this pattern)
+(p:Pattern)-[:EXTRACTED_FROM]->(apk:APK)
+
+// Campaign exhibits Pattern (campaign-level pattern)
+(camp:Campaign)-[:USES_PATTERN]->(p:Pattern)
+
+// Hypothesis supported by Pattern match
+(h:Hypothesis)-[:SUPPORTED_BY]->(p:Pattern)
+```
+
 ---
 
 ## 5. Pre-Built Threat Hunting Queries
@@ -563,6 +942,105 @@ MATCH (b)<-[:CONTAINS_BLOB]-(apk:APK)
 MATCH (b)-[:VARIANT_OF*0..5]-(related:CodeBlob)
 RETURN apk.package, apk.risk_score,
        collect(DISTINCT related.intent_label) AS variant_intents
+```
+
+---
+
+### 5.9 V2 -- Investigation Replay (full hypothesis chain for an APK)
+
+**Q: "Show me the complete investigation reasoning for this APK"**
+```cypher
+MATCH (apk:APK {sha256: $sha256})
+MATCH (h:Hypothesis)-[:INVESTIGATES]->(apk)
+OPTIONAL MATCH (e:Experiment)-[:TESTS]->(h)
+OPTIONAL MATCH (o:Observation)-[:UPDATES]->(h)
+RETURN h.hypothesis_id,
+       h.claim,
+       h.status,
+       h.initial_confidence,
+       h.final_confidence,
+       h.expose_in_irt,
+       h.irt_label,
+       collect(DISTINCT {
+           experiment: e.description,
+           tool: e.tool_used,
+           result: e.result,
+           summary: e.result_summary
+       }) AS experiments,
+       collect(DISTINCT {
+           type: o.observation_type,
+           at_ms: o.timestamp_offset_ms,
+           direction: o.update_direction
+       }) AS observations
+ORDER BY h.formed_at ASC
+```
+
+### 5.10 V2 -- Pattern Matching Intelligence
+
+**Q: "What known patterns does this APK match, and how confident?"**
+```cypher
+MATCH (apk:APK {sha256: $sha256})-[m:MATCHES_PATTERN]->(p:Pattern)
+OPTIONAL MATCH (p)-[:REFERENCES_TIMING]->(tf:TemporalFingerprint)
+RETURN p.name,
+       p.category,
+       p.malware_family,
+       m.confidence AS match_confidence,
+       p.attck_techniques,
+       p.hit_count,
+       p.false_positive_rate,
+       tf.name AS timing_fingerprint,
+       tf.pattern_type AS timing_type
+ORDER BY m.confidence DESC
+```
+
+### 5.11 V2 -- Fraud Chain Reconstruction
+
+**Q: "Reconstruct full fraud chain for this APK as an ordered narrative"**
+```cypher
+MATCH (apk:APK {sha256: $sha256})-[:HAS_FRAUD_STAGE]->(fcs:FraudChainStage)
+RETURN fcs.stage_order,
+       fcs.stage_type,
+       fcs.description,
+       fcs.confidence,
+       fcs.evidence,
+       fcs.attck_techniques,
+       fcs.recommended_control,
+       fcs.approval_mode
+ORDER BY fcs.stage_order ASC
+```
+
+### 5.12 V2 -- Temporal Fingerprint Cluster (dormant malware detection)
+
+**Q: "All APKs matching GoldPickaxe 60s beacon signature"**
+```cypher
+MATCH (tf:TemporalFingerprint {malware_family: "GoldPickaxe", pattern_type: "BEACON_INTERVAL"})
+MATCH (apk:APK)-[ex:EXHIBITS_TIMING]->(tf)
+WHERE ex.match_confidence >= 0.8
+RETURN apk.sha256,
+       apk.package,
+       apk.risk_score,
+       apk.verdict,
+       ex.observed_interval_ms,
+       ex.match_confidence
+ORDER BY ex.match_confidence DESC
+```
+
+### 5.13 V2 -- IRT-Ready Hypothesis Export
+
+**Q: "Get all IRT-exportable hypotheses for a report"**
+```cypher
+MATCH (h:Hypothesis)-[:INVESTIGATES]->(apk:APK {sha256: $sha256})
+WHERE h.expose_in_irt = true
+  AND h.status IN ["CONFIRMED", "UNRESOLVED"]
+RETURN h.status,
+       h.irt_label,
+       h.final_confidence,
+       h.unresolved_reason,
+       h.recommended_next_step,
+       h.formed_by_agent
+ORDER BY
+    CASE h.status WHEN "CONFIRMED" THEN 0 ELSE 1 END,
+    h.final_confidence DESC
 ```
 
 ---
@@ -777,10 +1255,10 @@ CREATE INDEX apk_severity_date IF NOT EXISTS FOR (n:APK) ON (n.verdict, n.first_
 ### 9.2 Graph Data Science Library
 
 Used for:
-- **Community detection** (Louvain, Label Propagation) → campaign discovery
-- **Centrality** (PageRank) → most-important infrastructure
-- **Similarity** (Node Similarity) → find related APKs
-- **Path finding** → infrastructure chains
+- **Community detection** (Louvain, Label Propagation) -> campaign discovery
+- **Centrality** (PageRank) -> most-important infrastructure
+- **Similarity** (Node Similarity) -> find related APKs
+- **Path finding** -> infrastructure chains
 
 ### 9.3 Scale Targets
 
