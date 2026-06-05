@@ -1,5 +1,18 @@
-# PARALLAX — Complete Technology Stack
+# PARALLAX  --  Complete Technology Stack
 ## Every Tool, Every Version, Every Install Command
+
+> **V2 NOTE:** This document is part of the original planning suite. The authoritative
+> design now lives in:
+> - `PARALLAX_VISION.md`  --  anchor vision document
+> - `02b_ARCHITECTURE_REVISED.md`  --  revised architecture with hypothesis-driven loop
+> - `02_ARCHITECTURE.md`  --  original (this doc references it)
+>
+> Key v2 additions: AI Reverse Engineering Workbench, Hypothesis Loop, AI-Guided
+> Dynamic Exploration, Adaptive Hook Planning, Malware Pattern Memory, Risk
+> Calibration Engine, IRT distillation, Fraud Attack Chain, Approval Modes.
+> Read `PARALLAX_VISION.md` first for the anchor view.
+
+---
 
 ---
 
@@ -8,22 +21,22 @@
 PARALLAX is built entirely on **open-source, best-in-class tools**. No proprietary malware engine is required. The stack is organized by system layer.
 
 ```
-Layer 1 (Ingestion)   → FastAPI, Celery, Redis, MinIO, APKiD, ssdeep
-Layer 2 (Analysis)    → androguard, jadx, apktool, FlowDroid, YARA,
+Layer 1 (Ingestion)   -> FastAPI, Celery, Redis, MinIO, APKiD, ssdeep
+Layer 2 (Analysis)    -> androguard, jadx, apktool, FlowDroid, YARA,
                          Semgrep, BinDiff, Diaphora, Unicorn, Frida,
                          mitmproxy, Scapy, r2pipe, simplify
-Layer 2 Visual (2C)   → LLaVA-OneVision, InternVL, OpenCV, Pillow
-Layer 3 (AI Cortex)   → Ollama, DeepSeek-Coder-V2, Mistral-Large,
+Layer 2 Visual (2C)   -> LLaVA-OneVision, InternVL, OpenCV, Pillow
+Layer 3 (AI Cortex)   -> Ollama, DeepSeek-Coder-V2, Mistral-Large,
                          Llama-3.1-70B, Phi-3-Mini, GPT-4o/Claude,
                          LangGraph, CrewAI, LlamaIndex, DSPy
-Layer 4 (Knowledge)   → Neo4j, Qdrant, MISP, OpenCTI, NebulaGraph
-Layer 5 (Delivery)    → Grafana, React, Jinja2, OpenTelemetry, Jaeger
-Infrastructure       → Docker, Kubernetes, PostgreSQL, Prometheus
+Layer 4 (Knowledge)   -> Neo4j, Qdrant, MISP, OpenCTI, NebulaGraph
+Layer 5 (Delivery)    -> Grafana, React, Jinja2, OpenTelemetry, Jaeger
+Infrastructure       -> Docker, Kubernetes, PostgreSQL, Prometheus
 ```
 
 ---
 
-## 2. Layer 1 — Ingestion & Triage Stack
+## 2. Layer 1  --  Ingestion & Triage Stack
 
 ### 2.1 FastAPI (Ingestion API)
 
@@ -101,7 +114,7 @@ Infrastructure       → Docker, Kubernetes, PostgreSQL, Prometheus
 
 ---
 
-## 3. Layer 2 — Analysis Engine Stack
+## 3. Layer 2  --  Analysis Engine Stack
 
 ### 3.1 Static Analysis Toolchain
 
@@ -122,7 +135,7 @@ Infrastructure       → Docker, Kubernetes, PostgreSQL, Prometheus
 |---|---|
 | Version | 1.5.0+ |
 | Repo | https://github.com/skylot/jadx |
-| Purpose | DEX → readable Java source |
+| Purpose | DEX -> readable Java source |
 | License | Apache 2.0 |
 | Install | Download release ZIP or `apt install jadx` |
 | CLI usage | `jadx -d output_dir app.apk` |
@@ -143,7 +156,7 @@ Infrastructure       → Docker, Kubernetes, PostgreSQL, Prometheus
 |---|---|
 | Version | 2.13+ |
 | Repo | https://github.com/secure-software-engineering/FlowDroid |
-| Purpose | Precise data-flow analysis: SOURCE → SINK |
+| Purpose | Precise data-flow analysis: SOURCE -> SINK |
 | License | LGPL |
 | Install | Requires Java 11+, download from releases |
 | Why chosen | Industry-standard for Android taint analysis |
@@ -168,14 +181,14 @@ Infrastructure       → Docker, Kubernetes, PostgreSQL, Prometheus
 | Purpose | Industry-standard malware pattern rules |
 | License | BSD-3 |
 | Install | `pip install yara-python` |
-| Critical | Used in feedback loop — auto-generated rules added over time |
+| Critical | Used in feedback loop  --  auto-generated rules added over time |
 
 #### BinDiff (Binary Diffing)
 
 | Attribute | Value |
 |---|---|
 | Version | 8 (commercial, free for non-commercial) |
-| Alt (open) | Diaphora — https://github.com/eshard/diaphora |
+| Alt (open) | Diaphora  --  https://github.com/eshard/diaphora |
 | Purpose | Find shared code between APK and known malware |
 | License | Commercial (BinDiff) / GPL (Diaphora) |
 | Why Diaphora | Open-source, works on APK contexts |
@@ -323,7 +336,7 @@ Infrastructure       → Docker, Kubernetes, PostgreSQL, Prometheus
 
 ---
 
-## 4. Layer 3 — AI Reasoning Cortex Stack
+## 4. Layer 3  --  AI Reasoning Cortex Stack
 
 ### 4.1 LLM Models (All Local via Ollama Unless Noted)
 
@@ -335,8 +348,8 @@ Infrastructure       → Docker, Kubernetes, PostgreSQL, Prometheus
 | Llama-3.1-70B-Instruct | 70B | Q4 | Behavior analysis (alt) | `llama3.1:70b-instruct-q4_K_M` |
 | LLaVA-OneVision | 7B | Q4_K_M | Visual UI analysis | `llava-onevision` |
 | Qwen2.5-72B | 72B | Q4 | Synthesis (alt, fully local) | `qwen2.5:72b` |
-| GPT-4o (API) | — | — | Synthesis (optional, API) | external |
-| Claude Opus (API) | — | — | Synthesis (optional, API) | external |
+| GPT-4o (API) |  --  |  --  | Synthesis (optional, API) | external |
+| Claude Opus (API) |  --  |  --  | Synthesis (optional, API) | external |
 
 **Hardware note for 70B+ models:** Requires 2x NVIDIA A100 80GB or 1x H100 80GB for full speed. For CPU fallback, expect 5-10x slower.
 
@@ -397,7 +410,7 @@ Infrastructure       → Docker, Kubernetes, PostgreSQL, Prometheus
 
 ---
 
-## 5. Layer 4 — Knowledge Graph Stack
+## 5. Layer 4  --  Knowledge Graph Stack
 
 ### 5.1 Neo4j (Primary Graph)
 
@@ -453,7 +466,7 @@ Infrastructure       → Docker, Kubernetes, PostgreSQL, Prometheus
 
 ---
 
-## 6. Layer 5 — Delivery Stack
+## 6. Layer 5  --  Delivery Stack
 
 ### 6.1 Grafana (Dashboard)
 
@@ -780,7 +793,7 @@ volumes:
 |---|---|
 | CPU | 8 cores, x86_64 |
 | RAM | 32 GB |
-| GPU | NVIDIA RTX 3060 (12GB) — optional but recommended for LLMs |
+| GPU | NVIDIA RTX 3060 (12GB)  --  optional but recommended for LLMs |
 | Storage | 500 GB SSD |
 | Network | 1 Gbps |
 | Use case | Single analyst workstation, low volume |
@@ -802,7 +815,7 @@ volumes:
 |---|---|
 | CPU | 16 cores |
 | RAM | 64 GB |
-| GPU | RTX 4090 (24GB) — runs 7B/13B models comfortably |
+| GPU | RTX 4090 (24GB)  --  runs 7B/13B models comfortably |
 | Storage | 2 TB SSD |
 | Use case | Pilot with 5-20 APKs/day |
 

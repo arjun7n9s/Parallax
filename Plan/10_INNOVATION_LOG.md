@@ -1,11 +1,24 @@
-# PARALLAX — Innovation Log
+# PARALLAX  --  Innovation Log
 ## What Makes Each Piece Novel (For Stakeholders)
+
+> **V2 NOTE:** This document is part of the original planning suite. The authoritative
+> design now lives in:
+> - `PARALLAX_VISION.md`  --  anchor vision document
+> - `02b_ARCHITECTURE_REVISED.md`  --  revised architecture with hypothesis-driven loop
+> - `02_ARCHITECTURE.md`  --  original (this doc references it)
+>
+> Key v2 additions: AI Reverse Engineering Workbench, Hypothesis Loop, AI-Guided
+> Dynamic Exploration, Adaptive Hook Planning, Malware Pattern Memory, Risk
+> Calibration Engine, IRT distillation, Fraud Attack Chain, Approval Modes.
+> Read `PARALLAX_VISION.md` first for the anchor view.
+
+---
 
 ---
 
 ## Purpose
 
-This document captures the **specific innovations** in PARALLAX — for use in:
+This document captures the **specific innovations** in PARALLAX  --  for use in:
 - Investor pitches
 - Academic publications
 - Patent disclosures
@@ -19,28 +32,28 @@ Each innovation is described: what it is, why it matters, what's different from 
 ## Innovation #1: Temporal Adversarial Intelligence Graph (TAIG)
 
 ### What It Is
-A persistent, living knowledge graph where **APKs are nodes** and every observed relationship — code similarity, infrastructure reuse, ATT&CK techniques, campaign membership, threat actor attribution — is an edge. Every new APK analyzed enriches the graph. The graph itself becomes an intelligence asset that no single-APK tool can replicate.
+A persistent, living knowledge graph where **APKs are nodes** and every observed relationship  --  code similarity, infrastructure reuse, ATT&CK techniques, campaign membership, threat actor attribution  --  is an edge. Every new APK analyzed enriches the graph. The graph itself becomes an intelligence asset that no single-APK tool can replicate.
 
 ### Why It Matters
-Every existing tool — open-source or commercial — analyzes APKs in isolation. They answer: *"Is this APK malicious?"* TAIG answers questions that emerge only from cross-sample intelligence:
+Every existing tool  --  open-source or commercial  --  analyzes APKs in isolation. They answer: *"Is this APK malicious?"* TAIG answers questions that emerge only from cross-sample intelligence:
 
 - *"Is this APK part of an active campaign targeting Indian banks right now?"*
-- *"This C2 IP appeared in 3 other APKs last week — what's the pattern?"*
+- *"This C2 IP appeared in 3 other APKs last week  --  what's the pattern?"*
 - *"Which threat actor wrote this, and what did their last 6 APKs do?"*
-- *"This is generation 4 of a malware family that started as BankBot 2022 — what's the evolutionary trajectory?"*
+- *"This is generation 4 of a malware family that started as BankBot 2022  --  what's the evolutionary trajectory?"*
 - *"If we block this campaign's infrastructure, what's the predicted next move?"*
 
 ### What's Different
 - **No existing tool** maintains cross-APK intelligence as a first-class citizen
 - MobSF, VirusTotal, Any.Run all do single-sample analysis
 - Even threat intel platforms (MISP, OpenCTI) are passive stores, not active analyzers
-- TAIG is **both** — PARALLAX analyzes AND enriches the graph in the same pipeline
+- TAIG is **both**  --  PARALLAX analyzes AND enriches the graph in the same pipeline
 
 ### The Moat
 - Every APK analyzed makes the graph smarter
 - After 6 months, PARALLAX has a 6-month head start on any new competitor
 - Threat actor attribution, campaign detection, and infrastructure pivot identification all improve with data accumulation
-- The graph is **portable** (Neo4j Cypher standard) but the **accumulated insights are not** — they're the moat
+- The graph is **portable** (Neo4j Cypher standard) but the **accumulated insights are not**  --  they're the moat
 
 ### Technical Foundation
 - Neo4j graph database (Cypher query language)
@@ -53,7 +66,7 @@ Every existing tool — open-source or commercial — analyzes APKs in isolation
 ## Innovation #2: Multi-Agent Reasoning Cortex with Debate Layer
 
 ### What It Is
-Five specialized AI agents, each with a domain focus and the right model for the job, coordinated via LangGraph. They reason independently, then a **Debate Layer** explicitly handles disagreements — and treats contradictions as **high-confidence signals** rather than averaging them away.
+Five specialized AI agents, each with a domain focus and the right model for the job, coordinated via LangGraph. They reason independently, then a **Debate Layer** explicitly handles disagreements  --  and treats contradictions as **high-confidence signals** rather than averaging them away.
 
 ### The Agent Team
 | Agent | Model | Domain |
@@ -74,12 +87,12 @@ Single-LLM approaches to malware analysis either:
 
 PARALLAX's multi-agent approach grounds each agent in **structured tool outputs**, lets each use the **right model for its job**, and **specializes** the prompts deeply.
 
-### The Debate Layer — The Sub-Innovation
+### The Debate Layer  --  The Sub-Innovation
 Most multi-agent systems use consensus (vote average). PARALLAX uses **contradiction as signal**:
 
-- Static says clean, dynamic says malicious → **alert elevated** (likely evasion)
-- Visual catches phishing that code missed → **weight visual higher**
-- Strong attribution from intel → **boost risk score**
+- Static says clean, dynamic says malicious -> **alert elevated** (likely evasion)
+- Visual catches phishing that code missed -> **weight visual higher**
+- Strong attribution from intel -> **boost risk score**
 
 Sophisticated malware **is** the contradiction. An APK that looks clean but behaves dirty is exactly what advanced threats do. Most systems miss this; PARALLAX flags it explicitly.
 
@@ -107,7 +120,7 @@ A dedicated AI agent (LLaVA-OneVision or InternVL) that analyzes **every screens
 - Off-screen hidden input fields
 
 ### Why It Matters
-Modern banking trojans don't just have malicious code — they have **malicious UI**:
+Modern banking trojans don't just have malicious code  --  they have **malicious UI**:
 - Fake SBI YONO login screen
 - Overlay that appears only when real banking app is in foreground
 - Pixel-perfect replicas of legitimate apps
@@ -151,10 +164,10 @@ PARALLAX uses **different LLMs for different tasks**, matched to task complexity
 
 ### Why It Matters
 Single-LLM systems make a fundamental error: they pick one model and force-fit it to every task. Either:
-- Small model → fast but inaccurate on hard tasks
-- Large model → accurate but slow and expensive
+- Small model -> fast but inaccurate on hard tasks
+- Large model -> accurate but slow and expensive
 
-PARALLAX uses **the right model for the right job** — the same architectural principle AWS uses with EC2 instance types.
+PARALLAX uses **the right model for the right job**  --  the same architectural principle AWS uses with EC2 instance types.
 
 ### What's Different
 - Most "AI malware analysis" tools are thin GPT-4 wrappers
@@ -223,7 +236,7 @@ Standard sandboxes miss this. PARALLAX's mutation framework **catches context-aw
 - Especially effective against: region-locked malware, anti-sandbox techniques, staged payloads
 
 ### Example Detected
-*"This APK is clean when SIM is +1 (US), but immediately contacts C2 server when SIM is +92 (Pakistan). Targeting Pakistani diaspora — flagged as region-locked malware."*
+*"This APK is clean when SIM is +1 (US), but immediately contacts C2 server when SIM is +92 (Pakistan). Targeting Pakistani diaspora  --  flagged as region-locked malware."*
 
 ### Technical Foundation
 - Android AVD orchestration
@@ -252,7 +265,7 @@ parallax.similar(apk_sha256="abc...", k=10)
 ```
 
 ### Why It Matters
-Threat hunting is the analyst's primary workflow. Most tools force analysts to **leave the analysis platform** to hunt — they go to MISP, OpenCTI, or write custom Cypher.
+Threat hunting is the analyst's primary workflow. Most tools force analysts to **leave the analysis platform** to hunt  --  they go to MISP, OpenCTI, or write custom Cypher.
 
 PARALLAX **brings hunting into the analysis flow** with domain-specific operations, not raw Cypher.
 
@@ -296,7 +309,7 @@ Traditional security tools require manual rule updates, signature database subsc
 - Competitor starting today: 6-month head start to close
 
 ### Technical Foundation
-- All pipeline outputs → knowledge stores (Neo4j, Qdrant, YARA library)
+- All pipeline outputs -> knowledge stores (Neo4j, Qdrant, YARA library)
 - DSPy retraining on new labeled data
 - Auto-deployment of new rules (gated, with review)
 
@@ -307,14 +320,14 @@ Traditional security tools require manual rule updates, signature database subsc
 ### What It Is
 PARALLAX's risk score is **additive and explainable**:
 ```
-risk_score = 0.12 × permission_abuse
-           + 0.20 × behavioral_indicators
-           + 0.18 × code_intent_risk
-           + 0.15 × network_exfiltration
-           + 0.05 × code_obfuscation
-           + 0.15 × brand_impersonation
-           + 0.10 × campaign_association
-           + 0.05 × attribution_confidence
+risk_score = 0.12 x permission_abuse
+           + 0.20 x behavioral_indicators
+           + 0.18 x code_intent_risk
+           + 0.15 x network_exfiltration
+           + 0.05 x code_obfuscation
+           + 0.15 x brand_impersonation
+           + 0.10 x campaign_association
+           + 0.05 x attribution_confidence
 ```
 
 Every component has a documented weight. Every claim is cited to specific tool output.
@@ -335,7 +348,7 @@ PARALLAX's explainable scoring satisfies all of these.
 ### Technical Foundation
 - Weighted additive scoring
 - Per-component breakdowns in reports
-- Evidence chain: every claim → tool output citation
+- Evidence chain: every claim -> tool output citation
 
 ---
 
@@ -351,7 +364,7 @@ Every output PARALLAX produces is in **industry-standard formats**:
 - **OpenAPI** for API integration
 
 ### Why It Matters
-Banks already have SIEM, SOAR, fraud systems, and threat intel platforms. PARALLAX doesn't replace them — **it plugs into them** via standards.
+Banks already have SIEM, SOAR, fraud systems, and threat intel platforms. PARALLAX doesn't replace them  --  **it plugs into them** via standards.
 
 A new tool that produces proprietary formats is friction. PARALLAX is **frictionless integration**.
 
@@ -384,14 +397,14 @@ A new tool that produces proprietary formats is friction. PARALLAX is **friction
 | 9 | Explainable risk scoring | Compliance + audit + trust |
 | 10 | Standards-first outputs | Frictionless integration |
 
-**Together, these make PARALLAX a flagship product — not just another tool.**
+**Together, these make PARALLAX a flagship product  --  not just another tool.**
 
 ---
 
 ## Patent & Publication Opportunities
 
 Several of these innovations are patentable:
-- **TAIG** (US patent eligible — novel data structure + algorithm)
+- **TAIG** (US patent eligible  --  novel data structure + algorithm)
 - **Debate Layer with contradiction-as-signal** (novel heuristic)
 - **Mutation testing for malware** (novel application of existing technique)
 - **Self-evolution loop** (novel system design)

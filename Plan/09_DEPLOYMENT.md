@@ -1,5 +1,18 @@
-# PARALLAX — Deployment Guide
+# PARALLAX  --  Deployment Guide
 ## From Local Dev to Bank Production
+
+> **V2 NOTE:** This document is part of the original planning suite. The authoritative
+> design now lives in:
+> - `PARALLAX_VISION.md`  --  anchor vision document
+> - `02b_ARCHITECTURE_REVISED.md`  --  revised architecture with hypothesis-driven loop
+> - `02_ARCHITECTURE.md`  --  original (this doc references it)
+>
+> Key v2 additions: AI Reverse Engineering Workbench, Hypothesis Loop, AI-Guided
+> Dynamic Exploration, Adaptive Hook Planning, Malware Pattern Memory, Risk
+> Calibration Engine, IRT distillation, Fraud Attack Chain, Approval Modes.
+> Read `PARALLAX_VISION.md` first for the anchor view.
+
+---
 
 ---
 
@@ -115,7 +128,7 @@ curl -X POST http://localhost:8000/api/v1/analyze \
 │  │  workers (Celery, 4 concurrency)                │ │
 │  │  ollama (GPU)                                    │ │
 │  │  ┌────────────┐                                  │ │
-│  │  │ nginx 443  │ → api 8000                       │ │
+│  │  │ nginx 443  │ -> api 8000                       │ │
 │  │  └────────────┘                                  │ │
 │  │  postgres, redis, minio, neo4j, qdrant, grafana │ │
 │  └─────────────────────────────────────────────────┘ │
@@ -264,24 +277,24 @@ docker compose exec postgres psql -U parallax -c \
 │  │  Namespace: parallax                                  │ │
 │  │                                                       │ │
 │  │  Deployments:                                         │ │
-│  │  • parallax-api (3 replicas, HPA)                     │ │
-│  │  • parallax-worker-static (3 replicas)                │ │
-│  │  • parallax-worker-dynamic (5 replicas, GPU node)     │ │
-│  │  • parallax-worker-ai (2 replicas, GPU node)          │ │
-│  │  • parallax-web (React UI, 2 replicas)                │ │
+│  │  - parallax-api (3 replicas, HPA)                     │ │
+│  │  - parallax-worker-static (3 replicas)                │ │
+│  │  - parallax-worker-dynamic (5 replicas, GPU node)     │ │
+│  │  - parallax-worker-ai (2 replicas, GPU node)          │ │
+│  │  - parallax-web (React UI, 2 replicas)                │ │
 │  │                                                       │ │
 │  │  StatefulSets:                                        │ │
-│  │  • neo4j (3-node cluster)                             │ │
-│  │  • qdrant (3-node cluster)                            │ │
-│  │  • minio (4-node distributed)                         │ │
-│  │  • postgres (1 primary + 2 replicas)                 │ │
-│  │  • redis (3-node parallax)                           │ │
-│  │  • ollama (GPU node, 1+ replicas)                    │ │
+│  │  - neo4j (3-node cluster)                             │ │
+│  │  - qdrant (3-node cluster)                            │ │
+│  │  - minio (4-node distributed)                         │ │
+│  │  - postgres (1 primary + 2 replicas)                 │ │
+│  │  - redis (3-node parallax)                           │ │
+│  │  - ollama (GPU node, 1+ replicas)                    │ │
 │  │                                                       │ │
 │  │  Services:                                            │ │
-│  │  • parallax-api (ClusterIP)                          │ │
-│  │  • parallax-web (LoadBalancer)                       │ │
-│  │  • Internal service mesh                             │ │
+│  │  - parallax-api (ClusterIP)                          │ │
+│  │  - parallax-web (LoadBalancer)                       │ │
+│  │  - Internal service mesh                             │ │
 │  │                                                       │ │
 │  │  ConfigMaps: env config                              │ │
 │  │  Secrets: API keys, certs                            │ │
@@ -290,10 +303,10 @@ docker compose exec postgres psql -U parallax -c \
 │  └──────────────────────────────────────────────────────┘ │
 │                                                            │
 │  Node Pools:                                               │
-│  • general (32 cores, 128GB, 500GB SSD)                    │
-│  • gpu-large (32 cores, 256GB, 1x A100 80GB)              │
-│  • gpu-xlarge (64 cores, 512GB, 2x H100 80GB)             │
-│  • storage (32 cores, 64GB, 20TB HDD)                     │
+│  - general (32 cores, 128GB, 500GB SSD)                    │
+│  - gpu-large (32 cores, 256GB, 1x A100 80GB)              │
+│  - gpu-xlarge (64 cores, 512GB, 2x H100 80GB)             │
+│  - storage (32 cores, 64GB, 20TB HDD)                     │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -453,7 +466,7 @@ spec:
     - namespaceSelector:
         matchLabels:
           name: parallax
-  # NO internet egress — analysis workers cannot reach outside
+  # NO internet egress  --  analysis workers cannot reach outside
   # except to internal whitelisted test endpoints
 ```
 
@@ -507,7 +520,7 @@ Pre-built dashboards:
 ### 6.2 Tracing (Jaeger)
 
 Every analysis request is fully traced:
-- Submit → Triage → Static → Dynamic → Visual → Cortex → Synthesis → Delivery
+- Submit -> Triage -> Static -> Dynamic -> Visual -> Cortex -> Synthesis -> Delivery
 - Per-agent LLM call traces
 - Per-tool execution traces
 - Click through from dashboard to individual trace

@@ -1,15 +1,28 @@
-# PARALLAX — Testing Strategy
+# PARALLAX  --  Testing Strategy
 ## How We Verify Flagship-Grade Quality
+
+> **V2 NOTE:** This document is part of the original planning suite. The authoritative
+> design now lives in:
+> - `PARALLAX_VISION.md`  --  anchor vision document
+> - `02b_ARCHITECTURE_REVISED.md`  --  revised architecture with hypothesis-driven loop
+> - `02_ARCHITECTURE.md`  --  original (this doc references it)
+>
+> Key v2 additions: AI Reverse Engineering Workbench, Hypothesis Loop, AI-Guided
+> Dynamic Exploration, Adaptive Hook Planning, Malware Pattern Memory, Risk
+> Calibration Engine, IRT distillation, Fraud Attack Chain, Approval Modes.
+> Read `PARALLAX_VISION.md` first for the anchor view.
+
+---
 
 ---
 
 ## 1. Testing Philosophy
 
-PARALLAX is a **security-critical system**. Bugs don't just cause inconvenience — they cause:
-- False negatives → fraud losses, regulatory penalties
-- False positives → analyst burnout, ignored alerts
-- Hallucinations → wrong fraud rules, customer impact
-- Performance misses → missed detection window
+PARALLAX is a **security-critical system**. Bugs don't just cause inconvenience  --  they cause:
+- False negatives -> fraud losses, regulatory penalties
+- False positives -> analyst burnout, ignored alerts
+- Hallucinations -> wrong fraud rules, customer impact
+- Performance misses -> missed detection window
 
 Testing must be **exhaustive, automated, and continuous**. Every component is tested at three levels: unit, integration, end-to-end.
 
@@ -409,7 +422,7 @@ def test_every_agent_output_validates_against_schema():
 
 ```python
 def test_synthesis_is_deterministic_with_temperature_zero():
-    """Same input → same output (when temperature=0)."""
+    """Same input -> same output (when temperature=0)."""
     input_data = load_fixture("test_input.json")
     result1 = await synthesis_agent.run(input_data, temperature=0.0)
     result2 = await synthesis_agent.run(input_data, temperature=0.0)
