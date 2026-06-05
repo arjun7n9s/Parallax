@@ -1,5 +1,18 @@
-# PARALLAX — System Architecture
+# PARALLAX  --  System Architecture
 ## Complete Technical Design Document
+
+> **V2 NOTE:** This document was the original architecture. A comprehensive revision has been produced as `02b_ARCHITECTURE_REVISED.md` that implements the hypothesis-driven, AI-native vision in `PARALLAX_VISION.md`. Key additions in v2:
+> - **AI Reverse Engineering Workbench** (Module 2)  --  structured artifact model, the heart of v2
+> - **Hypothesis-Driven Investigation Loop**  --  recursive, not one-pass
+> - **AI-Guided Dynamic Exploration** (Module 6)  --  AI-operated, not passive sandbox
+> - **Adaptive Hook Planning** (Module 4)  --  Frida plans that update mid-run
+> - **Malware Pattern Memory** (Module 9)  --  8-category named subsystem
+> - **Risk Calibration Engine** (Module 11)  --  two-layer scoring
+> - **Evidence Validator + IRT** (Module 12)  --  clean external trace, verbose internal
+> - **Fraud Attack Chain Builder**  --  bank-specific output
+> - **Approval Mode Controller**  --  tiered human-in-the-loop
+>
+> Read **`PARALLAX_VISION.md` first, then `02b_ARCHITECTURE_REVISED.md`** for the authoritative current design. This file is retained for context and module-level technical detail.
 
 ---
 
@@ -9,14 +22,14 @@ PARALLAX is a 5-layer, multi-agent, self-evolving malware analysis platform. The
 
 ### 1.1 Design Principles
 
-1. **Separation of concerns** — each layer is independently testable and replaceable
-2. **Right tool for right job** — no single tool does everything well
-3. **AI for reasoning, not magic** — LLMs interpret, never hallucinate alone
-4. **Grounded outputs** — every AI claim cites the tool output it came from
-5. **Standards-first** — STIX 2.1, MITRE ATT&CK, MISP for all outputs
-6. **On-premise capable** — runs fully locally with Ollama (no cloud calls)
-7. **Observable by design** — every decision traced via OpenTelemetry
-8. **Self-evolving** — every APK makes the system measurably smarter
+1. **Separation of concerns**  --  each layer is independently testable and replaceable
+2. **Right tool for right job**  --  no single tool does everything well
+3. **AI for reasoning, not magic**  --  LLMs interpret, never hallucinate alone
+4. **Grounded outputs**  --  every AI claim cites the tool output it came from
+5. **Standards-first**  --  STIX 2.1, MITRE ATT&CK, MISP for all outputs
+6. **On-premise capable**  --  runs fully locally with Ollama (no cloud calls)
+7. **Observable by design**  --  every decision traced via OpenTelemetry
+8. **Self-evolving**  --  every APK makes the system measurably smarter
 
 ### 1.2 High-Level Architecture
 
@@ -38,7 +51,7 @@ PARALLAX is a 5-layer, multi-agent, self-evolving malware analysis platform. The
 
 ---
 
-## 2. Layer 1 — Ingestion & Triage
+## 2. Layer 1  --  Ingestion & Triage
 
 ### 2.1 Purpose
 Accept APK submissions from multiple sources, perform fast pre-screening, prioritize queue.
@@ -92,13 +105,13 @@ Given this APK's manifest, permissions, and metadata only, output:
   "flag_reasons": ["<reason1>", ...]
 }
 
-Be conservative — false negatives cost money, false positives cost analyst time.
+Be conservative  --  false negatives cost money, false positives cost analyst time.
 When in doubt, escalate priority.
 ```
 
 ### 2.5 Pre-Check Against Known-Bad
 
-Before full analysis, ssdeep fuzzy hash is checked against the existing hash database. If similarity > 90% to a known-malicious sample, the analysis can be **fast-pathed** — only generate a delta report against the previous sample.
+Before full analysis, ssdeep fuzzy hash is checked against the existing hash database. If similarity > 90% to a known-malicious sample, the analysis can be **fast-pathed**  --  only generate a delta report against the previous sample.
 
 ### 2.6 Data Structures
 
@@ -131,20 +144,20 @@ Before full analysis, ssdeep fuzzy hash is checked against the existing hash dat
 
 ### 2.7 Tech Choices
 
-- **FastAPI** — async REST ingestion
-- **Celery + Redis** — distributed task queue
-- **MinIO** — S3-compatible APK storage (retain originals for 90 days)
-- **Ollama** — local LLM serving
-- **APKiD**, **ssdeep** — pre-screening
-- **PostgreSQL** — submission metadata, audit log
+- **FastAPI**  --  async REST ingestion
+- **Celery + Redis**  --  distributed task queue
+- **MinIO**  --  S3-compatible APK storage (retain originals for 90 days)
+- **Ollama**  --  local LLM serving
+- **APKiD**, **ssdeep**  --  pre-screening
+- **PostgreSQL**  --  submission metadata, audit log
 
 ---
 
-## 3. Layer 2 — Multi-Dimensional Analysis Engine
+## 3. Layer 2  --  Multi-Dimensional Analysis Engine
 
 Three **parallel analysis tracks** run simultaneously on the same APK. Each produces a structured JSON output that feeds Layer 3.
 
-### 3.1 Track A — Deep Static Analysis
+### 3.1 Track A  --  Deep Static Analysis
 
 **Goal:** Understand what the APK *intends* to do without running it.
 
@@ -155,7 +168,7 @@ INPUT: APK file
   │     └─ Extract: permissions, components, intents, signatures
   │
   ├─► jadx (Java decompiler)
-  │     └─ Convert DEX → readable Java source
+  │     └─ Convert DEX -> readable Java source
   │     └─ Output: src/ tree for LLM consumption
   │
   ├─► apktool (smali decompiler)
@@ -166,7 +179,7 @@ INPUT: APK file
   │     └─ Look for hardcoded keys, hidden strings, crypto constants
   │
   ├─► FlowDroid (taint analysis)
-  │     └─ Trace data flow: SOURCE (user input) → SINK (network send)
+  │     └─ Trace data flow: SOURCE (user input) -> SINK (network send)
   │     └─ Proves: "user's bank PIN travels to remote server"
   │
   ├─► Semgrep (custom banking rules)
@@ -231,7 +244,7 @@ INPUT: APK file
 }
 ```
 
-### 3.2 Track B — Dynamic Behavioral Analysis
+### 3.2 Track B  --  Dynamic Behavioral Analysis
 
 **Goal:** Understand what the APK *actually does* at runtime.
 
@@ -247,7 +260,7 @@ INPUT: APK + Frida scripts
   │     └─ LLM-driven user simulation
   │     └─ Generates realistic input sequences
   │     └─ Explores app: launch, click, scroll, type, login
-  │     └─ Can ask: "what would a user do next?" → executes
+  │     └─ Can ask: "what would a user do next?" -> executes
   │
   ├─► Frida instrumentation (comprehensive)
   │     └─ Hooks: crypto APIs, SMS, clipboard, accessibility, camera, mic
@@ -315,7 +328,7 @@ INPUT: APK + Frida scripts
 }
 ```
 
-### 3.3 Track C — Visual Intelligence
+### 3.3 Track C  --  Visual Intelligence
 
 **Goal:** Detect malicious UI that code analysis misses.
 
@@ -385,7 +398,7 @@ Layer 2 is coordinated by a **Celery task graph**:
 
 ---
 
-## 4. Layer 3 — AI Reasoning Cortex
+## 4. Layer 3  --  AI Reasoning Cortex
 
 ### 4.1 Purpose
 Transform raw tool outputs into a **reasoned verdict** with explainable risk score.
@@ -427,7 +440,7 @@ Transform raw tool outputs into a **reasoned verdict** with explainable risk sco
 │           │  Behavior says Y,   │                                │
 │           │  Intel says Z"      │                                │
 │           │                     │                                │
-│           │ → Reconcile,        │                                │
+│           │ -> Reconcile,        │                                │
 │           │   surface contra-   │                                │
 │           │   dictions as       │                                │
 │           │   high-confidence   │                                │
@@ -453,15 +466,15 @@ Transform raw tool outputs into a **reasoned verdict** with explainable risk sco
 │           │                     │                                │
 │           │   Combines all 5    │                                │
 │           │   agent outputs     │                                │
-│           │   → final verdict   │                                │
-│           │   → risk score      │                                │
-│           │   → report          │                                │
-│           │   → recommendations │                                │
+│           │   -> final verdict   │                                │
+│           │   -> risk score      │                                │
+│           │   -> report          │                                │
+│           │   -> recommendations │                                │
 │           └─────────────────────┘                                │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-### 4.3 Agent 1 — Code Interpreter (DeepSeek-Coder-V2)
+### 4.3 Agent 1  --  Code Interpreter (DeepSeek-Coder-V2)
 
 **Input:** Decompiled Java + static analysis JSON
 **Process:**
@@ -485,7 +498,7 @@ def classify_intent(code_block: str) -> Intent:
 
 **Output feeds into:** NetworkX intent graph for the APK
 
-### 4.4 Agent 2 — Behavior Analyst (Mistral-Large)
+### 4.4 Agent 2  --  Behavior Analyst (Mistral-Large)
 
 **Input:** Runtime event stream + dynamic analysis JSON
 **Process:** Interprets the temporal sequence of events into a narrative
@@ -510,7 +523,7 @@ def classify_intent(code_block: str) -> Intent:
 }
 ```
 
-### 4.5 Agent 3 — Intel Correlator (RAG-based)
+### 4.5 Agent 3  --  Intel Correlator (RAG-based)
 
 **Input:** All IOCs (IPs, domains, hashes, certs) + observed behaviors
 **Corpus:**
@@ -586,7 +599,7 @@ class DebateLayer:
 
 **The final reasoner.** Takes all five agent outputs + debate result and produces:
 
-1. **Final risk score (0–100)** with explainable breakdown
+1. **Final risk score (0-100)** with explainable breakdown
 2. **Verdict** (BENIGN / SUSPICIOUS / MALICIOUS / CRITICAL)
 3. **Confidence interval**
 4. **Natural language report** (executive + technical)
@@ -594,7 +607,7 @@ class DebateLayer:
 
 ---
 
-## 5. Layer 4 — TAIG Knowledge Graph
+## 5. Layer 4  --  TAIG Knowledge Graph
 
 ### 5.1 Architecture
 
@@ -823,7 +836,7 @@ New APK analyzed
 
 ---
 
-## 6. Layer 5 — Delivery & Action Layer
+## 6. Layer 5  --  Delivery & Action Layer
 
 ### 6.1 Output Channels
 
@@ -875,9 +888,9 @@ def compute_risk_score(agent_outputs) -> RiskScore:
 ### 6.3 Report Generation (Jinja2)
 
 The Synthesis Agent produces structured output that Jinja2 templates convert into:
-- **Executive report** — 1 page, plain English, business impact
-- **Technical report** — full evidence chain, ATT&CK heatmap, screenshots
-- **Forensic report** — IOC dump, signature data, replay instructions
+- **Executive report**  --  1 page, plain English, business impact
+- **Technical report**  --  full evidence chain, ATT&CK heatmap, screenshots
+- **Forensic report**  --  IOC dump, signature data, replay instructions
 
 ### 6.4 Self-Evolution Outputs
 
@@ -923,10 +936,10 @@ Every analyzed APK automatically produces:
                                                           │
                                                           ▼
                                                   [Synthesis Agent]
-                                                  → Risk Score
-                                                  → Report
-                                                  → ATT&CK Map
-                                                  → YARA Rules
+                                                  -> Risk Score
+                                                  -> Report
+                                                  -> ATT&CK Map
+                                                  -> YARA Rules
                                                           │
                               ┌───────────────────────────┼───────────────────────────┐
                               ▼                           ▼                           ▼
@@ -986,18 +999,18 @@ Every analyzed APK automatically produces:
 
 ## 9. Security Considerations for PARALLAX Itself
 
-PARALLAX analyzes malware — it must be hardened against being compromised by what it analyzes.
+PARALLAX analyzes malware  --  it must be hardened against being compromised by what it analyzes.
 
-1. **Network isolation** — analysis workers have no internet access except to controlled test endpoints
-2. **Egress filtering** — captured malware traffic only goes to whitelisted analysis servers
-3. **No persistent storage** — APK originals auto-purged after 90 days unless flagged
-4. **Sandbox containment** — Android emulators on isolated VLANs
-5. **Credential vault** — all secrets via HashiCorp Vault, never in code
-6. **Supply chain** — all open-source deps pinned, SBOM generated per build
-7. **Audit logging** — every action logged immutably
-8. **Read-only file systems** — workers cannot modify their own containers
-9. **Resource limits** — CPU/RAM/disk caps prevent runaway analysis
-10. **Red team testing** — periodic adversarial testing of PARALLAX itself
+1. **Network isolation**  --  analysis workers have no internet access except to controlled test endpoints
+2. **Egress filtering**  --  captured malware traffic only goes to whitelisted analysis servers
+3. **No persistent storage**  --  APK originals auto-purged after 90 days unless flagged
+4. **Sandbox containment**  --  Android emulators on isolated VLANs
+5. **Credential vault**  --  all secrets via HashiCorp Vault, never in code
+6. **Supply chain**  --  all open-source deps pinned, SBOM generated per build
+7. **Audit logging**  --  every action logged immutably
+8. **Read-only file systems**  --  workers cannot modify their own containers
+9. **Resource limits**  --  CPU/RAM/disk caps prevent runaway analysis
+10. **Red team testing**  --  periodic adversarial testing of PARALLAX itself
 
 ---
 
@@ -1023,16 +1036,16 @@ Response: { status, progress_pct, current_stage, eta_seconds }
 
 ```
 GET /api/v1/analysis/{submission_id}/report
-→ PDF report
+-> PDF report
 
 GET /api/v1/analysis/{submission_id}/stix
-→ STIX 2.1 bundle (JSON)
+-> STIX 2.1 bundle (JSON)
 
 GET /api/v1/analysis/{submission_id}/yara
-→ YARA rule file
+-> YARA rule file
 
 GET /api/v1/analysis/{submission_id}/iocs
-→ IOC list (CSV/JSON)
+-> IOC list (CSV/JSON)
 ```
 
 ### 10.4 Graph Queries
@@ -1104,7 +1117,7 @@ CREATE TABLE audit_log (
 
 ---
 
-## 12. Self-Evolution Feedback Loop — Detailed
+## 12. Self-Evolution Feedback Loop  --  Detailed
 
 ```
 Analysis complete
@@ -1162,12 +1175,12 @@ Acceptable for high-priority samples. For batch processing, throughput scales ho
 
 ## 15. References for Architecture Design
 
-- **TAIG pattern** — inspired by Palantir Foundry's object-oriented graph + Neo4j best practices
-- **Multi-agent debate** — inspired by "Self-Consistency Improves Chain of Thought Reasoning" (Wang et al., 2022) and "Improving Factuality and Reasoning through Multiagent Debate" (Du et al., 2023)
-- **LangGraph orchestration** — patterns from LangChain documentation
-- **Self-evolution pattern** — inspired by AutoML and continuous learning systems
-- **RAG over threat intel** — LlamaIndex RAG patterns
-- **Binary similarity** — BinDiff research papers
+- **TAIG pattern**  --  inspired by Palantir Foundry's object-oriented graph + Neo4j best practices
+- **Multi-agent debate**  --  inspired by "Self-Consistency Improves Chain of Thought Reasoning" (Wang et al., 2022) and "Improving Factuality and Reasoning through Multiagent Debate" (Du et al., 2023)
+- **LangGraph orchestration**  --  patterns from LangChain documentation
+- **Self-evolution pattern**  --  inspired by AutoML and continuous learning systems
+- **RAG over threat intel**  --  LlamaIndex RAG patterns
+- **Binary similarity**  --  BinDiff research papers
 
 ---
 

@@ -1,4 +1,4 @@
-# PARALLAX — Ideation Document
+# PARALLAX  --  Ideation Document
 ## Persistent APK Risk Analysis via Lateral LLM-Augmented eXpertise
 
 ---
@@ -27,8 +27,8 @@ These fraudulent APKs are engineered to:
 
 | Existing Approach | Failure Mode |
 |---|---|
-| **Manual analysis by humans** | Slow (4–24 hours per APK), expensive, depends on scarce expertise |
-| **VirusTotal / signature AV** | 3–6 months behind novel malware; useless against polymorphic packers |
+| **Manual analysis by humans** | Slow (4-24 hours per APK), expensive, depends on scarce expertise |
+| **VirusTotal / signature AV** | 3-6 months behind novel malware; useless against polymorphic packers |
 | **MobSF standalone** | No reasoning layer; produces dumps, not intelligence |
 | **Sandboxes (Cuckoo/CAPE)** | Detected and evaded by context-aware malware |
 | **Single-LLM wrappers** | Hallucinate; no grounding in actual tool outputs; no knowledge retention |
@@ -41,13 +41,28 @@ These fraudulent APKs are engineered to:
 2. Multi-agent AI reasoning grounded in real tool outputs
 3. Cross-APK intelligence (each new sample enriches a living knowledge graph)
 4. Self-evolution (system gets smarter without human retraining)
-5. Actionable outputs (fraud rules, blocklists, ATT&CK mappings — not just PDFs)
+5. Actionable outputs (fraud rules, blocklists, ATT&CK mappings  --  not just PDFs)
+
+### 1.4 The Critical Positioning Insight
+
+**Most "AI malware analysis" tools position GenAI as a passive narrator:**
+```
+tools analyze APK -> agents interpret output -> report
+```
+
+**The funder's mandate requires something stronger:**
+```
+GenAI actively guides reverse engineering -> chooses tools -> inspects code -> 
+forms hypotheses -> requests deeper analysis -> verifies behavior -> scores risk
+```
+
+PARALLAX is the latter. The AI is the investigator. Tools are instruments.
 
 ---
 
 ## 2. The PARALLAX Vision
 
-> *A flagship, flagship-grade cyber-defense platform that thinks, reasons, and evolves like a human expert team — but operates at machine speed and machine scale.*
+> *A flagship, flagship-grade cyber-defense platform that thinks, reasons, and evolves like a human expert team  --  but operates at machine speed and machine scale.*
 
 ### 2.1 One-Line Definition
 PARALLAX is a **Generative-AI-orchestrated, multi-agent, self-evolving malware analysis platform** that ingests suspicious APKs, performs deep multi-dimensional analysis using the best open-source security tools, reasons about the results with specialized AI agents grounded in a living threat knowledge graph, and produces actionable intelligence for banks.
@@ -55,9 +70,9 @@ PARALLAX is a **Generative-AI-orchestrated, multi-agent, self-evolving malware a
 ### 2.2 Architectural Philosophy
 
 ```
-Traditional:    APK → [single tool] → human reads output → verdict
-PARALLAX:       APK → [multi-tool] → [AI agents reason] → [graph enriched]
-                                                            ↓
+Traditional:    APK -> [single tool] -> human reads output -> verdict
+PARALLAX:       APK -> [multi-tool] -> [AI agents reason] -> [graph enriched]
+                                                            v
                                             system is now smarter
                                             for next APK arrival
 ```
@@ -66,14 +81,14 @@ PARALLAX:       APK → [multi-tool] → [AI agents reason] → [graph enriched]
 
 ## 3. The Three Differentiating Innovations
 
-### 3.1 Innovation 1 — The Temporal Adversarial Intelligence Graph (TAIG)
+### 3.1 Innovation 1  --  The Temporal Adversarial Intelligence Graph (TAIG)
 
 **The single biggest architectural breakthrough.**
 
-Every existing tool analyzes APKs **in isolation, at a point in time.** TAIG treats APKs as **nodes in a living, persistent, queryable knowledge graph** — and the graph itself becomes the intelligence source.
+Every existing tool analyzes APKs **in isolation, at a point in time.** TAIG treats APKs as **nodes in a living, persistent, queryable knowledge graph**  --  and the graph itself becomes the intelligence source.
 
 ```
-                    TAIG — Living Knowledge Graph
+                    TAIG  --  Living Knowledge Graph
 
     APK_001 ──[SHARES_CODE_WITH 0.87]──► APK_047
        │                                     │
@@ -94,9 +109,9 @@ Every existing tool analyzes APKs **in isolation, at a point in time.** TAIG tre
 **What this enables that no single-APK tool can answer:**
 
 - *"Is this APK part of an active campaign targeting Indian banks right now?"*
-- *"Which threat actor wrote this — and what did their last 6 APKs do?"*
-- *"This C2 IP appeared in 3 other APKs last week — it's an infrastructure pivot"*
-- *"This code block was in BankBot 2022 → modified in 2023 → this is generation 4"*
+- *"Which threat actor wrote this  --  and what did their last 6 APKs do?"*
+- *"This C2 IP appeared in 3 other APKs last week  --  it's an infrastructure pivot"*
+- *"This code block was in BankBot 2022 -> modified in 2023 -> this is generation 4"*
 - *"If we block this campaign's infrastructure, what's the predicted next move?"*
 
 **Schema highlights (Neo4j):**
@@ -105,10 +120,10 @@ Every existing tool analyzes APKs **in isolation, at a point in time.** TAIG tre
 - Each relationship carries a confidence score and timestamp
 
 **Two-graph architecture:**
-- **Neo4j** — the structural knowledge graph (relationships, attribution, campaigns)
-- **Qdrant** — the semantic vector space (code-intent embeddings for similarity search)
+- **Neo4j**  --  the structural knowledge graph (relationships, attribution, campaigns)
+- **Qdrant**  --  the semantic vector space (code-intent embeddings for similarity search)
 
-### 3.2 Innovation 2 — Multi-Agent AI Reasoning Cortex with Debate Layer
+### 3.2 Innovation 2  --  Multi-Agent AI Reasoning Cortex with Debate Layer
 
 **The right model for the right job, with contradiction as a signal.**
 
@@ -125,23 +140,23 @@ PARALLAX does not use one LLM. It uses a **specialized agent team** with defined
 
 **Orchestrated via LangGraph** (stateful multi-agent graph) + **CrewAI** (role-based agent management).
 
-**The Debate Layer — the most underappreciated architectural element:**
+**The Debate Layer  --  the most underappreciated architectural element:**
 
-When agents disagree (e.g., Static says benign, Dynamic says malicious), PARALLAX does not just average scores. It **surfaces the contradiction as a high-confidence alert** — because **evasion IS the signature.** An APK that looks clean but behaves dirty is exactly what sophisticated malware does.
+When agents disagree (e.g., Static says benign, Dynamic says malicious), PARALLAX does not just average scores. It **surfaces the contradiction as a high-confidence alert**  --  because **evasion IS the signature.** An APK that looks clean but behaves dirty is exactly what sophisticated malware does.
 
 ```python
 # Conceptual debate layer logic
 if static_score < 0.3 and dynamic_score > 0.8:
     alert_level = "CRITICAL_EVASION_SUSPECTED"
-    reason = "Clean code surface, malicious runtime behavior — likely polymorphic staging"
+    reason = "Clean code surface, malicious runtime behavior  --  likely polymorphic staging"
     confidence += 0.15  # contradictions are informative
 ```
 
-### 3.3 Innovation 3 — Visual Intelligence Layer (Multimodal LLM)
+### 3.3 Innovation 3  --  Visual Intelligence Layer (Multimodal LLM)
 
 **The underused superpower no existing tool has.**
 
-Sophisticated APKs don't just have malicious code — they have **malicious UI**. Phishing overlays, fake bank login screens, accessibility-service-driven UI hijacking. String matching can't catch this. Code analysis often misses it.
+Sophisticated APKs don't just have malicious code  --  they have **malicious UI**. Phishing overlays, fake bank login screens, accessibility-service-driven UI hijacking. String matching can't catch this. Code analysis often misses it.
 
 PARALLAX captures **every screen state during dynamic analysis** and feeds screenshots to a multimodal LLM (LLaVA-OneVision / InternVL):
 
@@ -156,6 +171,129 @@ PARALLAX captures **every screen state during dynamic analysis** and feeds scree
 - Accessibility-service abuse detection
 
 **No string-matching AV can do this. No static analyzer can do this. Only multimodal vision can.**
+
+---
+
+## 4. V2 Innovations (Architecture Revision)
+
+The original three innovations (TAIG, Multi-Agent Cortex, Visual Intelligence) were correct but underspecified. V2 adds **eight more innovations** that transform PARALLAX from "smart tool" to "AI investigator":
+
+### 4.1 Innovation 4  --  AI Reverse Engineering Workbench
+
+**The structured artifact model  --  what makes PARALLAX more than MobSF + LLM.**
+
+A dedicated workbench consumes decompiled code and produces a **structured semantic artifact**, not free-form LLM prose:
+
+```json
+{
+  "class_roles": [
+    {"class": "com.fake.sbi.SmsReceiver", "role": "OTP interception receiver", "confidence": 0.96},
+    {"class": "com.fake.sbi.AccessibilityStealer", "role": "Credential overlay", "confidence": 0.98}
+  ],
+  "method_intents": [
+    {"method": "sendDataToServer", "intent": "credential exfiltration", 
+     "sources": ["EditText password"], "sinks": ["HttpURLConnection POST"]}
+  ],
+  "attack_flow": [
+    "request accessibility", "monitor bank app", "draw overlay",
+    "capture creds", "intercept OTP", "exfiltrate to C2"
+  ]
+}
+```
+
+This is the **structured output** that drives every downstream module  --  hook planning, dynamic exploration, fraud chain reconstruction, and final reasoning.
+
+### 4.2 Innovation 5  --  Hypothesis-Driven Investigation Loop
+
+**PARALLAX is not a one-pass pipeline. It's a recursive investigation loop.**
+
+```
+Hypothesis Engine -> Tool Selector -> Static Analysis -> Hook Plan
+    -> Dynamic Exploration -> Hypothesis Update -> Tool Selection (next cycle)
+    -> ... until convergence
+```
+
+A live **hypothesis scratchpad** tracks every claim with status: PENDING -> CONFIRMED / REJECTED / UNRESOLVED. The system forms initial hypotheses from cheap signals, then **iteratively tests them with targeted experiments**, not generic sandboxing.
+
+### 4.3 Innovation 6  --  AI-Guided Dynamic Exploration
+
+**Not a passive sandbox. An AI-operated investigation.**
+
+The Dynamic Exploration Agent uses DroidBot-GPT, Frida hooks, and **mock banking apps** to behave like a trained fraud investigator:
+
+- Decides **what screen to explore next**
+- Generates **realistic fake inputs** (credentials, OTPs)
+- Triggers **permission flows** malware expects
+- Installs **mock banking apps** to trigger context-aware overlays
+- Detects **dormant vs. evasive vs. staged** behavior
+
+This is what "automated dynamic analysis" actually means.
+
+### 4.4 Innovation 7  --  Adaptive Hook Planning
+
+**Frida hook plans that update mid-run.**
+
+The Hook Planning Agent reads static findings and generates a targeted hook plan. When dynamic exploration observes a new behavior (DexClassLoader invocation, crypto API fire, custom protocol C2), the hook plan **updates retroactively** to capture the new behavior. Static-findings-driven AND runtime-observation-driven.
+
+### 4.5 Innovation 8  --  Malware Pattern Memory (Named Subsystem)
+
+**8 explicit pattern categories, one named subsystem, queryable and self-enriching:**
+
+1. **Fraud flows**  --  known attack chain sequences
+2. **Permission/API chains**  --  suspicious combinations
+3. **Code idioms**  --  recognizable malware code patterns
+4. **UI phishing templates**  --  visual templates of known kits
+5. **C2 communication patterns**  --  beacon intervals, encoding, protocols
+6. **Certificate reuse**  --  cert fingerprints seen across samples
+7. **Packer/obfuscator fingerprints**  --  APKiD signatures
+8. **Behavioral timing fingerprints**  --  temporal patterns (dormancy, beacon intervals)
+
+Not scattered features. **One named, queryable, growing subsystem.**
+
+### 4.6 Innovation 9  --  Two-Layer Risk Scoring (Calibrated)
+
+**Evidence score (auditable) + Calibration (empirical) = Final score (both)**
+
+- **Layer A**: Weighted sum of evidence  --  explainable, deterministic, auditor-friendly
+- **Layer B**: Calibration model trained on historical labels (bootstrap with VirusShare/MalwareBazaar/AndroZoo in v1, bank's own labels in v2)
+
+Final score = Evidence x Calibration. Both layers are exposed in the report. Compliance gets the formula. Analysts get empirical grounding.
+
+### 4.7 Innovation 10  --  Fraud Attack Chain (Bank-Specific Output)
+
+**Not just ATT&CK. A fraud-narrative output banks actually use.**
+
+```
+Distribution -> Impersonation -> Permission Acquisition -> Credential Capture
+    -> OTP Interception -> Device Fingerprinting -> Transaction Enablement
+    -> Persistence/Evasion -> Exfiltration -> Recommended Fraud Control
+```
+
+Each stage has bank-specific evidence and a **recommended fraud control** in the bank's DSL format. This is what fraud teams use to update rules.
+
+### 4.8 Innovation 11  --  Evidence-First Report Schema + IRT
+
+**Internal trace is verbose and complete. External report is clean and auditable.**
+
+Every report separates four categories:
+1. **Observed facts**  --  tool outputs, screenshots, hook firings
+2. **Inferred conclusions**  --  agent reasoning grounded in facts
+3. **Uncertain hypotheses**  --  flagged with low confidence
+4. **Recommended actions**  --  human-approved
+
+The **Investigation Reasoning Trace (IRT)** is what banks see. Verbose internal traces are stored immutably, accessible via `trace_id` for deep audit. The two-layer system is the **hallucination defense built into the report structure itself.**
+
+### 4.9 Innovation 12  --  Approval Mode Controller
+
+**Banks will not deploy systems that auto-push customer-impacting controls.**
+
+Every recommendation is tagged with an approval mode:
+- `SUGGEST`  --  show in report, no action
+- `APPROVED`  --  deploy if analyst approves
+- `AUTO_LOW_RISK`  --  auto-deploy low-risk IOCs (YARA, MISP push)
+- `HELD`  --  never auto-deploy (fraud rule changes, account actions)
+
+Default is conservative. Customer impact requires human sign-off always.
 
 ---
 
@@ -181,29 +319,29 @@ PARALLAX captures **every screen state during dynamic analysis** and feeds scree
 
 ### 4.2 Flagship Product Traits (All Present)
 
-1. **Architectural innovation** — TAIG is genuinely novel
-2. **Right use of AI** — LLM for reasoning, not magic; right model for right job
-3. **Open-source leverage** — every tool in the stack is best-in-class
-4. **Self-improvement** — measurable gains over time without human input
-5. **Actionable outputs** — not reports, but *machine-actionable intelligence*
-6. **Standards-compliant** — STIX 2.1, MITRE ATT&CK, MISP
-7. **Deployable** — runs on a bank's on-prem infrastructure
-8. **Defensible moat** — the knowledge graph is the moat; competitors can't replicate accumulated threat intel easily
+1. **Architectural innovation**  --  TAIG is genuinely novel
+2. **Right use of AI**  --  LLM for reasoning, not magic; right model for right job
+3. **Open-source leverage**  --  every tool in the stack is best-in-class
+4. **Self-improvement**  --  measurable gains over time without human input
+5. **Actionable outputs**  --  not reports, but *machine-actionable intelligence*
+6. **Standards-compliant**  --  STIX 2.1, MITRE ATT&CK, MISP
+7. **Deployable**  --  runs on a bank's on-prem infrastructure
+8. **Defensible moat**  --  the knowledge graph is the moat; competitors can't replicate accumulated threat intel easily
 
 ### 4.3 The Strategic Moat
 
 ```
 APK analyzed by PARALLAX
-        ↓
+        v
 New YARA rules generated
 New IOCs added to graph
 New semantic embeddings indexed
 New ATT&CK mappings stored
-        ↓
+        v
 System is measurably smarter
-        ↓
-        × Repeat for every APK
-        ↓
+        v
+        x Repeat for every APK
+        v
 After 6 months, PARALLAX has:
 - 10,000+ APK samples analyzed
 - 500+ threat actors mapped
@@ -211,7 +349,7 @@ After 6 months, PARALLAX has:
 - 50,000+ IOCs in graph
 - Local YARA rules catching novel variants
 
-→ Competitor starting today is 6 months behind
+-> Competitor starting today is 6 months behind
 ```
 
 ---
@@ -225,7 +363,7 @@ PARALLAX is built entirely on battle-tested open-source tools. No proprietary ma
 | Tool | Purpose | Why Chosen |
 |---|---|---|
 | **androguard** | Python APK/DEX parsing | Mature, well-documented Python API |
-| **jadx** | Java decompilation | Best Smali→Java output quality |
+| **jadx** | Java decompilation | Best Smali->Java output quality |
 | **apktool** | Resource decoding, smali disassembly | Industry standard |
 | **r2pipe** (Radare2) | Binary-level analysis | Open-source alternative to IDA Pro |
 | **BinDiff** / **Diaphora** | Binary similarity / diffing | Find reused code across samples |
@@ -244,7 +382,7 @@ PARALLAX is built entirely on battle-tested open-source tools. No proprietary ma
 |---|---|---|
 | **Frida** | Runtime instrumentation | Hook any function live, JS/Python API |
 | **mitmproxy** | HTTPS traffic interception | Decrypts SSL with installed CA |
-| **Scapy** | Custom protocol analysis | Beyond HTTP — any binary protocol |
+| **Scapy** | Custom protocol analysis | Beyond HTTP  --  any binary protocol |
 | **Android AVD** (emulator) | Sandboxed execution | Headless, scriptable, scalable |
 | **Strace / ltrace** | System call tracing | File/process/IPC observation |
 | **CAPE Sandbox** (fallback) | Behavioral monitoring | When Frida insufficient |
@@ -306,8 +444,8 @@ PARALLAX is built entirely on battle-tested open-source tools. No proprietary ma
 
 ### 6.1 Direct Value
 
-- **Faster detection**: Hours/days → minutes
-- **Earlier warnings**: Customer-reported → system-pre-flageed
+- **Faster detection**: Hours/days -> minutes
+- **Earlier warnings**: Customer-reported -> system-pre-flageed
 - **Reduced fraud losses**: Proactive blocking vs reactive reimbursement
 - **Lower analyst cost**: Automation of 80%+ of routine analysis
 - **Compliance ready**: RBI CERT-In, SEBI cyber reporting formats auto-generated
@@ -348,11 +486,11 @@ PARALLAX outputs are pre-formatted for these reporting requirements.
 
 ### 7.2 PARALLAX's Defensible Position
 
-- **Knowledge graph as moat** — accumulated threat intel not easily replicable
-- **Multi-agent AI reasoning** — no competitor has this layer
-- **Visual intelligence** — unique differentiator
-- **Open-source stack** — lower cost, audit-friendly, no vendor lock-in
-- **On-premise** — meets bank data residency requirements
+- **Knowledge graph as moat**  --  accumulated threat intel not easily replicable
+- **Multi-agent AI reasoning**  --  no competitor has this layer
+- **Visual intelligence**  --  unique differentiator
+- **Open-source stack**  --  lower cost, audit-friendly, no vendor lock-in
+- **On-premise**  --  meets bank data residency requirements
 
 ---
 
@@ -378,7 +516,7 @@ PARALLAX outputs are pre-formatted for these reporting requirements.
 
 ## 9. Project Naming & Branding (Optional)
 
-- **PARALLAX** — Self-Evolving Neural Threat Intelligence Engine for Lateral Analysis
+- **PARALLAX**  --  Self-Evolving Neural Threat Intelligence Engine for Lateral Analysis
 - Tagline: *"Multiple perspectives. One persistent truth."*
 - Logo concept: Owl with neural network eyes over an APK shape
 
@@ -416,14 +554,14 @@ A flagship product must be measurable:
 ## 12. What Comes Next
 
 This ideation document establishes the **WHY**. The next documents establish:
-- **`02_ARCHITECTURE.md`** — the HOW (system design)
-- **`03_TECH_STACK.md`** — the WHAT (every tool, every version)
-- **`04_IMPLEMENTATION_PHASES.md`** — the WHEN (phased build plan)
-- **`05_API_DESIGN.md`** — the INTERFACE (REST endpoints)
-- **`06_TAIG_SCHEMA.md`** — the GRAPH (Neo4j schema specification)
-- **`07_AGENT_PROMPTS.md`** — the BRAIN (LLM agent prompt library)
-- **`08_TESTING_STRATEGY.md`** — the VERIFICATION (how we know it works)
-- **`09_DEPLOYMENT.md`** — the RUN (production deployment)
-- **`10_INNOVATION_LOG.md`** — what makes each piece novel (for stakeholders)
+- **`02_ARCHITECTURE.md`**  --  the HOW (system design)
+- **`03_TECH_STACK.md`**  --  the WHAT (every tool, every version)
+- **`04_IMPLEMENTATION_PHASES.md`**  --  the WHEN (phased build plan)
+- **`05_API_DESIGN.md`**  --  the INTERFACE (REST endpoints)
+- **`06_TAIG_SCHEMA.md`**  --  the GRAPH (Neo4j schema specification)
+- **`07_AGENT_PROMPTS.md`**  --  the BRAIN (LLM agent prompt library)
+- **`08_TESTING_STRATEGY.md`**  --  the VERIFICATION (how we know it works)
+- **`09_DEPLOYMENT.md`**  --  the RUN (production deployment)
+- **`10_INNOVATION_LOG.md`**  --  what makes each piece novel (for stakeholders)
 
 All files live in `~/Desktop/PSBs/`.
