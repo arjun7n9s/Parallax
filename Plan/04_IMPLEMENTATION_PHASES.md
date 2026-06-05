@@ -1,16 +1,29 @@
-# PARALLAX — Phase-wise Implementation Plan
+# PARALLAX  --  Phase-wise Implementation Plan
 ## From Zero to Flagship: Complete Build Roadmap
+
+> **V2 NOTE:** This document is part of the original planning suite. The authoritative
+> design now lives in:
+> - `PARALLAX_VISION.md`  --  anchor vision document
+> - `02b_ARCHITECTURE_REVISED.md`  --  revised architecture with hypothesis-driven loop
+> - `02_ARCHITECTURE.md`  --  original (this doc references it)
+>
+> Key v2 additions: AI Reverse Engineering Workbench, Hypothesis Loop, AI-Guided
+> Dynamic Exploration, Adaptive Hook Planning, Malware Pattern Memory, Risk
+> Calibration Engine, IRT distillation, Fraud Attack Chain, Approval Modes.
+> Read `PARALLAX_VISION.md` first for the anchor view.
+
+---
 
 ---
 
 ## 0. How to Use This Document
 
 Each phase is a **2-3 week build block** with:
-- **Objectives** — what you accomplish
-- **Deliverables** — concrete outputs
-- **Tasks** — numbered, file paths, code structures
-- **Acceptance Criteria** — how you know it works
-- **Dependencies** — what must exist first
+- **Objectives**  --  what you accomplish
+- **Deliverables**  --  concrete outputs
+- **Tasks**  --  numbered, file paths, code structures
+- **Acceptance Criteria**  --  how you know it works
+- **Dependencies**  --  what must exist first
 
 Each task is bite-sized (2-5 minutes of focused work following TDD).
 
@@ -18,7 +31,70 @@ Each task is bite-sized (2-5 minutes of focused work following TDD).
 
 ---
 
-## Phase 0 — Foundation (Week 1-2)
+## V2 ROADMAP -- v2 Modules Built In From Phase 0
+
+> The original phases below treat v2 modules (Hypothesis Engine, RE Workbench,
+> Hook Planner, Dynamic Explorer, Pattern Memory, IRT) as Phase 4-5 add-ons.
+> That is wrong. Those modules are the **dependency root** for everything else.
+> This v2 roadmap restructures the build so the v2 modules are in Phase 0-3,
+> not bolted on later. The original v1 phase descriptions below the V2 ROADMAP
+> are retained for the detailed task-level content.
+
+### V2 Phase Map
+
+| Phase | Week | Focus | v2 Modules Built |
+|---|---|---|---|
+| **V2-0** | 1-2 | Infrastructure + Data Contracts | Schema for Hypothesis, Experiment, Observation, IRT, FraudChainStage, Pattern. Neo4j constraints + Qdrant collections. These are the **dependency root** -- nothing works without them. |
+| **V2-1** | 3-4 | Ingestion + Triage + **Hypothesis Engine (core)** | The Hypothesis Engine must exist in v2-1 because every downstream module reads/writes to it. Triage LLM populates initial scratchpad. |
+| **V2-2** | 5-6 | Static Pipeline + **RE Workbench (core)** + **Pattern Memory (read-only first cut)** | RE Workbench must exist in v2-2 because Hook Planner and Dynamic Explorer read its artifact model. Pattern Memory is initialized with public YARA rules. |
+| **V2-3** | 7-8 | Dynamic Pipeline + **Hook Planner (core)** + **Dynamic Explorer (core)** | Both read from RE Workbench artifact model and write Observations back to Hypothesis Engine. Loop closes. |
+| **V2-4** | 9-10 | AI Cortex + **Evidence Validator + IRT Distillation** | Cortex reasons over artifacts + observations. Evidence Validator produces the clean IRT. |
+| **V2-5** | 11-12 | TAIG + **Sample Lineage Classifier** + **Brand Reference Corpus** | Graph intelligence and the two new graph classifiers. |
+| **V2-6** | 13-14 | **Risk Calibration Engine** + **Fraud Chain Builder** + **Approval Mode Controller** | The two-layer scoring, bank-specific output, and tiered human-in-the-loop. |
+| **V2-7** | 15-16 | Delivery Layer (PDF, STIX, YARA, Fraud DSL) | Report generation consumes IRT + Fraud Chain. |
+| **V2-8** | 17-18 | Visual Intelligence (CLIP+OCR+Logo hybrid) + **Pattern Memory (write mode)** | Visual engine and Pattern Memory becomes self-enriching. |
+| **V2-9** | 19-20 | Integration, Hardening, Pilot Readiness | End-to-end testing, security review, performance tuning. |
+
+### V2 Critical Path
+
+The dependency chain is strict -- do not reorder:
+
+```
+Week 1-2: V2-0 Data Contracts
+  -> Week 3-4: V2-1 Hypothesis Engine
+    -> Week 5-6: V2-2 RE Workbench
+      -> Week 7-8: V2-3 Hook Planner + Dynamic Explorer  [LOOP CLOSES]
+        -> Week 9-10: V2-4 Cortex + IRT
+          -> Week 11-12: V2-5 TAIG + Classifiers
+            -> Week 13-14: V2-6 Calibration + Fraud Chain + Approvals
+              -> Week 15-16: V2-7 Delivery
+                -> Week 17-18: V2-8 Visual + Pattern Memory write mode
+                  -> Week 19-20: V2-9 Integration
+```
+
+**Anti-pattern (the v1 mistake):** Building Phase 1 Ingestion -> Phase 2 Static -> Phase 3 Dynamic -> Phase 4 AI Cortex -> Phase 5 TAIG -> Phase 6 "Now bolt on Hypothesis Engine, RE Workbench, Hook Planner."
+This forces a complete data-model rewrite at Phase 5. Reject this ordering.
+
+### V2 Acceptance Gates
+
+Each phase ends with a mandatory gate. If the gate fails, the next phase is blocked.
+
+| Phase | Gate (must pass to enter next phase) |
+|---|---|
+| V2-0 | All 6 v2 node types (Hypothesis, Experiment, Observation, TemporalFingerprint, Pattern, FraudChainStage) have Cypher constraints applied. Neo4j and Qdrant both pass smoke tests. |
+| V2-1 | Hypothesis Engine can form 5+ hypotheses from a test APK manifest in <2 seconds. Triage LLM responds correctly. Initial scratchpad is queryable. |
+| V2-2 | RE Workbench produces a complete `artifact_model.json` for 3 real malware samples (synthetic or public). Pattern Memory has 50+ bootstrap YARA rules loaded and queryable. |
+| V2-3 | Hook Planner generates a plan from RE Workbench output. Dynamic Explorer launches APK in AVD, hooks fire, Observations stream into Hypothesis Engine. Hypotheses update. **The loop has closed.** |
+| V2-4 | Synthesis Agent produces a final verdict from artifacts + observations. Evidence Validator produces a clean IRT with no failed-attempt leakage. |
+| V2-5 | TAIG accepts Hypothesis, Experiment, Observation, FraudChainStage, Pattern nodes. Sample Lineage Classifier returns "variant" / "new cluster" / "known family" for test APKs. |
+| V2-6 | Risk Calibration Engine produces two-layer scores calibrated on VirusShare subset. Fraud Chain has 10 stages. Approval Mode Controller blocks auto-deployment of HELD actions. |
+| V2-7 | PDF report renders with IRT, Fraud Chain, and recommended actions. STIX 2.1 bundle validates. YARA rule generated. |
+| V2-8 | CLIP+OCR+Logo hybrid returns brand impersonation score. Pattern Memory accepts new patterns extracted from analyses. |
+| V2-9 | End-to-end: submit APK -> receive PDF + STIX + YARA + Fraud rule in <12 minutes. Penetration test clean. |
+
+---
+
+## Phase 0  --  Foundation (Week 1-2)
 
 ### Objectives
 Establish project structure, dev environment, CI/CD, and base infrastructure that every later phase depends on.
@@ -32,7 +108,7 @@ Establish project structure, dev environment, CI/CD, and base infrastructure tha
 
 ### Tasks
 
-#### Task 0.1 — Repository Setup
+#### Task 0.1  --  Repository Setup
 **Files:**
 - Create: `parallax/.gitignore`
 - Create: `parallax/README.md`
@@ -50,7 +126,7 @@ Establish project structure, dev environment, CI/CD, and base infrastructure tha
 
 ---
 
-#### Task 0.2 — Docker Compose Infrastructure
+#### Task 0.2  --  Docker Compose Infrastructure
 **Files:**
 - Create: `parallax/docker-compose.yml`
 - Create: `parallax/prometheus.yml`
@@ -66,7 +142,7 @@ Establish project structure, dev environment, CI/CD, and base infrastructure tha
 
 ---
 
-#### Task 0.3 — FastAPI Skeleton
+#### Task 0.3  --  FastAPI Skeleton
 **Files:**
 - Create: `parallax/parallax/__init__.py`
 - Create: `parallax/parallax/api/__init__.py`
@@ -90,7 +166,7 @@ Establish project structure, dev environment, CI/CD, and base infrastructure tha
 
 ---
 
-#### Task 0.4 — Database Initialization
+#### Task 0.4  --  Database Initialization
 **Files:**
 - Create: `parallax/parallax/core/database.py`
 - Create: `parallax/migrations/env.py`
@@ -105,7 +181,7 @@ Establish project structure, dev environment, CI/CD, and base infrastructure tha
 
 ---
 
-#### Task 0.5 — CI Pipeline
+#### Task 0.5  --  CI Pipeline
 **Files:**
 - Create: `parallax/.github/workflows/ci.yml`
 - Create: `parallax/.pre-commit-config.yaml`
@@ -124,7 +200,7 @@ Establish project structure, dev environment, CI/CD, and base infrastructure tha
 
 ---
 
-#### Task 0.6 — Documentation Scaffold
+#### Task 0.6  --  Documentation Scaffold
 **Files:**
 - Create: `parallax/docs/README.md`
 - Create: `parallax/docs/architecture/`
@@ -140,7 +216,7 @@ Establish project structure, dev environment, CI/CD, and base infrastructure tha
 ---
 
 ### Phase 0 Acceptance Criteria
-- [ ] `git clone && docker compose up -d && pip install -r requirements.txt && uvicorn parallax.api.main:app` → API runs
+- [ ] `git clone && docker compose up -d && pip install -r requirements.txt && uvicorn parallax.api.main:app` -> API runs
 - [ ] All infrastructure services healthy
 - [ ] CI green on first commit
 - [ ] Database schema applied
@@ -148,7 +224,7 @@ Establish project structure, dev environment, CI/CD, and base infrastructure tha
 
 ---
 
-## Phase 1 — Ingestion & Triage (Week 3-4)
+## Phase 1  --  Ingestion & Triage (Week 3-4)
 
 ### Objectives
 Accept APK submissions, perform fast pre-screening, queue for analysis.
@@ -162,7 +238,7 @@ Accept APK submissions, perform fast pre-screening, queue for analysis.
 
 ### Tasks
 
-#### Task 1.1 — Submission Model
+#### Task 1.1  --  Submission Model
 **Files:**
 - Create: `parallax/parallax/api/schemas/submission.py`
 - Create: `parallax/parallax/core/models/submission.py`
@@ -173,7 +249,7 @@ Accept APK submissions, perform fast pre-screening, queue for analysis.
 
 ---
 
-#### Task 1.2 — APK Upload Endpoint
+#### Task 1.2  --  APK Upload Endpoint
 **Files:**
 - Create: `parallax/parallax/api/routes/analyze.py`
 - Create: `parallax/parallax/api/routes/status.py`
@@ -190,12 +266,12 @@ Accept APK submissions, perform fast pre-screening, queue for analysis.
 
 ---
 
-#### Task 1.3 — APKiD Integration
+#### Task 1.3  --  APKiD Integration
 **Files:**
 - Create: `parallax/parallax/analysis/ingestion/apkid_runner.py`
 - Create: `parallax/tests/unit/test_apkid_runner.py`
 
-**Step 1:** TDD — write test that calls APKiD on sample APK
+**Step 1:** TDD  --  write test that calls APKiD on sample APK
 **Step 2:** Implement wrapper using `apkid` Python library
 **Step 3:** Returns: packer, anti-VM, anti-debug, compiler
 **Step 4:** Test passes
@@ -204,7 +280,7 @@ Accept APK submissions, perform fast pre-screening, queue for analysis.
 
 ---
 
-#### Task 1.4 — ssdeep Integration
+#### Task 1.4  --  ssdeep Integration
 **Files:**
 - Create: `parallax/parallax/analysis/ingestion/ssdeep_runner.py`
 - Create: `parallax/tests/unit/test_ssdeep_runner.py`
@@ -218,14 +294,14 @@ Accept APK submissions, perform fast pre-screening, queue for analysis.
 
 ---
 
-#### Task 1.5 — Ollama + Phi-3 Mini Setup
+#### Task 1.5  --  Ollama + Phi-3 Mini Setup
 **Files:**
 - Create: `parallax/parallax/ai/ollama_client.py`
 - Create: `parallax/parallax/ai/agents/triage.py`
 - Create: `parallax/tests/unit/test_triage.py`
 
 **Step 1:** Docker `ollama` running, `ollama pull phi3:mini`
-**Step 2:** `ollama_client.py` — async wrapper for Ollama API
+**Step 2:** `ollama_client.py`  --  async wrapper for Ollama API
 **Step 3:** Triage agent prompt (see `07_AGENT_PROMPTS.md`)
 **Step 4:** Test: Triage returns valid JSON for sample APK manifest
 
@@ -233,7 +309,7 @@ Accept APK submissions, perform fast pre-screening, queue for analysis.
 
 ---
 
-#### Task 1.6 — Celery Task Queue
+#### Task 1.6  --  Celery Task Queue
 **Files:**
 - Create: `parallax/parallax/workers/__init__.py`
 - Create: `parallax/parallax/workers/celery_app.py`
@@ -249,13 +325,13 @@ Accept APK submissions, perform fast pre-screening, queue for analysis.
 
 ---
 
-#### Task 1.7 — Status & History Endpoints
+#### Task 1.7  --  Status & History Endpoints
 **Files:**
 - Create: `parallax/parallax/api/routes/history.py`
 - Modify: `parallax/parallax/api/main.py`
 
-**Step 1:** GET `/api/v1/analysis/{id}` → status, progress, current stage
-**Step 2:** GET `/api/v1/history` → paginated list of past analyses
+**Step 1:** GET `/api/v1/analysis/{id}` -> status, progress, current stage
+**Step 2:** GET `/api/v1/history` -> paginated list of past analyses
 **Step 3:** Test: Submit 3 APKs, query history, verify pagination
 
 **Acceptance:** Status endpoint accurate, history queryable.
@@ -272,7 +348,7 @@ Accept APK submissions, perform fast pre-screening, queue for analysis.
 
 ---
 
-## Phase 2 — Static Analysis Pipeline (Week 5-7)
+## Phase 2  --  Static Analysis Pipeline (Week 5-7)
 
 ### Objectives
 Deep static analysis of APK code, resources, manifest, and binaries.
@@ -289,7 +365,7 @@ Deep static analysis of APK code, resources, manifest, and binaries.
 
 ### Tasks
 
-#### Task 2.1 — androguard Integration
+#### Task 2.1  --  androguard Integration
 **Files:**
 - Create: `parallax/parallax/analysis/static/androguard_runner.py`
 - Create: `parallax/parallax/analysis/static/extractors.py`
@@ -308,7 +384,7 @@ Deep static analysis of APK code, resources, manifest, and binaries.
 
 ---
 
-#### Task 2.2 — jadx Decompilation Pipeline
+#### Task 2.2  --  jadx Decompilation Pipeline
 **Files:**
 - Create: `parallax/parallax/analysis/static/jadx_runner.py`
 - Create: `parallax/parallax/analysis/static/code_preprocessor.py`
@@ -323,12 +399,12 @@ Deep static analysis of APK code, resources, manifest, and binaries.
 
 ---
 
-#### Task 2.3 — NetworkX Permission Graph
+#### Task 2.3  --  NetworkX Permission Graph
 **Files:**
 - Create: `parallax/parallax/analysis/static/permission_graph.py`
 - Create: `parallax/tests/unit/test_permission_graph.py`
 
-**Step 1:** Build graph: APK → permissions → APIs → sinks
+**Step 1:** Build graph: APK -> permissions -> APIs -> sinks
 **Step 2:** Compute centrality metrics
 **Step 3:** Identify dangerous permission clusters
 **Step 4:** Risk score per cluster
@@ -338,7 +414,7 @@ Deep static analysis of APK code, resources, manifest, and binaries.
 
 ---
 
-#### Task 2.4 — YARA Rule Engine
+#### Task 2.4  --  YARA Rule Engine
 **Files:**
 - Create: `parallax/parallax/analysis/static/yara_runner.py`
 - Create: `parallax/rules/yara/banking_trojans.yar` (curated)
@@ -355,7 +431,7 @@ Deep static analysis of APK code, resources, manifest, and binaries.
 
 ---
 
-#### Task 2.5 — Semgrep Custom Rules
+#### Task 2.5  --  Semgrep Custom Rules
 **Files:**
 - Create: `parallax/rules/semgrep/banking_malware.yml`
 - Create: `parallax/parallax/analysis/static/semgrep_runner.py`
@@ -376,21 +452,21 @@ Deep static analysis of APK code, resources, manifest, and binaries.
 
 ---
 
-#### Task 2.6 — FlowDroid Taint Analysis
+#### Task 2.6  --  FlowDroid Taint Analysis
 **Files:**
 - Create: `parallax/parallax/analysis/static/flowdroid_runner.py`
 - Create: `parallax/tests/integration/test_flowdroid.py`
 
 **Step 1:** Shell out to FlowDroid JAR
 **Step 2:** Parse output: taint flows
-**Step 3:** Map to risk: source (user input) → sink (network)
+**Step 3:** Map to risk: source (user input) -> sink (network)
 **Step 4:** Test: APK known to exfiltrate SMS content shows taint flow
 
 **Acceptance:** Taint flows extracted, risks assigned.
 
 ---
 
-#### Task 2.7 — Binary Similarity (Diaphora)
+#### Task 2.7  --  Binary Similarity (Diaphora)
 **Files:**
 - Create: `parallax/parallax/analysis/static/binary_diff.py`
 - Create: `parallax/tests/integration/test_binary_diff.py`
@@ -404,7 +480,7 @@ Deep static analysis of APK code, resources, manifest, and binaries.
 
 ---
 
-#### Task 2.8 — Static Analysis Worker
+#### Task 2.8  --  Static Analysis Worker
 **Files:**
 - Create: `parallax/parallax/workers/static_worker.py`
 - Create: `parallax/parallax/analysis/static/aggregator.py`
@@ -431,7 +507,7 @@ Deep static analysis of APK code, resources, manifest, and binaries.
 
 ---
 
-## Phase 3 — Dynamic Analysis Pipeline (Week 8-10)
+## Phase 3  --  Dynamic Analysis Pipeline (Week 8-10)
 
 ### Objectives
 Runtime analysis: instrumented Android emulator with full traffic capture, behavior observation, mutation testing.
@@ -446,7 +522,7 @@ Runtime analysis: instrumented Android emulator with full traffic capture, behav
 
 ### Tasks
 
-#### Task 3.1 — AVD Orchestration
+#### Task 3.1  --  AVD Orchestration
 **Files:**
 - Create: `parallax/parallax/analysis/dynamic/avd_manager.py`
 - Create: `parallax/parallax/analysis/dynamic/install.py`
@@ -463,7 +539,7 @@ Runtime analysis: instrumented Android emulator with full traffic capture, behav
 
 ---
 
-#### Task 3.2 — Frida Hook Library
+#### Task 3.2  --  Frida Hook Library
 **Files:**
 - Create: `parallax/parallax/analysis/dynamic/frida_hooks/sms_interception.js`
 - Create: `parallax/parallax/analysis/dynamic/frida_hooks/accessibility_abuse.js`
@@ -482,7 +558,7 @@ Runtime analysis: instrumented Android emulator with full traffic capture, behav
 
 ---
 
-#### Task 3.3 — DroidBot-GPT UI Automation
+#### Task 3.3  --  DroidBot-GPT UI Automation
 **Files:**
 - Create: `parallax/parallax/analysis/dynamic/droidbot_gpt.py`
 - Create: `parallax/parallax/analysis/dynamic/prompts/droidbot.py`
@@ -497,7 +573,7 @@ Runtime analysis: instrumented Android emulator with full traffic capture, behav
 
 ---
 
-#### Task 3.4 — mitmproxy Traffic Capture
+#### Task 3.4  --  mitmproxy Traffic Capture
 **Files:**
 - Create: `parallax/parallax/analysis/dynamic/traffic_capture.py`
 - Create: `parallax/parallax/analysis/dynamic/protocol_decoders.py`
@@ -513,7 +589,7 @@ Runtime analysis: instrumented Android emulator with full traffic capture, behav
 
 ---
 
-#### Task 3.5 — System Call Monitoring
+#### Task 3.5  --  System Call Monitoring
 **Files:**
 - Create: `parallax/parallax/analysis/dynamic/strace_runner.py`
 
@@ -527,7 +603,7 @@ Runtime analysis: instrumented Android emulator with full traffic capture, behav
 
 ---
 
-#### Task 3.6 — Screenshot Capture Pipeline
+#### Task 3.6  --  Screenshot Capture Pipeline
 **Files:**
 - Create: `parallax/parallax/analysis/dynamic/screenshot.py`
 
@@ -540,7 +616,7 @@ Runtime analysis: instrumented Android emulator with full traffic capture, behav
 
 ---
 
-#### Task 3.7 — Mutation Testing Framework
+#### Task 3.7  --  Mutation Testing Framework
 **Files:**
 - Create: `parallax/parallax/analysis/dynamic/mutation_runner.py`
 - Create: `parallax/parallax/analysis/dynamic/mutations.py`
@@ -555,7 +631,7 @@ Runtime analysis: instrumented Android emulator with full traffic capture, behav
 
 ---
 
-#### Task 3.8 — Dynamic Analysis Worker
+#### Task 3.8  --  Dynamic Analysis Worker
 **Files:**
 - Create: `parallax/parallax/workers/dynamic_worker.py`
 - Create: `parallax/parallax/analysis/dynamic/aggregator.py`
@@ -581,7 +657,7 @@ Runtime analysis: instrumented Android emulator with full traffic capture, behav
 
 ---
 
-## Phase 4 — AI Reasoning Cortex (Week 11-13)
+## Phase 4  --  AI Reasoning Cortex (Week 11-13)
 
 ### Objectives
 The intelligence layer: 5 specialized AI agents with debate protocol, grounded in real tool outputs.
@@ -597,7 +673,7 @@ The intelligence layer: 5 specialized AI agents with debate protocol, grounded i
 
 ### Tasks
 
-#### Task 4.1 — Ollama Production Setup
+#### Task 4.1  --  Ollama Production Setup
 **Files:**
 - Create: `parallax/parallax/ai/ollama_pool.py`
 - Create: `parallax/scripts/pull_models.sh`
@@ -611,14 +687,14 @@ The intelligence layer: 5 specialized AI agents with debate protocol, grounded i
 
 ---
 
-#### Task 4.2 — Code Interpreter Agent
+#### Task 4.2  --  Code Interpreter Agent
 **Files:**
 - Create: `parallax/parallax/ai/agents/code_interpreter.py`
 - Create: `parallax/parallax/ai/prompts/code_interpreter.py`
 - Create: `parallax/parallax/ai/schemas.py`
 - Create: `parallax/tests/unit/test_code_interpreter.py`
 
-**Step 1:** DSPy signature: decompiled_code → intent_classification
+**Step 1:** DSPy signature: decompiled_code -> intent_classification
 **Step 2:** Few-shot examples from known banking trojans
 **Step 3:** Output schema: intent, risk, evidence, attck_techniques
 **Step 4:** DSPy optimization on labeled set
@@ -628,7 +704,7 @@ The intelligence layer: 5 specialized AI agents with debate protocol, grounded i
 
 ---
 
-#### Task 4.3 — Behavior Analyst Agent
+#### Task 4.3  --  Behavior Analyst Agent
 **Files:**
 - Create: `parallax/parallax/ai/agents/behavior_analyst.py`
 - Create: `parallax/parallax/ai/prompts/behavior_analyst.py`
@@ -643,7 +719,7 @@ The intelligence layer: 5 specialized AI agents with debate protocol, grounded i
 
 ---
 
-#### Task 4.4 — Intel Correlator + RAG
+#### Task 4.4  --  Intel Correlator + RAG
 **Files:**
 - Create: `parallax/parallax/ai/agents/intel_correlator.py`
 - Create: `parallax/parallax/ai/rag/attck_ingest.py`
@@ -653,14 +729,14 @@ The intelligence layer: 5 specialized AI agents with debate protocol, grounded i
 **Step 1:** Ingest MITRE ATT&CK Mobile XML into LlamaIndex
 **Step 2:** Ingest MISP events
 **Step 3:** Ingest past PARALLAX analyses
-**Step 4:** RAG pipeline: IOCs → relevant context → LLM mapping
+**Step 4:** RAG pipeline: IOCs -> relevant context -> LLM mapping
 **Step 5:** Test: Known IOC returns correct campaign attribution
 
 **Acceptance:** ATT&CK mapping + attribution with confidence scores.
 
 ---
 
-#### Task 4.5 — Visual Intelligence Agent
+#### Task 4.5  --  Visual Intelligence Agent
 **Files:**
 - Create: `parallax/parallax/ai/agents/visual.py`
 - Create: `parallax/parallax/ai/prompts/visual.py`
@@ -675,7 +751,7 @@ The intelligence layer: 5 specialized AI agents with debate protocol, grounded i
 
 ---
 
-#### Task 4.6 — Debate Layer
+#### Task 4.6  --  Debate Layer
 **Files:**
 - Create: `parallax/parallax/ai/debate_layer.py`
 - Create: `parallax/tests/unit/test_debate.py`
@@ -683,13 +759,13 @@ The intelligence layer: 5 specialized AI agents with debate protocol, grounded i
 **Step 1:** Implement contradiction detection logic
 **Step 2:** Score adjustment for contradictions (evasion signature)
 **Step 3:** Surface contradictions as alerts
-**Step 4:** Test: Static clean + dynamic dirty → high alert
+**Step 4:** Test: Static clean + dynamic dirty -> high alert
 
 **Acceptance:** Debate logic correctly handles all agreement patterns.
 
 ---
 
-#### Task 4.7 — Synthesis Agent
+#### Task 4.7  --  Synthesis Agent
 **Files:**
 - Create: `parallax/parallax/ai/agents/synthesis.py`
 - Create: `parallax/parallax/ai/risk_scoring.py`
@@ -706,14 +782,14 @@ The intelligence layer: 5 specialized AI agents with debate protocol, grounded i
 
 ---
 
-#### Task 4.8 — LangGraph Orchestration
+#### Task 4.8  --  LangGraph Orchestration
 **Files:**
 - Create: `parallax/parallax/ai/orchestration.py`
 - Create: `parallax/tests/integration/test_orchestration.py`
 
 **Step 1:** Define agent graph:
 ```
-INPUT → [parallel: code_interp, behavior, intel, visual] → debate → synthesis → OUTPUT
+INPUT -> [parallel: code_interp, behavior, intel, visual] -> debate -> synthesis -> OUTPUT
 ```
 **Step 2:** State management
 **Step 3:** Error handling per node
@@ -733,10 +809,10 @@ INPUT → [parallel: code_interp, behavior, intel, visual] → debate → synthe
 
 ---
 
-## Phase 5 — TAIG Knowledge Graph (Week 14-15)
+## Phase 5  --  TAIG Knowledge Graph (Week 14-15)
 
 ### Objectives
-Build the living knowledge graph — every APK enriches it.
+Build the living knowledge graph  --  every APK enriches it.
 
 ### Deliverables
 - Neo4j schema fully populated
@@ -747,7 +823,7 @@ Build the living knowledge graph — every APK enriches it.
 
 ### Tasks
 
-#### Task 5.1 — Neo4j Schema Initialization
+#### Task 5.1  --  Neo4j Schema Initialization
 **Files:**
 - Create: `parallax/parallax/knowledge/neo4j_client.py`
 - Create: `parallax/parallax/knowledge/schema.py`
@@ -762,7 +838,7 @@ Build the living knowledge graph — every APK enriches it.
 
 ---
 
-#### Task 5.2 — Graph Population Pipeline
+#### Task 5.2  --  Graph Population Pipeline
 **Files:**
 - Create: `parallax/parallax/knowledge/population.py`
 - Create: `parallax/tests/integration/test_population.py`
@@ -778,7 +854,7 @@ Build the living knowledge graph — every APK enriches it.
 
 ---
 
-#### Task 5.3 — Binary Similarity Edge Creation
+#### Task 5.3  --  Binary Similarity Edge Creation
 **Files:**
 - Create: `parallax/parallax/knowledge/similarity_edges.py`
 
@@ -790,7 +866,7 @@ Build the living knowledge graph — every APK enriches it.
 
 ---
 
-#### Task 5.4 — Campaign Detection Algorithm
+#### Task 5.4  --  Campaign Detection Algorithm
 **Files:**
 - Create: `parallax/parallax/knowledge/campaign_detection.py`
 
@@ -803,7 +879,7 @@ Build the living knowledge graph — every APK enriches it.
 
 ---
 
-#### Task 5.5 — Qdrant Vector Index
+#### Task 5.5  --  Qdrant Vector Index
 **Files:**
 - Create: `parallax/parallax/knowledge/qdrant_client.py`
 - Create: `parallax/parallax/knowledge/embeddings.py`
@@ -817,21 +893,21 @@ Build the living knowledge graph — every APK enriches it.
 
 ---
 
-#### Task 5.6 — Threat Hunting API
+#### Task 5.6  --  Threat Hunting API
 **Files:**
 - Create: `parallax/parallax/api/routes/graph.py`
 - Create: `parallax/parallax/api/routes/hunt.py`
 
-**Step 1:** POST `/api/v1/graph/cypher` → execute Cypher
-**Step 2:** POST `/api/v1/graph/similar` → vector similarity
-**Step 3:** POST `/api/v1/hunt` → structured threat hunt
+**Step 1:** POST `/api/v1/graph/cypher` -> execute Cypher
+**Step 2:** POST `/api/v1/graph/similar` -> vector similarity
+**Step 3:** POST `/api/v1/hunt` -> structured threat hunt
 **Step 4:** Test: Hunt query returns expected matches
 
 **Acceptance:** Threat hunting API functional.
 
 ---
 
-#### Task 5.7 — MISP Sync
+#### Task 5.7  --  MISP Sync
 **Files:**
 - Create: `parallax/parallax/knowledge/misp_sync.py`
 
@@ -854,7 +930,7 @@ Build the living knowledge graph — every APK enriches it.
 
 ---
 
-## Phase 6 — Delivery Layer (Week 16-17)
+## Phase 6  --  Delivery Layer (Week 16-17)
 
 ### Objectives
 Turn analysis into actionable intelligence and deliver to right people.
@@ -870,7 +946,7 @@ Turn analysis into actionable intelligence and deliver to right people.
 
 ### Tasks
 
-#### Task 6.1 — Report Generation
+#### Task 6.1  --  Report Generation
 **Files:**
 - Create: `parallax/parallax/delivery/report_generator.py`
 - Create: `parallax/parallax/delivery/templates/executive.html`
@@ -886,7 +962,7 @@ Turn analysis into actionable intelligence and deliver to right people.
 
 ---
 
-#### Task 6.2 — STIX 2.1 Export
+#### Task 6.2  --  STIX 2.1 Export
 **Files:**
 - Create: `parallax/parallax/delivery/stix_exporter.py`
 - Create: `parallax/tests/unit/test_stix.py`
@@ -899,7 +975,7 @@ Turn analysis into actionable intelligence and deliver to right people.
 
 ---
 
-#### Task 6.3 — YARA Auto-Generation
+#### Task 6.3  --  YARA Auto-Generation
 **Files:**
 - Create: `parallax/parallax/delivery/yara_generator.py`
 
@@ -913,7 +989,7 @@ Turn analysis into actionable intelligence and deliver to right people.
 
 ---
 
-#### Task 6.4 — Webhook System
+#### Task 6.4  --  Webhook System
 **Files:**
 - Create: `parallax/parallax/delivery/webhook_dispatcher.py`
 - Create: `parallax/parallax/api/routes/webhooks.py`
@@ -927,7 +1003,7 @@ Turn analysis into actionable intelligence and deliver to right people.
 
 ---
 
-#### Task 6.5 — Grafana Dashboards
+#### Task 6.5  --  Grafana Dashboards
 **Files:**
 - Create: `parallax/parallax/delivery/grafana_setup.py`
 - Create: `parallax/parallax/delivery/dashboards/threat_overview.json`
@@ -941,7 +1017,7 @@ Turn analysis into actionable intelligence and deliver to right people.
 
 ---
 
-#### Task 6.6 — Fraud Rule Recommendations
+#### Task 6.6  --  Fraud Rule Recommendations
 **Files:**
 - Create: `parallax/parallax/delivery/fraud_rules.py`
 
@@ -954,7 +1030,7 @@ Turn analysis into actionable intelligence and deliver to right people.
 
 ---
 
-#### Task 6.7 — ATT&CK Navigator Export
+#### Task 6.7  --  ATT&CK Navigator Export
 **Files:**
 - Create: `parallax/parallax/delivery/attck_navigator.py`
 
@@ -977,28 +1053,28 @@ Turn analysis into actionable intelligence and deliver to right people.
 
 ---
 
-## Phase 7 — Integration & Hardening (Week 18-20)
+## Phase 7  --  Integration & Hardening (Week 18-20)
 
 ### Objectives
 End-to-end testing, performance, security, documentation, pilot readiness.
 
 ### Tasks
 
-#### Task 7.1 — End-to-End Integration Tests
+#### Task 7.1  --  End-to-End Integration Tests
 **Files:**
 - Create: `parallax/tests/e2e/test_full_pipeline.py`
 - Create: `parallax/tests/fixtures/sample_apks/`
 
 **Step 1:** Curate 20 sample APKs (known-bad, suspicious, benign)
 **Step 2:** Run full pipeline on each
-**Step 3:** Verify: triage → static → dynamic → visual → cortex → TAIG → delivery
+**Step 3:** Verify: triage -> static -> dynamic -> visual -> cortex -> TAIG -> delivery
 **Step 4:** Verify reports, IOCs, graph nodes all created
 
 **Acceptance:** Full pipeline works for all sample types.
 
 ---
 
-#### Task 7.2 — Performance Benchmarking
+#### Task 7.2  --  Performance Benchmarking
 **Files:**
 - Create: `parallax/scripts/benchmark.py`
 
@@ -1011,7 +1087,7 @@ End-to-end testing, performance, security, documentation, pilot readiness.
 
 ---
 
-#### Task 7.3 — Security Hardening
+#### Task 7.3  --  Security Hardening
 **Files:**
 - Various
 
@@ -1025,7 +1101,7 @@ End-to-end testing, performance, security, documentation, pilot readiness.
 
 ---
 
-#### Task 7.4 — Documentation
+#### Task 7.4  --  Documentation
 **Files:**
 - Create: `parallax/docs/runbooks/`
 - Create: `parallax/docs/operations/`
@@ -1040,7 +1116,7 @@ End-to-end testing, performance, security, documentation, pilot readiness.
 
 ---
 
-#### Task 7.5 — Pilot Deployment
+#### Task 7.5  --  Pilot Deployment
 **Files:**
 - Create: `parallax/deploy/helm/parallax/`
 - Create: `parallax/deploy/terraform/`
