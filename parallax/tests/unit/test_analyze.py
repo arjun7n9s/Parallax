@@ -2,7 +2,7 @@
 Tests for the analyze and status API endpoints.
 """
 from io import BytesIO
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from fastapi.testclient import TestClient
@@ -19,11 +19,21 @@ def client():
 @patch("parallax.api.routes.analyze.minio_client")
 def test_submit_apk_success(mock_minio, client):
     """Test successful APK submission."""
-    # Mock database session
-    mock_session = AsyncMock()
+    from datetime import datetime, timezone
+    
+    # Mock database session with sync add and async commit/refresh
+    mock_session = MagicMock()
+    mock_session.commit = AsyncMock()
+    mock_session.refresh = AsyncMock()
+    mock_session.execute = AsyncMock()
+    
+    def mock_add(obj):
+        obj.created_at = datetime.now(timezone.utc)
+        obj.updated_at = datetime.now(timezone.utc)
+    mock_session.add.side_effect = mock_add
     
     # Mock that the file does not already exist
-    mock_result = AsyncMock()
+    mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = None
     mock_session.execute.return_value = mock_result
 
@@ -70,7 +80,7 @@ def test_get_status_not_found(client):
     """Test getting status for a non-existent UUID."""
     mock_session = AsyncMock()
     
-    mock_result = AsyncMock()
+    mock_result = MagicMock()
     mock_result.scalar_one_or_none.return_value = None
     mock_session.execute.return_value = mock_result
     
