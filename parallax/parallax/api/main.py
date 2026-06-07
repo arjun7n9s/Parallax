@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler — runs on startup and shutdown."""
-    setup_logging()
+    setup_logging(settings.LOG_LEVEL)
     logger.info(
         "PARALLAX starting",
         extra={"environment": settings.ENVIRONMENT, "version": "0.1.0"},

@@ -1,17 +1,59 @@
 # PARALLAX
-Self-Evolving Neural Threat Intelligence Engine for Lateral Analysis
+**Persistent APK Risk Analysis via Lateral LLM-Augmented eXpertise**
+
+*Multiple perspectives. One persistent truth.*
 
 ## Overview
-PARALLAX is a Generative-AI-orchestrated, multi-agent, self-evolving malware analysis platform designed specifically for banking and financial sector fraud analysis.
+
+PARALLAX is a GenAI-native automated malware reverse engineering and APK fraud analysis platform. It operates as an autonomous investigator — forming hypotheses, selecting tools, guiding runtime exploration, interpreting code, reconstructing fraud attack chains, and producing evidence-first reports with empirically calibrated risk scores.
+
+Designed specifically for the banking and financial sector.
 
 ## Quickstart
 
 1. Ensure Docker and Docker Compose are installed.
 2. Clone the repository.
-3. Run `cp .env.example .env` and configure your environment variables.
-4. Run `docker compose up -d` to start the infrastructure (Neo4j, Qdrant, Postgres, Redis, MinIO, Ollama).
-5. Run `pip install -r requirements.txt` to install Python dependencies.
-6. Run `uvicorn parallax.api.main:app --reload` to start the API server.
+3. Copy and configure your environment:
+   ```bash
+   cp .env.example .env
+   ```
+4. Start the infrastructure:
+   ```bash
+   docker compose up -d
+   ```
+5. Initialize the TAIG knowledge graph:
+   ```bash
+   python scripts/init_neo4j.py
+   ```
+6. Apply database migrations:
+   ```bash
+   alembic upgrade head
+   ```
+7. Install Python dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+8. Start the API server:
+   ```bash
+   uvicorn parallax.api.main:app --reload
+   ```
 
 ## API Documentation
+
 Once the server is running, visit `http://localhost:8000/docs` to view the OpenAPI documentation.
+
+## Infrastructure Services
+
+| Service | Port | Purpose |
+|---|---|---|
+| PostgreSQL | 5432 | Relational metadata |
+| Redis | 6379 | Task queue broker |
+| MinIO | 9000/9001 | APK & screenshot storage |
+| Neo4j | 7474/7687 | TAIG Knowledge Graph |
+| Qdrant | 6333/6334 | Vector similarity search |
+| Ollama | 11434 | Local LLM serving |
+| Grafana | 3000 | Dashboards |
+| Prometheus | 9090 | Metrics |
+| Jaeger | 16686 | Distributed tracing |
+
+> **Note:** On Linux Docker (non-Desktop), the `prometheus.yml` target `host.docker.internal:8000` may not resolve. Use the container name or network alias instead.
