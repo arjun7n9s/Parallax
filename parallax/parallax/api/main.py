@@ -18,8 +18,10 @@ from minio import Minio
 from neo4j import GraphDatabase
 from qdrant_client import QdrantClient
 
+from parallax.api.routes import analyze_router, status_router
 from parallax.core.config import settings
 from parallax.core.logging import setup_logging
+from parallax.core.storage import init_buckets
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +34,13 @@ async def lifespan(app: FastAPI):
         "PARALLAX starting",
         extra={"environment": settings.ENVIRONMENT, "version": "0.1.0"},
     )
+
+    # Initialize MinIO buckets
+    try:
+        init_buckets()
+    except Exception as e:
+        logger.error(f"Failed to initialize MinIO buckets: {e}")
+
     yield
     logger.info("PARALLAX shutting down")
 
@@ -45,6 +54,9 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     lifespan=lifespan,
 )
+
+app.include_router(analyze_router, prefix=settings.API_V1_STR)
+app.include_router(status_router, prefix=settings.API_V1_STR)
 
 # CORS middleware
 app.add_middleware(
