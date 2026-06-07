@@ -29,7 +29,7 @@ frida-tools>=13.0.0
 mitmproxy>=11.0.0
 scapy>=2.5.0
 adb-shell>=0.4.4
-pure-python-adb>=0.3.0
+pure-python-adb
 
 # Layer 2C: Visual Intelligence
 opencv-python>=4.10.0
