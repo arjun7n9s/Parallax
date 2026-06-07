@@ -2,16 +2,24 @@
 Alembic environment configuration for PARALLAX.
 
 Runs migrations against PostgreSQL using the SQLAlchemy models.
+The DB URL is always read from Settings (which reads from .env),
+never from alembic.ini directly.
 """
 from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+from parallax.core.config import settings
 from parallax.core.database import Base
-from parallax.core import models  # noqa: F401  — ensure all models are imported
+from parallax.core import models  # noqa: F401  — ensure all models are registered
 
 config = context.config
+
+# Override the URL from alembic.ini with the centralized Settings property.
+# This ensures `alembic upgrade head` always uses the correct .env-driven URL.
+config.set_main_option("sqlalchemy.url", settings.POSTGRES_URL_SYNC)
+
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 

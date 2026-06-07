@@ -8,12 +8,7 @@ from sqlalchemy.orm import DeclarativeBase
 
 from parallax.core.config import settings
 
-DATABASE_URL = (
-    f"postgresql+asyncpg://{settings.POSTGRES_USER}:{settings.POSTGRES_PASSWORD}"
-    f"@{settings.POSTGRES_SERVER}/{settings.POSTGRES_DB}"
-)
-
-engine = create_async_engine(DATABASE_URL, echo=(settings.ENVIRONMENT == "development"))
+engine = create_async_engine(settings.POSTGRES_URL, echo=(settings.ENVIRONMENT == "development"))
 
 async_session = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
