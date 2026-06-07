@@ -1,9 +1,9 @@
-version: '3.8'
-
 services:
+  # ============================================================
   # Relational metadata store
+  # ============================================================
   postgres:
-    image: postgres:15
+    image: postgres:16-alpine
     container_name: parallax_postgres
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -12,7 +12,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - pg_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
@@ -21,9 +21,11 @@ services:
     networks:
       - parallax_net
 
+  # ============================================================
   # Task queue broker
+  # ============================================================
   redis:
-    image: redis:7-alpine
+    image: redis:7.2-alpine
     container_name: parallax_redis
     ports:
       - "6379:6379"
@@ -37,17 +39,19 @@ services:
     networks:
       - parallax_net
 
-  # Object storage for APKs and screenshots
+  # ============================================================
+  # Object storage for APKs, decompiled code, and screenshots
+  # ============================================================
   minio:
-    image: minio/minio
+    image: minio/minio:latest
     container_name: parallax_minio
     command: server /data --console-address ":9001"
     environment:
       MINIO_ROOT_USER: ${MINIO_ROOT_USER:-admin}
       MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-parallax_minio_pass}
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - "9000:9000"   # API
+      - "9001:9001"   # Console UI
     volumes:
       - minio_data:/data
     healthcheck:
@@ -58,15 +62,18 @@ services:
     networks:
       - parallax_net
 
-  # TAIG Graph DB
+  # ============================================================
+  # TAIG Knowledge Graph
+  # ============================================================
   neo4j:
-    image: neo4j:5.20
+    image: neo4j:5.20-community
     container_name: parallax_neo4j
     environment:
       NEO4J_AUTH: ${NEO4J_USER:-neo4j}/${NEO4J_PASSWORD:-parallax_neo4j_pass}
+      NEO4J_PLUGINS: '["apoc"]'
     ports:
-      - "7474:7474"
-      - "7687:7687"
+      - "7474:7474"   # HTTP Browser
+      - "7687:7687"   # Bolt
     volumes:
       - neo4j_data:/data
       - neo4j_logs:/logs
@@ -78,12 +85,15 @@ services:
     networks:
       - parallax_net
 
-  # Vector DB for code intent embeddings
+  # ============================================================
+  # Vector DB for code-intent embeddings (semantic APK search)
+  # ============================================================
   qdrant:
-    image: qdrant/qdrant
+    image: qdrant/qdrant:latest
     container_name: parallax_qdrant
     ports:
-      - "6333:6333"
+      - "6333:6333"   # REST API
+      - "6334:6334"   # gRPC
     volumes:
       - qdrant_data:/qdrant/storage
     healthcheck:
@@ -94,20 +104,31 @@ services:
     networks:
       - parallax_net
 
-  # Local LLM Serving
+  # ============================================================
+  # Local LLM Serving (Ollama)
+  # ============================================================
   ollama:
-    image: ollama/ollama
+    image: ollama/ollama:latest
     container_name: parallax_ollama
     ports:
       - "11434:11434"
     volumes:
       - ollama_data:/root/.ollama
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     networks:
       - parallax_net
 
+  # ============================================================
   # Metrics scraping
+  # ============================================================
   prometheus:
-    image: prom/prometheus
+    image: prom/prometheus:latest
     container_name: parallax_prometheus
     ports:
       - "9090:9090"
@@ -117,14 +138,16 @@ services:
     networks:
       - parallax_net
 
+  # ============================================================
   # Observability Dashboards
+  # ============================================================
   grafana:
-    image: grafana/grafana
+    image: grafana/grafana:latest
     container_name: parallax_grafana
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
     volumes:
       - grafana_data:/var/lib/grafana
     depends_on:
@@ -132,19 +155,21 @@ services:
     networks:
       - parallax_net
 
+  # ============================================================
   # Distributed Tracing
+  # ============================================================
   jaeger:
     image: jaegertracing/all-in-one:latest
     container_name: parallax_jaeger
     ports:
-      - "16686:16686"
-      - "4317:4317"
-      - "4318:4318"
+      - "16686:16686"  # UI
+      - "4317:4317"    # OTLP gRPC
+      - "4318:4318"    # OTLP HTTP
     networks:
       - parallax_net
 
 volumes:
-  postgres_data:
+  pg_data:
   redis_data:
   minio_data:
   neo4j_data:
