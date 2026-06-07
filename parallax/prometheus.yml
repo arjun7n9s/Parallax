@@ -6,7 +6,9 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  # Once the FastAPI app is running, it will expose metrics here
+  # NOTE: host.docker.internal works on Docker Desktop (macOS/Windows).
+  # On Linux Docker, replace with the container name or network alias
+  # of the API service, e.g. 'parallax_api:8000'.
   - job_name: 'parallax_api'
     static_configs:
       - targets: ['host.docker.internal:8000']

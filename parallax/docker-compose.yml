@@ -43,7 +43,7 @@ services:
   # Object storage for APKs, decompiled code, and screenshots
   # ============================================================
   minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2024-03-15T01-07-19Z
     container_name: parallax_minio
     command: server /data --console-address ":9001"
     environment:
@@ -89,7 +89,7 @@ services:
   # Vector DB for code-intent embeddings (semantic APK search)
   # ============================================================
   qdrant:
-    image: qdrant/qdrant:latest
+    image: qdrant/qdrant:v1.10.0
     container_name: parallax_qdrant
     ports:
       - "6333:6333"   # REST API
@@ -108,7 +108,7 @@ services:
   # Local LLM Serving (Ollama)
   # ============================================================
   ollama:
-    image: ollama/ollama:latest
+    image: ollama/ollama:0.3.3
     container_name: parallax_ollama
     ports:
       - "11434:11434"
