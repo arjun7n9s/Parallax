@@ -2,13 +2,20 @@
 PARALLAX API - Main Application Entry Point
 
 Provides the FastAPI application with health/readiness checks,
-CORS middleware, and OpenTelemetry instrumentation.
+CORS middleware, and structured logging.
 """
 import logging
 from contextlib import asynccontextmanager
 
+import asyncpg
+import httpx
+import redis as redis_lib
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from minio import Minio
+from neo4j import GraphDatabase
+from qdrant_client import QdrantClient
 
 from parallax.core.config import settings
 from parallax.core.logging import setup_logging
@@ -64,8 +71,6 @@ async def readiness_check():
 
     # PostgreSQL
     try:
-        import asyncpg  # noqa: F811
-
         conn = await asyncpg.connect(
             host=settings.POSTGRES_SERVER,
             user=settings.POSTGRES_USER,
@@ -80,8 +85,6 @@ async def readiness_check():
 
     # Redis
     try:
-        import redis as redis_lib
-
         r = redis_lib.Redis(host=settings.REDIS_HOST, port=settings.REDIS_PORT)
         r.ping()
         r.close()
@@ -91,8 +94,6 @@ async def readiness_check():
 
     # Neo4j
     try:
-        from neo4j import GraphDatabase
-
         driver = GraphDatabase.driver(
             settings.NEO4J_URI,
             auth=(settings.NEO4J_USER, settings.NEO4J_PASSWORD),
@@ -105,8 +106,6 @@ async def readiness_check():
 
     # Qdrant
     try:
-        from qdrant_client import QdrantClient
-
         qc = QdrantClient(host=settings.QDRANT_HOST, port=settings.QDRANT_PORT)
         qc.get_collections()
         qc.close()
@@ -116,8 +115,6 @@ async def readiness_check():
 
     # MinIO
     try:
-        from minio import Minio
-
         mc = Minio(
             settings.MINIO_SERVER,
             access_key=settings.MINIO_ROOT_USER,
@@ -131,8 +128,6 @@ async def readiness_check():
 
     # Ollama
     try:
-        import httpx
-
         resp = httpx.get(f"{settings.OLLAMA_HOST}/api/tags", timeout=5)
         resp.raise_for_status()
         checks["ollama"] = "ok"
@@ -141,8 +136,6 @@ async def readiness_check():
 
     all_ok = all(v == "ok" for v in checks.values())
     status_code = 200 if all_ok else 503
-
-    from fastapi.responses import JSONResponse
 
     return JSONResponse(
         status_code=status_code,
