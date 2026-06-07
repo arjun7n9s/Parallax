@@ -1,6 +1,7 @@
 """
 Pytest configuration and shared fixtures for PARALLAX.
 """
+
 import pytest
 from fastapi.testclient import TestClient
 

@@ -4,11 +4,12 @@ Revision ID: 0001
 Revises: None
 Create Date: 2026-06-07
 """
+
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from alembic import op
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 
 revision: str = "0001"
 down_revision: Union[str, None] = None
@@ -19,12 +20,24 @@ depends_on: Union[str, Sequence[str], None] = None
 def upgrade() -> None:
     # -- Enum types
     analysis_status = sa.Enum(
-        "queued", "triaging", "static", "dynamic", "reasoning", "complete", "failed",
+        "queued",
+        "triaging",
+        "static",
+        "dynamic",
+        "reasoning",
+        "complete",
+        "failed",
         name="analysis_status",
     )
     analysis_priority = sa.Enum("critical", "high", "normal", "low", name="analysis_priority")
     ioc_type = sa.Enum(
-        "ip", "domain", "url", "hash", "email", "certificate", "yara_rule",
+        "ip",
+        "domain",
+        "url",
+        "hash",
+        "email",
+        "certificate",
+        "yara_rule",
         name="ioc_type",
     )
 

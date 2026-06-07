@@ -4,6 +4,7 @@ Application settings loaded from environment variables and .env file.
 All backing-service connection info is centralized here so it's never
 string-built in multiple places.
 """
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 

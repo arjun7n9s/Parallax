@@ -4,6 +4,7 @@ PARALLAX API - Main Application Entry Point
 Provides the FastAPI application with health/readiness checks,
 CORS middleware, and structured logging.
 """
+
 import logging
 from contextlib import asynccontextmanager
 
@@ -38,7 +39,9 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version="0.1.0",
-    description="GenAI-native automated malware reverse engineering and APK fraud analysis platform",
+    description=(
+        "GenAI-native automated malware reverse engineering and APK fraud analysis platform"
+    ),
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     lifespan=lifespan,
 )

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# ruff: noqa: E501
 """
 Initialize Neo4j Constraints and Indexes for the TAIG Knowledge Graph.
 
@@ -14,6 +15,7 @@ defined in 06_TAIG_SCHEMA.md. Property names match the schema exactly:
 Run this script once after Neo4j is up:
   python scripts/init_neo4j.py
 """
+
 import asyncio
 import logging
 import os

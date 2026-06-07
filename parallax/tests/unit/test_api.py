@@ -4,9 +4,9 @@ Unit tests for basic API endpoints.
 The readiness test mocks all backing-service clients so it is deterministic
 regardless of whether Postgres/Redis/etc. are running on the test machine.
 """
-from unittest.mock import AsyncMock, patch, MagicMock
 
-import pytest
+from unittest.mock import AsyncMock, MagicMock, patch
+
 from fastapi.testclient import TestClient
 
 

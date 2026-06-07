@@ -3,11 +3,12 @@ SQLAlchemy ORM models for PARALLAX core tables.
 
 These are the foundational tables required by Phase 0.
 """
+
 import uuid
 from datetime import datetime
 
 from sqlalchemy import DateTime, Enum, Float, Integer, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from parallax.core.database import Base
@@ -15,6 +16,7 @@ from parallax.core.database import Base
 
 class Submission(Base):
     """An APK submitted for analysis."""
+
     __tablename__ = "submissions"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -24,8 +26,16 @@ class Submission(Base):
     file_size: Mapped[int] = mapped_column(Integer, nullable=False)
     package_name: Mapped[str | None] = mapped_column(String(512), nullable=True)
     status: Mapped[str] = mapped_column(
-        Enum("queued", "triaging", "static", "dynamic", "reasoning", "complete", "failed",
-             name="analysis_status"),
+        Enum(
+            "queued",
+            "triaging",
+            "static",
+            "dynamic",
+            "reasoning",
+            "complete",
+            "failed",
+            name="analysis_status",
+        ),
         default="queued",
     )
     priority: Mapped[str] = mapped_column(
@@ -45,13 +55,13 @@ class Submission(Base):
 
 class IOC(Base):
     """Indicator of Compromise extracted from an analysis."""
+
     __tablename__ = "iocs"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     submission_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
     ioc_type: Mapped[str] = mapped_column(
-        Enum("ip", "domain", "url", "hash", "email", "certificate", "yara_rule",
-             name="ioc_type"),
+        Enum("ip", "domain", "url", "hash", "email", "certificate", "yara_rule", name="ioc_type"),
         nullable=False,
     )
     value: Mapped[str] = mapped_column(Text, nullable=False)
@@ -63,10 +73,13 @@ class IOC(Base):
 
 class AuditLog(Base):
     """Immutable audit trail for every system action."""
+
     __tablename__ = "audit_log"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    submission_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), nullable=True, index=True)
+    submission_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), nullable=True, index=True
+    )
     actor: Mapped[str] = mapped_column(String(128), nullable=False)  # agent name or "system"
     action: Mapped[str] = mapped_column(String(256), nullable=False)
     detail: Mapped[dict | None] = mapped_column(JSONB, nullable=True)

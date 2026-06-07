@@ -5,14 +5,15 @@ Runs migrations against PostgreSQL using the SQLAlchemy models.
 The DB URL is always read from Settings (which reads from .env),
 never from alembic.ini directly.
 """
+
 from logging.config import fileConfig
 
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+from parallax.core import models  # noqa: F401  — ensure all models are registered
 from parallax.core.config import settings
 from parallax.core.database import Base
-from parallax.core import models  # noqa: F401  — ensure all models are registered
 
 config = context.config
 
