@@ -40,6 +40,6 @@ class SubmissionResponse(SubmissionBase):
     updated_at: datetime
 
     # Expose metadata_json as just metadata if present
-    metadata_json: dict[str, Any] | None = Field(default=None, alias="metadata")
+    metadata: dict[str, Any] | None = Field(default=None, validation_alias="metadata_json")
 
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
