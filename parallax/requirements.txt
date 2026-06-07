@@ -10,7 +10,6 @@ celery[redis]==5.4.0
 redis==5.0.8
 minio==7.2.7
 apkid==3.0.0
-ssdeep==3.4.1
 psycopg2-binary==2.9.9
 sqlalchemy==2.0.34
 alembic==1.13.2
