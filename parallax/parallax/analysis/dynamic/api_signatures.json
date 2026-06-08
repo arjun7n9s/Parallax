@@ -135,5 +135,88 @@
     ],
     "indicator_of": "icon_hiding",
     "use_when": "hypothesis mentions hiding the app icon from the launcher"
+  },
+  "android.app.NotificationManager": {
+    "method": "notify",
+    "overloads": [
+      {"params": ["int", "android.app.Notification"]},
+      {"params": ["java.lang.String", "int", "android.app.Notification"]}
+    ],
+    "indicator_of": "fake_notification_overlay",
+    "use_when": "hypothesis mentions Joker-style SMS interception via fake notifications"
+  },
+  "android.app.Activity": {
+    "method": "startActivity",
+    "overloads": [
+      {"params": ["android.content.Intent"]},
+      {"params": ["android.content.Intent", "android.os.Bundle"]}
+    ],
+    "indicator_of": "activity_hijack_or_phishing",
+    "use_when": "hypothesis mentions UI hijacking, phishing activity overlay, or task affinity attacks"
+  },
+  "android.telephony.SmsMessage": {
+    "method": "createFromPdu",
+    "overloads": [
+      {"params": ["byte[]"]}
+    ],
+    "indicator_of": "sms_interception",
+    "use_when": "hypothesis mentions receiving/intercepting incoming SMS, OTP theft from inbound messages"
+  },
+  "android.location.LocationManager": {
+    "method": "requestLocationUpdates",
+    "overloads": [
+      {"params": ["java.lang.String", "long", "float", "android.location.LocationListener"]},
+      {"params": ["java.lang.String", "long", "float", "android.location.LocationListener", "android.os.Looper"]}
+    ],
+    "indicator_of": "location_tracking",
+    "use_when": "hypothesis mentions GPS tracking, location exfiltration, or stalkerware"
+  },
+  "android.media.AudioRecord": {
+    "method": "<init>",
+    "overloads": [
+      {"params": ["int", "int", "int", "int", "int", "int"]}
+    ],
+    "indicator_of": "audio_surveillance",
+    "use_when": "hypothesis mentions call recording, microphone eavesdropping, audio capture"
+  },
+  "android.hardware.camera2.CameraManager": {
+    "method": "openCamera",
+    "overloads": [
+      {"params": ["java.lang.String", "android.hardware.camera2.CameraDevice.StateCallback", "android.os.Handler"]}
+    ],
+    "indicator_of": "camera_surveillance",
+    "use_when": "hypothesis mentions covert camera access, photo exfiltration, or remote camera activation"
+  },
+  "android.app.ActivityManager": {
+    "method": "killBackgroundProcesses",
+    "overloads": [
+      {"params": ["java.lang.String"]}
+    ],
+    "indicator_of": "anti_forensics",
+    "use_when": "hypothesis mentions killing other processes, anti-analysis behavior, or competing security app suppression"
+  },
+  "android.app.Notification$Builder": {
+    "method": "setOngoing",
+    "overloads": [
+      {"params": ["boolean"]}
+    ],
+    "indicator_of": "persistent_notification_hiding",
+    "use_when": "hypothesis mentions preventing notification dismissal, persistent background service, or notification hiding"
+  },
+  "android.webkit.WebView": {
+    "method": "addJavascriptInterface",
+    "overloads": [
+      {"params": ["java.lang.Object", "java.lang.String"]}
+    ],
+    "indicator_of": "webview_js_bridge",
+    "use_when": "hypothesis mentions WebView JS bridge abuse, remote code execution via JS interface, or WebView-based credential theft"
+  },
+  "android.content.BroadcastReceiver": {
+    "method": "abortBroadcast",
+    "overloads": [
+      {"params": []}
+    ],
+    "indicator_of": "sms_abort_premium_rate_hiding",
+    "use_when": "hypothesis mentions premium-rate SMS fraud, hiding premium confirmation, or aborting inbound SMS broadcasts"
   }
 }
