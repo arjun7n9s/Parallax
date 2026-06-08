@@ -182,3 +182,9 @@ volumes:
 networks:
   parallax_net:
     driver: bridge
+  # Isolated network for dynamic analysis — malware containers run here
+  # and CANNOT reach backing services (postgres, redis, etc.).
+  # Only the API and analysis workers bridge both networks.
+  analysis_net:
+    driver: bridge
+    internal: true  # No external internet access

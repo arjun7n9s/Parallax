@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     # Ollama (Local LLM)
     OLLAMA_HOST: str = "http://localhost:11434"
 
+    # OpenTelemetry
+    OTEL_EXPORTER_OTLP_ENDPOINT: str = "http://localhost:4317"
+
     # Derived URLs — single source of truth, never build these inline elsewhere
     @property
     def POSTGRES_URL(self) -> str:

@@ -82,3 +82,21 @@ def test_readiness_all_services_up(client: TestClient) -> None:
     assert data["status"] == "ready"
     for v in data["checks"].values():
         assert v == "ok"
+
+
+def test_health_returns_correlation_id(client: TestClient) -> None:
+    """Every response should contain an X-Request-ID header (auto-generated)."""
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert "X-Request-ID" in response.headers
+    # Should be a valid UUID format
+    request_id = response.headers["X-Request-ID"]
+    assert len(request_id) == 36  # UUID v4 format: 8-4-4-4-12
+
+
+def test_correlation_id_passthrough(client: TestClient) -> None:
+    """When the caller provides X-Request-ID, it should be echoed back."""
+    custom_id = "my-trace-12345"
+    response = client.get("/health", headers={"X-Request-ID": custom_id})
+    assert response.status_code == 200
+    assert response.headers["X-Request-ID"] == custom_id

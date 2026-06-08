@@ -21,17 +21,21 @@ Designed specifically for the banking and financial sector.
    ```bash
    docker compose up -d
    ```
-5. Initialize the TAIG knowledge graph:
+5. Install Python dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+6. Initialize the TAIG knowledge graph:
    ```bash
    python scripts/init_neo4j.py
    ```
-6. Apply database migrations:
+7. Initialize Qdrant vector collections:
+   ```bash
+   python scripts/init_qdrant.py
+   ```
+8. Apply database migrations:
    ```bash
    alembic upgrade head
-   ```
-7. Install Python dependencies:
-   ```bash
-   pip install -r requirements.txt
    ```
 8. Start the API server:
    ```bash

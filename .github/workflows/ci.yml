@@ -19,11 +19,13 @@ jobs:
         with:
           python-version: "3.11"
       - name: Install dev dependencies
-        run: pip install ruff mypy
+        run: pip install ruff mypy pydantic pydantic-settings
       - name: Ruff lint
         run: ruff check parallax/
       - name: Ruff format check
         run: ruff format --check parallax/
+      - name: Mypy type check
+        run: mypy parallax/ --ignore-missing-imports
 
   security:
     name: Security Scan
@@ -40,6 +42,10 @@ jobs:
         uses: gitleaks/gitleaks-action@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install bandit
+        run: pip install bandit
+      - name: Bandit security scan
+        run: bandit -r parallax/ -x parallax/__pycache__ -ll
 
   test:
     name: Unit Tests
@@ -52,7 +58,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - name: Install dependencies
-        run: pip install -r requirements.txt
-      - name: Run tests
-        run: PYTHONPATH=. pytest tests/ -v --tb=short
+      - name: Install test dependencies
+        run: |
+          pip install fastapi uvicorn pydantic pydantic-settings sqlalchemy asyncpg \
+                      minio redis neo4j qdrant-client httpx structlog python-multipart \
+                      opentelemetry-api opentelemetry-sdk opentelemetry-instrumentation-fastapi \
+                      opentelemetry-exporter-otlp \
+                      pytest pytest-asyncio pytest-cov
+      - name: Run unit tests
+        run: PYTHONPATH=. pytest tests/unit/ -v --tb=short
