@@ -51,7 +51,6 @@ def setup_logging(log_level: str = "INFO") -> None:
     handler.setFormatter(formatter)
 
     root_logger = logging.getLogger()
-    # Clear existing handlers to avoid duplicate output on reload
-    root_logger.handlers.clear()
-    root_logger.addHandler(handler)
+    if not root_logger.handlers:
+        root_logger.addHandler(handler)
     root_logger.setLevel(getattr(logging, log_level.upper(), logging.INFO))

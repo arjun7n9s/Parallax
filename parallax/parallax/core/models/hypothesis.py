@@ -1,3 +1,4 @@
+import uuid
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, String, Text, func
@@ -17,7 +18,7 @@ class Hypothesis(Base):
     __tablename__ = "hypotheses"
 
     hypothesis_id: Mapped[str] = mapped_column(String(128), primary_key=True)
-    submission_id: Mapped[str] = mapped_column(
+    submission_id: Mapped[uuid.UUID] = mapped_column(
         postgresql.UUID(as_uuid=True), ForeignKey("submissions.id", ondelete="CASCADE"), index=True
     )
     apk_sha256: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
