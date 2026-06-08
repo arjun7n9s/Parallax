@@ -4,6 +4,7 @@ import os
 import shutil
 import tempfile
 import uuid
+from typing import Optional
 
 from celery import Task
 from sqlalchemy.future import select
@@ -18,6 +19,16 @@ from parallax.sandbox.runner import SandboxRunner
 from parallax.workers.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
+
+_parser: Optional[HookPlannerParser] = None
+_generator: Optional[HookPlannerGenerator] = None
+
+def get_generator() -> HookPlannerGenerator:
+    global _parser, _generator
+    if _generator is None:
+        _parser = HookPlannerParser()
+        _generator = HookPlannerGenerator(ollama_client, _parser)
+    return _generator
 
 
 def async_to_sync(awaitable):
@@ -72,8 +83,7 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
                 logger.error(f"Submission {submission_id_str} not found.")
                 return
 
-            submission.status = "dynamic"
-            await db.commit()
+            # We will set status to dynamic later when the sandbox is actually starting.
 
             # 1. Download APK
             sha256 = submission.sha256
@@ -99,8 +109,7 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
                 return
 
             # 3. Generate Hooks
-            parser = HookPlannerParser()
-            generator = HookPlannerGenerator(ollama_client, parser)
+            generator = get_generator()
 
             combined_script = _build_script_prelude(submission_id_str)
             active_hypothesis_ids = []
@@ -139,6 +148,9 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
                 )
 
             # 4. Orchestrate Sandbox Run
+            submission.status = "dynamic"
+            await db.commit()
+
             sandbox = SandboxRunner(
                 submission_id=submission_id_str,
                 package_name=submission.package_name or "com.example.malware",
@@ -150,10 +162,8 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
             )
 
             # 5. Save Observations
-            for obs_payload in observations_data:
-                obs_id = uuid.uuid4()
+            for i, obs_payload in enumerate(observations_data):
                 new_obs = Observation(
-                    id=obs_id,
                     submission_id=submission_id,
                     source="mitmproxy" if obs_payload.get("hook") == "mitmproxy.http" else "frida",
                     event_type=obs_payload.get("hook", "unknown"),
@@ -164,20 +174,24 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
                     return_value=obs_payload.get("return_value"),
                     exception=obs_payload.get("exception"),
                     captured_at_ms=obs_payload.get("captured_at_ms", 0),
-                    session_id=obs_payload.get("session_id"),
+                    session_id=obs_payload.get("session_id")
                 )
                 db.add(new_obs)
 
+                # Must flush so that new_obs gets its auto-generated UUID assigned
+                # otherwise new_obs.id is None when creating the link
+                await db.flush()
+
                 hyp_id_str = obs_payload.get("hypothesis_id")
                 if hyp_id_str:
-                    try:
-                        hyp_uuid = uuid.UUID(hyp_id_str)
-                        link = ExperimentObservationLink(
-                            hypothesis_id=hyp_uuid, observation_id=obs_id
-                        )
-                        db.add(link)
-                    except ValueError:
-                        pass
+                    link = ExperimentObservationLink(
+                        hypothesis_id=hyp_id_str,
+                        observation_id=new_obs.id
+                    )
+                    db.add(link)
+
+                if (i + 1) % 50 == 0:
+                    await db.commit()
 
             await db.commit()
             logger.info(f"Saved {len(observations_data)} observations for {sha256}")
@@ -205,11 +219,6 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
     finally:
         if temp_dir and os.path.exists(temp_dir):
             shutil.rmtree(temp_dir, ignore_errors=True)
-
-        try:
-            await ollama_client.close()
-        except Exception:
-            pass
 
 
 def _build_script_prelude(session_id: str) -> str:

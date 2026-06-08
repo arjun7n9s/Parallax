@@ -1,5 +1,6 @@
-import asyncio
 import logging
+import threading
+import time
 from typing import Callable, Optional
 
 from mitmproxy import http
@@ -35,12 +36,15 @@ class TrafficInterceptorAddon:
             req = flow.request
             res = flow.response
 
+            ts = flow.request.timestamp_start
+            captured_at_ms = int(ts * 1000) if ts else int(time.time() * 1000)
+
             payload = {
                 "type": "observation",
                 "schema_version": "1.0",
                 "hypothesis_id": None,  # Generic network traffic doesn't have a specific hypothesis yet
                 "hook": "mitmproxy.http",
-                "captured_at_ms": int(flow.request.timestamp_start * 1000),
+                "captured_at_ms": captured_at_ms,
                 "thread_id": None,
                 "thread_name": None,
                 "caller_package": None,  # Cannot easily determine package from raw IP traffic
@@ -77,7 +81,7 @@ class MitmproxyRunner:
         self.on_flow_callback = on_flow_callback
 
         self.master: Optional[DumpMaster] = None
-        self.runner_task: Optional[asyncio.Task] = None
+        self.runner_thread: Optional[threading.Thread] = None
 
     async def start(self) -> None:
         """
@@ -94,7 +98,8 @@ class MitmproxyRunner:
             self.master.addons.add(addon)
 
             logger.info(f"Starting Mitmproxy on port {self.listen_port}")
-            self.runner_task = asyncio.create_task(self.master.run())
+            self.runner_thread = threading.Thread(target=self.master.run, daemon=True)
+            self.runner_thread.start()
         except Exception as e:
             raise MitmproxyRunnerError(f"Failed to start mitmproxy: {e}")
 
@@ -106,6 +111,7 @@ class MitmproxyRunner:
             logger.info("Shutting down Mitmproxy")
             self.master.shutdown()
 
-        if self.runner_task:
-            await asyncio.gather(self.runner_task, return_exceptions=True)
-            self.runner_task = None
+        if self.runner_thread and self.runner_thread.is_alive():
+            # Wait briefly for thread to finish after shutdown
+            self.runner_thread.join(timeout=2.0)
+            self.runner_thread = None

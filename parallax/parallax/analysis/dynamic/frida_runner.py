@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import os
+import time
 from typing import Any, Callable, Optional
 
 import frida
@@ -50,8 +52,16 @@ class FridaRunner:
         Runs the hook script synchronously for a given duration.
         """
         try:
-            # Connect to the USB device (Android emulator/device)
-            self.device = frida.get_usb_device()
+            # Either hardcode a device ID passed via env var
+            device_id = os.getenv("FRIDA_DEVICE_ID", "localhost:27042")
+
+            # Try to get the device by ID first (Docker/TCP)
+            try:
+                self.device = frida.get_device(device_id, timeout=5)
+            except frida.TimedOutError:
+                # Fall back to USB if no device_id or TCP connection fails
+                self.device = frida.get_usb_device(timeout=5)
+
             logger.info(f"Connected to Frida device: {self.device.id}")
 
             # Spawn the application to hook it early
@@ -69,8 +79,6 @@ class FridaRunner:
             logger.info(f"Resumed {self.package_name}. Listening for {timeout_seconds} seconds...")
 
             # Wait for the specified duration to capture events
-            import time
-
             time.sleep(timeout_seconds)
 
         except frida.ServerNotRunningError:

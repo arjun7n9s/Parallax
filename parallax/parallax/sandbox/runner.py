@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import List, Optional
 
@@ -73,7 +74,13 @@ class SandboxRunner:
             # the emulator would already be routed through the mitmproxy container's port)
 
             # Start Frida and wait for the execution timeout
-            await self.frida_runner.run_async(timeout_seconds=timeout_seconds)
+            try:
+                await asyncio.wait_for(
+                    self.frida_runner.run_async(timeout_seconds=timeout_seconds),
+                    timeout=timeout_seconds + 30,  # 30s buffer
+                )
+            except asyncio.TimeoutError:
+                raise SandboxRunnerError("Frida execution exceeded timeout")
 
         except FridaRunnerError as e:
             logger.error(f"Frida error during sandbox run: {e}")

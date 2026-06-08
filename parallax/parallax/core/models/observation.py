@@ -55,9 +55,9 @@ class ExperimentObservationLink(Base):
 
     __tablename__ = "experiment_observation_links"
 
-    hypothesis_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("hypotheses.id", ondelete="CASCADE"),
+    hypothesis_id: Mapped[str] = mapped_column(
+        String(128),
+        ForeignKey("hypotheses.hypothesis_id", ondelete="CASCADE"),
         primary_key=True,
     )
     observation_id: Mapped[uuid.UUID] = mapped_column(
