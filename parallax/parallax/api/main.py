@@ -131,14 +131,14 @@ app.add_middleware(
 
 # ------------------------------------------------------------------ Health
 @app.get("/health", tags=["System"])
-async def health_check():
+async def health_check() -> dict:
     """Basic liveness probe — always returns OK if the process is alive."""
     return {"status": "ok", "service": settings.PROJECT_NAME, "version": "0.1.0"}
 
 
 # ------------------------------------------------------------------ Ready
 @app.get("/ready", tags=["System"])
-async def readiness_check():
+async def readiness_check() -> JSONResponse:
     """
     Readiness probe — checks connectivity to all backing services.
     Returns 503 if any critical service is unreachable.

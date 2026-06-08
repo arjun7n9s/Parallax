@@ -50,7 +50,8 @@ class Hypothesis(Base):
 
     @property
     def effective_confidence(self) -> float:
-        return self.initial_confidence if self.final_confidence is None else self.final_confidence
+        val = self.initial_confidence if self.final_confidence is None else self.final_confidence
+        return float(val)
 
 
 class Experiment(Base):
