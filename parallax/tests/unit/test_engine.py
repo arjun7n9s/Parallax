@@ -28,7 +28,7 @@ async def test_seed_initial_hypotheses():
     }
 
     records = await engine.seed_initial_hypotheses(
-        submission_id="test-submission-id", sha256="fake_sha256_hash", triage_data=triage_data
+        submission_id=uuid.uuid4(), sha256="fake_sha256_hash", triage_data=triage_data
     )
 
     assert len(records) == 1

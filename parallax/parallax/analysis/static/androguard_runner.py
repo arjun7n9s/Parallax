@@ -32,8 +32,8 @@ def run_androguard(apk_path: str) -> Dict[str, Any]:
         return {
             "package_name": a.get_package(),
             "app_name": a.get_app_name(),
-            "version_name": a.get_details_permissions().get("versionName", ""),
-            "version_code": a.get_details_permissions().get("versionCode", ""),
+            "version_name": a.get_androidversion_name(),
+            "version_code": a.get_androidversion_code(),
             "min_sdk": a.get_min_sdk_version(),
             "target_sdk": a.get_target_sdk_version(),
             "main_activity": main_activity,

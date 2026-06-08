@@ -1,6 +1,7 @@
 import glob
 import logging
 import os
+import functools
 from typing import Any, Dict, List
 
 import yara
@@ -8,6 +9,7 @@ import yara
 logger = logging.getLogger(__name__)
 
 
+@functools.lru_cache(maxsize=1)
 def load_yara_rules() -> yara.Rules | None:
     """
     Load and compile all YARA rules from the rules/yara/baseline and rules/yara/custom directories.

@@ -14,6 +14,7 @@ from parallax.ai.re_workbench.artifact_model import (
     StaticAnalysisFeatures,
     YaraMatch,
 )
+from parallax.ai.hypothesis.engine import HypothesisEngine
 from parallax.analysis.static.androguard_runner import run_androguard
 from parallax.analysis.static.jadx_runner import run_jadx
 from parallax.analysis.static.yara_runner import run_yara
@@ -66,11 +67,8 @@ async def _async_run_static_pipeline(submission_id_str: str):
             logger.error(f"Submission {submission_id_str} not found in database.")
             return
 
-        # Double check status (should be "static" from triage_worker)
-        # Even if not, we force it to "static" here to be safe
-        submission.status = "static"
-        await db.commit()
-        await db.refresh(submission)
+        # The submission status should already be "static" from triage_worker.
+        # We proceed directly.
 
         sha256 = submission.sha256
         temp_dir = None
@@ -153,7 +151,11 @@ async def _async_run_static_pipeline(submission_id_str: str):
             if not submission.package_name and static_features.package_name != "unknown":
                 submission.package_name = static_features.package_name
 
-            # 6. Transition to dynamic
+            # 6. Close the loop with Hypothesis Engine
+            engine = HypothesisEngine(db)
+            await engine.process_static_results(submission.id, artifact_model.to_dict())
+
+            # 7. Transition to dynamic
             submission.status = "dynamic"
             await db.commit()
             logger.info(f"Static pipeline complete for {sha256}. Status set to 'dynamic'.")

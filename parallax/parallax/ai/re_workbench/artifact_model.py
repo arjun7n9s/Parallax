@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class YaraMatch(BaseModel):
@@ -9,6 +9,7 @@ class YaraMatch(BaseModel):
     tags: List[str] = Field(default_factory=list)
     meta: Dict[str, Any] = Field(default_factory=dict)
     strings: List[Dict[str, Any]] = Field(default_factory=list)
+    model_config = ConfigDict(extra="ignore")
 
 
 class StaticAnalysisFeatures(BaseModel):

@@ -20,7 +20,9 @@ def mock_db():
 @patch("parallax.workers.static_worker.run_yara")
 @patch("parallax.workers.static_worker.run_jadx")
 @patch("parallax.workers.static_worker.async_session")
+@patch("parallax.workers.static_worker.HypothesisEngine.process_static_results")
 async def test_static_worker_success(
+    mock_process_static_results,
     mock_async_session,
     mock_run_jadx,
     mock_run_yara,
