@@ -39,7 +39,7 @@ async def submit_apk(
     max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
     sha256_hash = hashlib.sha256()
-    md5_hash = hashlib.md5()
+    md5_hash = hashlib.md5(usedforsecurity=False)
     file_size = 0
     temp_file_path: str | None = None
 
@@ -54,10 +54,8 @@ async def submit_apk(
 
                 # Enforce file size limit
                 if file_size > max_bytes:
-                    raise HTTPException(
-                        status_code=413,
-                        detail=f"File exceeds maximum upload size of {settings.MAX_UPLOAD_SIZE_MB} MB.",
-                    )
+                    msg = f"File exceeds max upload size of {settings.MAX_UPLOAD_SIZE_MB} MB."
+                    raise HTTPException(status_code=413, detail=msg)
 
                 # Validate APK magic bytes from the first chunk
                 if is_first_chunk:
@@ -104,18 +102,17 @@ async def submit_apk(
 
         db.add(new_submission)
         await db.commit()
-        await db.refresh(new_submission)
+        # Enqueue Celery task for triaging
+        from parallax.workers.triage_worker import run_triage_pipeline
 
-        # TODO: Enqueue Celery task for triaging
+        run_triage_pipeline.delay(str(new_submission.id))
 
         return new_submission
 
     except HTTPException:
         raise  # Re-raise our own validation errors
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail=f"Failed to process APK submission: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to process APK submission: {str(e)}")
     finally:
         # Always clean up the temp file — even on error
         if temp_file_path and os.path.exists(temp_file_path):

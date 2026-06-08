@@ -60,7 +60,10 @@ class IOC(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     submission_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("submissions.id", ondelete="CASCADE"), nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("submissions.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     ioc_type: Mapped[str] = mapped_column(
         Enum("ip", "domain", "url", "hash", "email", "certificate", "yara_rule", name="ioc_type"),
@@ -80,7 +83,10 @@ class AuditLog(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     submission_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("submissions.id", ondelete="SET NULL"), nullable=True, index=True
+        UUID(as_uuid=True),
+        ForeignKey("submissions.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
     )
     actor: Mapped[str] = mapped_column(String(128), nullable=False)  # agent name or "system"
     action: Mapped[str] = mapped_column(String(256), nullable=False)

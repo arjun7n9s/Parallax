@@ -1,32 +1,53 @@
 """
-Analysis status query endpoints.
+Endpoint for fetching the status of an ongoing or completed analysis.
 """
 
 import uuid
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from parallax.api.schemas.submission import SubmissionResponse
 from parallax.core.database import get_session
-from parallax.core.models import Submission
+from parallax.core.models import Hypothesis, Submission
 
-router = APIRouter(prefix="/analysis", tags=["Analyze"])
+router = APIRouter(prefix="/analysis", tags=["Analysis"])
 
 
-@router.get("/{submission_id}", response_model=SubmissionResponse)
-async def get_analysis_status(
-    submission_id: uuid.UUID,
-    db: AsyncSession = Depends(get_session),
-):
+@router.get("/{submission_id}", response_model=dict[str, Any])
+async def get_analysis_status(submission_id: uuid.UUID, db: AsyncSession = Depends(get_session)):
     """
-    Get the status of an APK analysis by its submission ID.
+    Fetch the current status of an analysis, including triage score and active hypotheses.
     """
     result = await db.execute(select(Submission).where(Submission.id == submission_id))
     submission = result.scalar_one_or_none()
 
     if not submission:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Submission not found.")
+        raise HTTPException(status_code=404, detail="Submission not found")
 
-    return submission
+    # Fetch related hypotheses for V2
+    hypotheses_result = await db.execute(
+        select(Hypothesis).where(Hypothesis.apk_sha256 == submission.sha256)
+    )
+    hypotheses = hypotheses_result.scalars().all()
+
+    response_data = SubmissionResponse.model_validate(submission).model_dump(mode="json")
+
+    # Append hypothesis engine data
+    response_data["hypotheses"] = [
+        {
+            "id": h.hypothesis_id,
+            "claim": h.claim,
+            "status": h.status,
+            "confidence": h.initial_confidence
+            if h.final_confidence is None
+            else h.final_confidence,
+            "irt_label": h.irt_label,
+        }
+        for h in hypotheses
+        if h.expose_in_irt
+    ]
+
+    return response_data

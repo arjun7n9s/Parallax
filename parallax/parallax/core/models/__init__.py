@@ -1,2 +1,4 @@
-from .submission import Submission, IOC, AuditLog
-from .hypothesis import Hypothesis, Experiment
+from .hypothesis import Experiment, Hypothesis
+from .submission import IOC, AuditLog, Submission
+
+__all__ = ["Submission", "IOC", "AuditLog", "Hypothesis", "Experiment"]

@@ -17,7 +17,9 @@ class OllamaClient:
         self.base_url = getattr(settings, "OLLAMA_URL", "http://localhost:11434")
         self.client = httpx.AsyncClient(base_url=self.base_url, timeout=120.0)
 
-    async def generate_json(self, model: str, prompt: str, system_prompt: str = "") -> dict[str, Any]:
+    async def generate_json(
+        self, model: str, prompt: str, system_prompt: str = ""
+    ) -> dict[str, Any]:
         """
         Generate a JSON response from the specified Ollama model.
         """
@@ -28,7 +30,7 @@ class OllamaClient:
             "stream": False,
             "options": {
                 "temperature": 0.1,  # Keep temperature low for structured extraction
-            }
+            },
         }
         if system_prompt:
             payload["system"] = system_prompt
@@ -37,12 +39,12 @@ class OllamaClient:
             response = await self.client.post("/api/generate", json=payload)
             response.raise_for_status()
             result = response.json()
-            
+
             response_text = result.get("response", "")
-            
+
             # Ollama's json format usually guarantees valid JSON, but let's be safe
             return json.loads(response_text)
-            
+
         except httpx.HTTPError as e:
             logger.error(f"HTTP error communicating with Ollama: {e}")
             raise

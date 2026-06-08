@@ -15,10 +15,7 @@ def run_apkid(apk_path: str | Path) -> dict:
     try:
         # Run apkid in JSON output mode
         result = subprocess.run(
-            ["apkid", "-j", apk_path],
-            capture_output=True,
-            text=True,
-            check=False
+            ["apkid", "-j", apk_path], capture_output=True, text=True, check=False
         )
 
         if result.returncode != 0 and not result.stdout:
@@ -27,7 +24,7 @@ def run_apkid(apk_path: str | Path) -> dict:
 
         # Parse JSON output
         output_json = json.loads(result.stdout)
-        
+
         # APKiD output structure is usually {"files": [{"filename": "...", "matches": {...}}]}
         files = output_json.get("files", [])
         if not files:

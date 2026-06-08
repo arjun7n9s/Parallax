@@ -17,10 +17,7 @@ def run_ssdeep(apk_path: str | Path) -> dict:
         # ssdeep,1.1--blocksize:hash:hash,filename
         # 3145728:xxxxxxxxxxx:xxxxxxxxxx,"/path/to/file"
         result = subprocess.run(
-            ["ssdeep", "-s", apk_path],
-            capture_output=True,
-            text=True,
-            check=False
+            ["ssdeep", "-s", apk_path], capture_output=True, text=True, check=False
         )
 
         if result.returncode != 0:
@@ -34,10 +31,10 @@ def run_ssdeep(apk_path: str | Path) -> dict:
         # The second line contains the hash
         # Format: chunk_size:chunk_hash:double_chunk_hash,"filename"
         hash_line = lines[1]
-        
+
         # Extract just the hash part, ignoring the filename
         hash_value = hash_line.split(",")[0]
-        
+
         return {"hash": hash_value}
 
     except FileNotFoundError:

@@ -5,7 +5,6 @@ Tests for the analyze and status API endpoints.
 from io import BytesIO
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from parallax.api.main import app

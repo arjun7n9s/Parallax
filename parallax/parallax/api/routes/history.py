@@ -20,7 +20,9 @@ router = APIRouter(prefix="/history", tags=["History"])
 async def get_analysis_history(
     page: Annotated[int, Query(ge=1, description="Page number (1-indexed)")] = 1,
     page_size: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 20,
-    status_filter: Annotated[str | None, Query(alias="status", description="Filter by analysis status")] = None,
+    status_filter: Annotated[
+        str | None, Query(alias="status", description="Filter by analysis status")
+    ] = None,
     db: AsyncSession = Depends(get_session),
 ):
     """
