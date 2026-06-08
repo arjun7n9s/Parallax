@@ -147,6 +147,7 @@ services:
     ports:
       - "3000:3000"
     environment:
+      # Use the correct variable name instead of the truncated GRAF...min
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
     volumes:
       - grafana_data:/var/lib/grafana

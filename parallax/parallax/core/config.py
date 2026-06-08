@@ -61,6 +61,7 @@ class Settings(BaseSettings):
     @property
     def POSTGRES_URL_SYNC(self) -> str:
         """Sync URL for Alembic migrations (psycopg2 driver)."""
+        # Ensure we construct the URL dynamically instead of using literal ***
         return (
             f"postgresql://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
             f"@{self.POSTGRES_SERVER}/{self.POSTGRES_DB}"
