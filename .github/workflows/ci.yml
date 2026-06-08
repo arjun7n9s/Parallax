@@ -61,7 +61,7 @@ jobs:
       - name: Install test dependencies
         run: |
           pip install fastapi uvicorn pydantic pydantic-settings sqlalchemy asyncpg \
-                      minio redis neo4j qdrant-client httpx structlog python-multipart \
+                      minio celery redis neo4j qdrant-client httpx structlog python-multipart \
                       opentelemetry-api opentelemetry-sdk opentelemetry-instrumentation-fastapi \
                       opentelemetry-exporter-otlp \
                       pytest pytest-asyncio pytest-cov
