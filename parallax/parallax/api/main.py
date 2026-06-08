@@ -27,6 +27,7 @@ from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from qdrant_client import QdrantClient
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from parallax.ai.ollama_client import ollama_client
 from parallax.api.routes import analyze_router, history_router, status_router
 from parallax.core.config import settings
 from parallax.core.logging import setup_logging
@@ -94,6 +95,7 @@ async def lifespan(app: FastAPI):
         logger.error(f"Failed to initialize MinIO buckets: {e}")
 
     yield
+    await ollama_client.close()
     logger.info("PARALLAX shutting down")
 
 

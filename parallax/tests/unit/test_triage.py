@@ -1,6 +1,6 @@
 import pytest
 from unittest.mock import AsyncMock, patch
-from parallax.ai.agents.triage import run_triage
+from parallax.ai.agents.triage import run_llm_triage
 
 @pytest.mark.asyncio
 @patch("parallax.ai.agents.triage.ollama_client.generate_json", new_callable=AsyncMock)
@@ -26,7 +26,7 @@ async def test_run_triage_success(mock_generate_json):
         "app_name": "Test App"
     }
 
-    result = await run_triage(metadata)
+    result = await run_llm_triage(metadata)
 
     assert result["pre_score"] == 85.0
     assert result["priority"] == "high"

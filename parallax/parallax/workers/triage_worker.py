@@ -1,13 +1,14 @@
 import asyncio
 import logging
 import os
+import shutil
 import tempfile
 import uuid
 
 from celery import Task
 from sqlalchemy.future import select
 
-from parallax.ai.agents.triage import run_triage
+from parallax.ai.agents.triage import run_llm_triage
 from parallax.ai.hypothesis.engine import HypothesisEngine
 from parallax.analysis.ingestion.apkid_runner import run_apkid
 from parallax.analysis.ingestion.ssdeep_runner import run_ssdeep
@@ -84,10 +85,11 @@ async def _async_run_triage_pipeline(submission_id_str: str):
         sha256 = submission.sha256
 
         # We need the APK locally. Let's download it from MinIO to a temp file.
-        temp_dir = tempfile.mkdtemp()
-        local_apk_path = os.path.join(temp_dir, f"{sha256}.apk")
-
+        temp_dir = None
         try:
+            temp_dir = tempfile.mkdtemp()
+            local_apk_path = os.path.join(temp_dir, f"{sha256}.apk")
+
             minio_client = get_minio_client()
             object_name = f"{sha256}.apk"
             minio_client.fget_object(APK_BUCKET, object_name, local_apk_path)
@@ -115,11 +117,11 @@ async def _async_run_triage_pipeline(submission_id_str: str):
 
             # 3. Run LLM Triage Agent
             logger.info(f"Running LLM Triage Agent for {sha256}")
-            triage_result = await run_triage(mock_metadata)
+            triage_result = await run_llm_triage(mock_metadata)
 
             # Update submission with triage results
-            submission.triage_score = triage_result.get("pre_score", 0.0)
-            submission.priority = triage_result.get("priority", "normal")
+            submission.triage_score = float(triage_result.get("pre_score", 0.0))
+            submission.priority = str(triage_result.get("priority", "normal")).lower()
 
             # Save metadata JSON (which can include the triage output)
             submission.metadata_json = {
@@ -140,11 +142,12 @@ async def _async_run_triage_pipeline(submission_id_str: str):
 
         except Exception:
             logger.exception(f"Error during triage pipeline for {sha256}")
-            submission.status = "failed"
-            await db.commit()
+            try:
+                submission.status = "failed"
+                await db.commit()
+            except Exception:
+                logger.error(f"Failed to commit failure status for {sha256}")
         finally:
-            # Cleanup temp file
-            if os.path.exists(local_apk_path):
-                os.remove(local_apk_path)
-            if os.path.exists(temp_dir):
-                os.rmdir(temp_dir)
+            # Cleanup temp directory
+            if temp_dir and os.path.exists(temp_dir):
+                shutil.rmtree(temp_dir, ignore_errors=True)

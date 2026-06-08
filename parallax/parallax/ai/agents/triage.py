@@ -55,7 +55,7 @@ Respond with ONLY the JSON object. No explanation, no preamble.
 """
 
 
-async def run_triage(apk_metadata: dict[str, Any]) -> dict[str, Any]:
+async def run_llm_triage(apk_metadata: dict[str, Any]) -> dict[str, Any]:
     """
     Run the LLM triage agent on the extracted APK metadata.
     Returns a dictionary containing triage scores, priority, and initial hypotheses.

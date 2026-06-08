@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from sqlalchemy import Boolean, DateTime, Float, ForeignKey, String, Text, func
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -16,6 +17,9 @@ class Hypothesis(Base):
     __tablename__ = "hypotheses"
 
     hypothesis_id: Mapped[str] = mapped_column(String(128), primary_key=True)
+    submission_id: Mapped[str] = mapped_column(
+        postgresql.UUID(as_uuid=True), ForeignKey("submissions.id", ondelete="CASCADE"), index=True
+    )
     apk_sha256: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
 
     claim: Mapped[str] = mapped_column(Text, nullable=False)
@@ -42,6 +46,10 @@ class Hypothesis(Base):
     experiments: Mapped[list["Experiment"]] = relationship(
         "Experiment", back_populates="hypothesis", cascade="all, delete-orphan"
     )
+
+    @property
+    def effective_confidence(self) -> float:
+        return self.initial_confidence if self.final_confidence is None else self.final_confidence
 
 
 class Experiment(Base):

@@ -41,9 +41,7 @@ async def get_analysis_status(submission_id: uuid.UUID, db: AsyncSession = Depen
             "id": h.hypothesis_id,
             "claim": h.claim,
             "status": h.status,
-            "confidence": h.initial_confidence
-            if h.final_confidence is None
-            else h.final_confidence,
+            "confidence": h.effective_confidence,
             "irt_label": h.irt_label,
         }
         for h in hypotheses

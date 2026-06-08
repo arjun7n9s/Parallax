@@ -37,4 +37,4 @@ async def test_seed_initial_hypotheses():
     
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
-    mock_db.refresh.assert_called_once()
+    assert mock_db.refresh.call_count == len(records)

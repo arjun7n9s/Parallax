@@ -2,6 +2,7 @@
 Paginated analysis history endpoint.
 """
 
+from enum import Enum
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query
@@ -13,15 +14,24 @@ from parallax.api.schemas.submission import SubmissionResponse
 from parallax.core.database import get_session
 from parallax.core.models import Submission
 
-router = APIRouter(prefix="/history", tags=["History"])
 
+class AnalysisStatusFilter(str, Enum):
+    queued = "queued"
+    triaging = "triaging"
+    static = "static"
+    dynamic = "dynamic"
+    reasoning = "reasoning"
+    complete = "complete"
+    failed = "failed"
+
+router = APIRouter(prefix="/history", tags=["History"])
 
 @router.get("", response_model=dict)
 async def get_analysis_history(
     page: Annotated[int, Query(ge=1, description="Page number (1-indexed)")] = 1,
     page_size: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 20,
     status_filter: Annotated[
-        str | None, Query(alias="status", description="Filter by analysis status")
+        AnalysisStatusFilter | None, Query(alias="status", description="Filter by analysis status")
     ] = None,
     db: AsyncSession = Depends(get_session),
 ):

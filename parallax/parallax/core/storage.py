@@ -31,8 +31,6 @@ def _get_client() -> Minio:
 
 
 # Public accessor — modules import this instead of instantiating Minio directly
-minio_client: Minio = property(lambda self: _get_client())  # type: ignore[assignment]
-
 
 def get_minio_client() -> Minio:
     """Get the shared MinIO client instance."""

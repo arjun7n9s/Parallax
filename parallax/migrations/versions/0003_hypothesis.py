@@ -1,7 +1,7 @@
 """Add hypothesis and experiment models
 
-Revision ID: 0002_hypothesis
-Revises: 0001_initial
+Revision ID: 0003_hypothesis
+Revises: 0002
 Create Date: 2026-06-08 09:58:00.000000
 
 """
@@ -13,8 +13,8 @@ from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers, used by Alembic.
-revision: str = "0002_hypothesis"
-down_revision: Union[str, None] = "0001_initial"
+revision: str = "0003_hypothesis"
+down_revision: Union[str, None] = "0002"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -24,6 +24,7 @@ def upgrade() -> None:
     op.create_table(
         "hypotheses",
         sa.Column("hypothesis_id", sa.String(length=128), nullable=False),
+        sa.Column("submission_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column("apk_sha256", sa.String(length=64), nullable=False),
         sa.Column("claim", sa.Text(), nullable=False),
         sa.Column("category", sa.String(length=64), nullable=False),
@@ -44,8 +45,12 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["spawned_from"], ["hypotheses.hypothesis_id"], ondelete="SET NULL"
         ),
+        sa.ForeignKeyConstraint(
+            ["submission_id"], ["submissions.id"], ondelete="CASCADE"
+        ),
         sa.PrimaryKeyConstraint("hypothesis_id"),
     )
+    op.create_index(op.f("ix_hypotheses_submission_id"), "hypotheses", ["submission_id"], unique=False)
     op.create_index(op.f("ix_hypotheses_apk_sha256"), "hypotheses", ["apk_sha256"], unique=False)
     op.create_index(op.f("ix_hypotheses_status"), "hypotheses", ["status"], unique=False)
 
@@ -87,5 +92,6 @@ def downgrade() -> None:
     op.drop_table("experiments")
     op.drop_index(op.f("ix_hypotheses_status"), table_name="hypotheses")
     op.drop_index(op.f("ix_hypotheses_apk_sha256"), table_name="hypotheses")
+    op.drop_index(op.f("ix_hypotheses_submission_id"), table_name="hypotheses")
     op.drop_table("hypotheses")
     # ### end Alembic commands ###

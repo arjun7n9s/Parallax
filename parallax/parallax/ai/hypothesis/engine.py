@@ -30,6 +30,7 @@ class HypothesisEngine:
         for item in initial_hypotheses:
             h = Hypothesis(
                 hypothesis_id=f"HYP-{uuid.uuid4().hex[:8].upper()}",
+                submission_id=submission_id,
                 apk_sha256=sha256,
                 claim=item.get("claim", "Unknown claim"),
                 category=item.get("category", "static"),
