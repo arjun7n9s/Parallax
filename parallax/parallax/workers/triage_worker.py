@@ -43,9 +43,7 @@ class AsyncSQLAlchemyTask(Task):
 
 
 @celery_app.task(
-    bind=True,
-    base=AsyncSQLAlchemyTask,
-    name="parallax.workers.triage_worker.run_triage_pipeline"
+    bind=True, base=AsyncSQLAlchemyTask, name="parallax.workers.triage_worker.run_triage_pipeline"
 )
 def run_triage_pipeline(self, submission_id_str: str):
     """
