@@ -32,6 +32,7 @@ def _get_client() -> Minio:
 
 # Public accessor — modules import this instead of instantiating Minio directly
 
+
 def get_minio_client() -> Minio:
     """Get the shared MinIO client instance."""
     return _get_client()

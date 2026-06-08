@@ -24,7 +24,9 @@ class AnalysisStatusFilter(str, Enum):
     complete = "complete"
     failed = "failed"
 
+
 router = APIRouter(prefix="/history", tags=["History"])
+
 
 @router.get("", response_model=dict)
 async def get_analysis_history(
