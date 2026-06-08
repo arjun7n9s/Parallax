@@ -7,6 +7,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 from fastapi.testclient import TestClient
 
+import parallax.workers.triage_worker  # noqa: F401 (Needed for mock.patch to resolve)
 from parallax.api.main import app
 from parallax.core.database import get_session
 
