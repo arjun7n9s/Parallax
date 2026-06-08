@@ -84,8 +84,10 @@ class HookPlannerParser:
         # It assumes standard formatting like .methodName.overload(...)
         overload_matches = re.findall(r"\.(\w+)\.overload\(([^)]*)\)", script)
         for method_name, args_str in overload_matches:
+            # Normalize whitespace (handles multi-line overload declarations)
+            args_str = re.sub(r"\s+", " ", args_str).strip()
             # Process the arguments string: split by comma, strip whitespace and quotes
-            args_list = [arg.strip(" '\"") for arg in args_str.split(",")] if args_str.strip() else []
+            args_list = [arg.strip(" '\"") for arg in args_str.split(",")] if args_str else []
             
             # Find which class(es) have this method in the dictionary to check the overload
             found_method = False

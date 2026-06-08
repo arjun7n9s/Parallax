@@ -8,7 +8,7 @@ from pydantic import BaseModel, ConfigDict
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from parallax.ai.hook_planner.generator import HookPlannerGenerator
-from parallax.ai.hook_planner.parser import HookPlannerParser
+from parallax.ai.hook_planner.parser import HookPlannerParser, HookPlannerParserError
 from parallax.ai.ollama_client import ollama_client
 from parallax.core.database import get_session
 
@@ -52,8 +52,7 @@ def get_generator() -> HookPlannerGenerator:
 @router.post("/analyze", response_model=DynamicAnalysisResponse)
 async def generate_dynamic_hook(
     request: DynamicAnalysisRequest,
-    generator: HookPlannerGenerator = Depends(get_generator),
-    db: AsyncSession = Depends(get_session)
+    generator: HookPlannerGenerator = Depends(get_generator)
 ):
     """
     Generate a Frida hook for a specific hypothesis using the Hook Planner LLM.
@@ -66,7 +65,7 @@ async def generate_dynamic_hook(
             hypothesis_claim=request.hypothesis_claim,
             package_name=request.package_name,
             permissions=request.permissions,
-            api_dictionary=generator.parser.api_dictionary,
+            api_dictionary=generator.api_dictionary,
         )
 
         return DynamicAnalysisResponse(
@@ -76,6 +75,9 @@ async def generate_dynamic_hook(
             is_unresolved=is_unresolved,
             unresolved_reason=reason
         )
+    except HookPlannerParserError as e:
+        logger.exception(f"Parser error for hypothesis {request.hypothesis_id}: {e}")
+        raise HTTPException(status_code=422, detail=f"Hook planning failed: {e}")
     except Exception as e:
         logger.exception(f"Failed to generate hook for hypothesis {request.hypothesis_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to generate dynamic hook.")
+        raise HTTPException(status_code=500, detail="Internal error")

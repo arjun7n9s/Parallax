@@ -38,7 +38,7 @@ Java.perform(function() {
 
     generator = HookPlannerGenerator(ollama_client, parser)
     script, is_unresolved, reason = await generator.generate_hook(
-        "HYP-1", "App sends SMS", "com.example.app", [], {"android.telephony.SmsManager": {}}
+        "HYP-1", "App sends SMS", "com.example.app", [], parser.api_dictionary
     )
 
     assert is_unresolved is False
@@ -58,7 +58,7 @@ async def test_generator_retry_on_grammar_violation(parser, ollama_client):
 
     generator = HookPlannerGenerator(ollama_client, parser)
     script, is_unresolved, reason = await generator.generate_hook(
-        "HYP-1", "App sends SMS", "com.example.app", [], {"android.telephony.SmsManager": {}}
+        "HYP-1", "App sends SMS", "com.example.app", [], parser.api_dictionary
     )
 
     assert is_unresolved is False
@@ -78,7 +78,7 @@ async def test_generator_max_retries_exceeded(parser, ollama_client):
 
     generator = HookPlannerGenerator(ollama_client, parser, max_retries=2)
     script, is_unresolved, reason = await generator.generate_hook(
-        "HYP-1", "App sends SMS", "com.example.app", [], {"android.telephony.SmsManager": {}}
+        "HYP-1", "App sends SMS", "com.example.app", [], parser.api_dictionary
     )
 
     assert is_unresolved is True

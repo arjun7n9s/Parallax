@@ -15,7 +15,7 @@ def mock_generator():
         False,
         None
     )
-    generator.parser.api_dictionary = {"mock_api": {}}
+    generator.api_dictionary = {"mock_api": {}}
     return generator
 
 
@@ -94,4 +94,4 @@ async def test_dynamic_analyze_endpoint_internal_error(override_generator):
         response = await ac.post("/api/v1/dynamic/analyze", json=payload)
 
     assert response.status_code == 500
-    assert response.json()["detail"] == "Failed to generate dynamic hook."
+    assert response.json()["detail"] == "Internal error"

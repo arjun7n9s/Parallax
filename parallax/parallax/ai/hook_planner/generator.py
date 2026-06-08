@@ -22,6 +22,10 @@ class HookPlannerGenerator:
         self.max_retries = max_retries
         self.model = model
 
+    @property
+    def api_dictionary(self) -> Dict:
+        return self.parser.api_dictionary
+
     async def generate_hook(
         self,
         hypothesis_id: str,

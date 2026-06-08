@@ -94,6 +94,14 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Failed to initialize MinIO buckets: {e}")
 
+    # Eager init for the dynamic generator
+    try:
+        from parallax.api.routes.dynamic import get_generator
+        get_generator()
+        logger.info("Dynamic generator eagerly initialized")
+    except Exception as e:
+        logger.warning(f"Failed to eagerly initialize dynamic generator: {e}")
+
     yield
     await ollama_client.close()
     logger.info("PARALLAX shutting down")

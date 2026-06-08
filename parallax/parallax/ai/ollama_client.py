@@ -14,7 +14,7 @@ class OllamaClient:
 
     def __init__(self):
         # We can configure the URL in settings, defaulting to http://localhost:11434
-        self.base_url = getattr(settings, "OLLAMA_URL", "http://localhost:11434")
+        self.base_url = getattr(settings, "OLLAMA_HOST", "http://localhost:11434")
         self.client = httpx.AsyncClient(base_url=self.base_url, timeout=120.0)
 
     async def generate_json(
