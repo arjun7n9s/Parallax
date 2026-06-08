@@ -11,8 +11,9 @@ from parallax.api.main import app
 from parallax.core.database import get_session
 
 
+@patch("parallax.workers.triage_worker.run_triage_pipeline.delay")
 @patch("parallax.api.routes.analyze.get_minio_client")
-def test_submit_apk_success(mock_get_minio, client: TestClient):
+def test_submit_apk_success(mock_get_minio, mock_run_triage, client: TestClient):
     """Test successful APK submission with valid APK magic bytes."""
     from datetime import datetime, timezone
 

@@ -8,6 +8,7 @@ Usage:
 
 import logging
 import sys
+from typing import Any
 
 import structlog
 
@@ -20,7 +21,7 @@ def setup_logging(log_level: str = "INFO") -> None:
         log_level: One of DEBUG, INFO, WARNING, ERROR, CRITICAL.
                    Defaults to INFO if an invalid value is passed.
     """
-    shared_processors = [
+    shared_processors: list[Any] = [
         structlog.stdlib.add_log_level,
         structlog.stdlib.add_logger_name,
         structlog.processors.TimeStamper(fmt="iso"),
@@ -28,7 +29,7 @@ def setup_logging(log_level: str = "INFO") -> None:
         structlog.processors.format_exc_info,
     ]
 
-    structlog.configure(
+    structlog.configure(  # type: ignore
         processors=shared_processors
         + [
             structlog.stdlib.ProcessorFormatter.wrap_for_formatter,
@@ -38,7 +39,7 @@ def setup_logging(log_level: str = "INFO") -> None:
         cache_logger_on_first_use=True,
     )
 
-    formatter = structlog.stdlib.ProcessorFormatter(
+    formatter = structlog.stdlib.ProcessorFormatter(  # type: ignore
         foreign_pre_chain=shared_processors,
         processors=[
             structlog.stdlib.ProcessorFormatter.remove_processors_meta,

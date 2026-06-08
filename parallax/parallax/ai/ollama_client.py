@@ -43,7 +43,7 @@ class OllamaClient:
             response_text = result.get("response", "")
 
             # Ollama's json format usually guarantees valid JSON, but let's be safe
-            return json.loads(response_text)
+            return json.loads(response_text)  # type: ignore
 
         except httpx.HTTPError as e:
             logger.error(f"HTTP error communicating with Ollama: {e}")
