@@ -27,22 +27,10 @@ def main():
     logger.info("Starting offline YARA rules update process...")
     
     # 1. Fetch from public sources (Mocked for now)
-    logger.info("Fetching latest rules from Neo23x0/signature-base...")
-    logger.info("Fetching latest rules from Malpedia...")
-    logger.info("Fetching latest rules from CAPA...")
+    logger.info("TODO: Implement fetcher for Neo23x0/signature-base, Malpedia, etc.")
     
-    # 2. Diff against current baseline
-    if not os.path.exists(baseline_dir):
-        logger.warning(f"Baseline directory not found: {baseline_dir}")
-    else:
-        logger.info(f"Comparing fetched rules against baseline in {baseline_dir}...")
-        
-    # 3. Open PR / Request Analyst Review
-    logger.info("\n--- UPDATE SUMMARY ---")
-    logger.info("New rules discovered: 12")
-    logger.info("Rules modified: 3")
-    logger.info("Rules deprecated: 0")
-    logger.info("----------------------")
+    # Raise NotImplementedError so reviewers know this is a scaffold
+    raise NotImplementedError("Fetching logic is not yet implemented. This script is currently a scaffold.")
     
     logger.info("\nAction Required: A pull request has been automatically created for these updates.")
     logger.info("An analyst MUST review and approve the changes before they are merged into the curated baseline.")

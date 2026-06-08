@@ -78,21 +78,27 @@ class HypothesisEngine:
             claim_lower = h.claim.lower()
 
             # YARA Match loop closure
-            if (
+            if h.status != "CONFIRMED" and (
                 "banking trojan" in claim_lower
                 or "overlay" in claim_lower
                 or "malware" in claim_lower
             ):
                 for match in yara_matches:
-                    if "BankingTrojan" in match.get("rule", "") or "Malware" in match.get(
-                        "rule", ""
+                    rule_name = match.get("rule", "")
+                    meta_category = match.get("meta", {}).get("category", "")
+
+                    if (
+                        rule_name.startswith("Android_BankingTrojan")
+                        or meta_category == "Banking Trojan"
                     ):
                         h.status = "CONFIRMED"
-                        h.status_reason = f"Confirmed by YARA rule: {match.get('rule')}"
+                        h.status_reason = f"Confirmed by YARA rule: {rule_name}"
+                        # A single match jumps to 0.95 because the YARA rule enforces 5+ indicator patterns (high specificity)
                         h.final_confidence = 0.95
                         break
 
             # Permission / Feature loop closure
+            # Note: We only upgrade PENDING to INVESTIGATING. If already CONFIRMED (e.g. by YARA), we do not downgrade.
             if "sms" in claim_lower and any("RECEIVE_SMS" in p for p in permissions):
                 if h.status == "PENDING":
                     h.status = "INVESTIGATING"
