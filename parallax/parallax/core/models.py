@@ -7,7 +7,7 @@ These are the foundational tables required by Phase 0.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Float, Integer, String, Text, func
+from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -59,7 +59,9 @@ class IOC(Base):
     __tablename__ = "iocs"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    submission_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False, index=True)
+    submission_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("submissions.id", ondelete="CASCADE"), nullable=False, index=True
+    )
     ioc_type: Mapped[str] = mapped_column(
         Enum("ip", "domain", "url", "hash", "email", "certificate", "yara_rule", name="ioc_type"),
         nullable=False,
@@ -78,7 +80,7 @@ class AuditLog(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     submission_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), nullable=True, index=True
+        UUID(as_uuid=True), ForeignKey("submissions.id", ondelete="SET NULL"), nullable=True, index=True
     )
     actor: Mapped[str] = mapped_column(String(128), nullable=False)  # agent name or "system"
     action: Mapped[str] = mapped_column(String(256), nullable=False)
