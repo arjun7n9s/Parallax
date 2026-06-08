@@ -23,6 +23,12 @@ class HookPlannerParser:
                 project_root, "parallax", "parallax", "analysis", "dynamic", "api_signatures.json"
             )
 
+        if not os.path.exists(dictionary_path):
+            raise FileNotFoundError(
+                f"API dictionary not found at {dictionary_path}. "
+                f"Pass dictionary_path explicitly to HookPlannerParser()."
+            )
+
         with open(dictionary_path, "r", encoding="utf-8") as f:
             self.api_dictionary: Dict[str, Any] = json.load(f)
 
@@ -44,7 +50,9 @@ class HookPlannerParser:
 
         # Check for empty-script unresolved fallback
         if content.startswith("// UNRESOLVED:"):
-            reason = content.split("// UNRESOLVED:")[1].strip()
+            # Use the first line only to avoid capturing junk
+            first_line = content.split("\n")[0]
+            reason = first_line.split("// UNRESOLVED:", 1)[1].strip()
             return ("", True, reason)
 
         # Ensure it starts with Java.perform( and ends with });
@@ -61,27 +69,41 @@ class HookPlannerParser:
         Ensures all `Java.use(...)` calls in the script reference allowed APIs from the dictionary.
         Also validates that any `.overload(...)` chains reference allowed method/class combos.
         """
-        # Basic check for Java.use
-        lines = script.split("\n")
-        for line in lines:
-            if "Java.use(" in line:
-                # Extract class name from Java.use('com.example.Class')
-                try:
-                    start_quote = line.index("Java.use(") + 9
-                    quote_char = line[start_quote]  # ' or "
-                    end_quote = line.index(quote_char, start_quote + 1)
-                    class_name = line[start_quote + 1 : end_quote]
+        import re
 
-                    # Exceptions for built-ins or standard utils allowed by prompt
-                    if class_name in ["java.lang.Exception", "android.os.Process"]:
-                        continue
+        # Extract all classes used: Java.use('some.class')
+        used_classes = re.findall(r"Java\.use\(['\"]([\w.$]+)['\"]\)", script)
+        for class_name in used_classes:
+            if class_name in ["java.lang.Exception", "android.os.Process"]:
+                continue
+            if class_name not in self.api_dictionary:
+                raise HookPlannerParserError(f"Java.use('{class_name}') violates the allowed API dictionary.")
 
-                    if class_name not in self.api_dictionary:
-                        raise HookPlannerParserError(
-                            f"Java.use('{class_name}') violates the allowed API dictionary."
-                        )
-                except ValueError:
-                    pass  # Parsing issue on this line, but might just be a comment or weird formatting
+        # Extract all overloads: someVar.methodName.overload('type1', 'type2')
+        # This is a basic regex to catch the pattern. We extract the method name and the arguments string.
+        # It assumes standard formatting like .methodName.overload(...)
+        overload_matches = re.findall(r"\.(\w+)\.overload\(([^)]*)\)", script)
+        for method_name, args_str in overload_matches:
+            # Process the arguments string: split by comma, strip whitespace and quotes
+            args_list = [arg.strip(" '\"") for arg in args_str.split(",")] if args_str.strip() else []
+            
+            # Find which class(es) have this method in the dictionary to check the overload
+            found_method = False
+            valid_overload = False
+            
+            for class_name, definition in self.api_dictionary.items():
+                if definition.get("method") == method_name:
+                    found_method = True
+                    for overload in definition.get("overloads", []):
+                        if overload.get("params") == args_list:
+                            valid_overload = True
+                            break
+                    if valid_overload:
+                        break
+            
+            # If the method exists in the dict, but we didn't find the matching overload:
+            if found_method and not valid_overload:
+                raise HookPlannerParserError(f"Method '{method_name}' with overload params {args_list} is not allowed.")
 
     def parse(self, raw_output: str) -> Tuple[str, bool, Optional[str]]:
         """

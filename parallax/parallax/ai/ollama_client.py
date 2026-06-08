@@ -53,6 +53,32 @@ class OllamaClient:
             logger.debug(f"Raw response: {result.get('response', '')}")
             raise
 
+    async def generate(
+        self, model: str, prompt: str, system_prompt: str = ""
+    ) -> str:
+        """
+        Generate a raw text response from the specified Ollama model.
+        """
+        payload = {
+            "model": model,
+            "prompt": prompt,
+            "stream": False,
+            "options": {
+                "temperature": 0.1,
+            },
+        }
+        if system_prompt:
+            payload["system"] = system_prompt
+
+        try:
+            response = await self.client.post("/api/generate", json=payload)
+            response.raise_for_status()
+            result = response.json()
+            return result.get("response", "")
+        except httpx.HTTPError as e:
+            logger.error(f"HTTP error communicating with Ollama: {e}")
+            raise
+
     async def close(self):
         await self.client.aclose()
 
