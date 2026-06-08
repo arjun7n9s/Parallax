@@ -1,0 +1,139 @@
+{
+  "android.telephony.SmsManager": {
+    "method": "sendTextMessage",
+    "overloads": [
+      {"params": ["java.lang.String", "java.lang.String", "java.lang.String", "android.app.PendingIntent", "android.app.PendingIntent"]},
+      {"params": ["java.lang.String", "java.lang.String", "java.lang.String", "android.app.PendingIntent", "android.app.PendingIntent", "int"]}
+    ],
+    "indicator_of": "sms_exfiltration",
+    "use_when": "hypothesis mentions SMS theft, OTP interception, premium SMS"
+  },
+  "android.accessibilityservice.AccessibilityService": {
+    "method": "onAccessibilityEvent",
+    "overloads": [
+      {"params": ["android.view.accessibility.AccessibilityEvent"]}
+    ],
+    "indicator_of": "overlay_or_keylogging",
+    "use_when": "hypothesis mentions Accessibility abuse, screen reading, keylogging, or auto-clicking"
+  },
+  "android.content.ContentResolver": {
+    "method": "query",
+    "overloads": [
+      {"params": ["android.net.Uri", "java.lang.String[]", "java.lang.String", "java.lang.String[]", "java.lang.String"]},
+      {"params": ["android.net.Uri", "java.lang.String[]", "android.os.Bundle", "android.os.CancellationSignal"]}
+    ],
+    "indicator_of": "data_theft",
+    "use_when": "hypothesis mentions stealing contacts, call logs, or SMS content via Content Providers"
+  },
+  "android.provider.Settings$Secure": {
+    "method": "getString",
+    "overloads": [
+      {"params": ["android.content.ContentResolver", "java.lang.String"]}
+    ],
+    "indicator_of": "device_fingerprinting",
+    "use_when": "hypothesis mentions fetching Android ID or Secure Settings for device fingerprinting"
+  },
+  "android.telephony.TelephonyManager": {
+    "method": "getDeviceId",
+    "overloads": [
+      {"params": []},
+      {"params": ["int"]}
+    ],
+    "indicator_of": "device_fingerprinting",
+    "use_when": "hypothesis mentions stealing IMEI or hardware identifiers"
+  },
+  "java.lang.Runtime": {
+    "method": "exec",
+    "overloads": [
+      {"params": ["java.lang.String"]},
+      {"params": ["java.lang.String[]"]},
+      {"params": ["java.lang.String", "java.lang.String[]"]},
+      {"params": ["java.lang.String[]", "java.lang.String[]"]},
+      {"params": ["java.lang.String", "java.lang.String[]", "java.io.File"]},
+      {"params": ["java.lang.String[]", "java.lang.String[]", "java.io.File"]}
+    ],
+    "indicator_of": "command_execution",
+    "use_when": "hypothesis mentions executing shell commands, ping, or dropping native binaries"
+  },
+  "java.lang.ProcessBuilder": {
+    "method": "start",
+    "overloads": [
+      {"params": []}
+    ],
+    "indicator_of": "command_execution",
+    "use_when": "hypothesis mentions executing shell commands or dropping native binaries"
+  },
+  "dalvik.system.DexClassLoader": {
+    "method": "<init>",
+    "overloads": [
+      {"params": ["java.lang.String", "java.lang.String", "java.lang.String", "java.lang.ClassLoader"]}
+    ],
+    "indicator_of": "dynamic_loading",
+    "use_when": "hypothesis mentions dropping additional DEX files, payloads, or plugins"
+  },
+  "javax.crypto.Cipher": {
+    "method": "doFinal",
+    "overloads": [
+      {"params": []},
+      {"params": ["byte[]"]},
+      {"params": ["byte[]", "int", "int"]},
+      {"params": ["java.nio.ByteBuffer", "java.nio.ByteBuffer"]}
+    ],
+    "indicator_of": "encryption_or_decryption",
+    "use_when": "hypothesis mentions decrypting configuration, payloads, or encrypting stolen data"
+  },
+  "javax.crypto.spec.SecretKeySpec": {
+    "method": "<init>",
+    "overloads": [
+      {"params": ["byte[]", "java.lang.String"]},
+      {"params": ["byte[]", "int", "int", "java.lang.String"]}
+    ],
+    "indicator_of": "crypto_key_construction",
+    "use_when": "hypothesis mentions using hardcoded keys or initializing symmetric crypto"
+  },
+  "java.security.MessageDigest": {
+    "method": "getInstance",
+    "overloads": [
+      {"params": ["java.lang.String"]},
+      {"params": ["java.lang.String", "java.lang.String"]},
+      {"params": ["java.lang.String", "java.security.Provider"]}
+    ],
+    "indicator_of": "hashing",
+    "use_when": "hypothesis mentions hashing device data, generating MD5/SHA256 for fingerprinting"
+  },
+  "android.app.admin.DevicePolicyManager": {
+    "method": "isAdminActive",
+    "overloads": [
+      {"params": ["android.content.ComponentName"]}
+    ],
+    "indicator_of": "device_admin_abuse",
+    "use_when": "hypothesis mentions requesting or checking Device Admin privileges to prevent uninstallation"
+  },
+  "android.content.ContextWrapper": {
+    "method": "getSharedPreferences",
+    "overloads": [
+      {"params": ["java.lang.String", "int"]}
+    ],
+    "indicator_of": "local_storage",
+    "use_when": "hypothesis mentions reading or writing local SharedPreferences for persistence"
+  },
+  "java.io.FileOutputStream": {
+    "method": "<init>",
+    "overloads": [
+      {"params": ["java.io.File"]},
+      {"params": ["java.io.File", "boolean"]},
+      {"params": ["java.lang.String"]},
+      {"params": ["java.lang.String", "boolean"]}
+    ],
+    "indicator_of": "file_write",
+    "use_when": "hypothesis mentions writing files to disk (e.g., dropping payload)"
+  },
+  "android.content.pm.PackageManager": {
+    "method": "setComponentEnabledSetting",
+    "overloads": [
+      {"params": ["android.content.ComponentName", "int", "int"]}
+    ],
+    "indicator_of": "icon_hiding",
+    "use_when": "hypothesis mentions hiding the app icon from the launcher"
+  }
+}
