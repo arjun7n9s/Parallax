@@ -140,6 +140,11 @@ async def _async_run_triage_pipeline(submission_id_str: str):
             await db.commit()
             logger.info(f"Triage complete for {sha256}. Status set to 'static'.")
 
+            # Trigger static pipeline
+            from parallax.workers.static_worker import run_static_pipeline
+
+            run_static_pipeline.delay(submission_id_str)
+
         except Exception:
             logger.exception(f"Error during triage pipeline for {sha256}")
             try:

@@ -1,6 +1,9 @@
-import pytest
 from unittest.mock import AsyncMock, MagicMock
+
+import pytest
+
 from parallax.ai.hypothesis.engine import HypothesisEngine
+
 
 @pytest.mark.asyncio
 async def test_seed_initial_hypotheses():
@@ -19,22 +22,20 @@ async def test_seed_initial_hypotheses():
                 "category": "static",
                 "initial_confidence": 0.75,
                 "expose_in_irt": True,
-                "irt_label": "Suspicious behavior found."
+                "irt_label": "Suspicious behavior found.",
             }
         ]
     }
 
     records = await engine.seed_initial_hypotheses(
-        submission_id="test-submission-id",
-        sha256="fake_sha256_hash",
-        triage_data=triage_data
+        submission_id="test-submission-id", sha256="fake_sha256_hash", triage_data=triage_data
     )
 
     assert len(records) == 1
     assert records[0].claim == "Test claim"
     assert records[0].category == "static"
     assert records[0].initial_confidence == 0.75
-    
+
     mock_db.add.assert_called_once()
     mock_db.commit.assert_called_once()
     assert mock_db.refresh.call_count == len(records)
