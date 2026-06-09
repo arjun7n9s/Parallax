@@ -1,6 +1,6 @@
-import os
-import pytest
 from pathlib import Path
+
+import pytest
 
 from parallax.ai.hook_planner.parser import HookPlannerParser, HookPlannerParserError
 from parallax.ai.hook_planner.prompt import HOOK_PLANNER_PROMPT
@@ -12,10 +12,10 @@ def parser():
     # Assuming test is run from project root or parallax/
     project_root = Path(__file__).resolve().parents[3]
     dict_path = project_root / "parallax" / "parallax" / "analysis" / "dynamic" / "api_signatures.json"
-    
+
     if not dict_path.exists():
         pytest.skip(f"Dictionary not found at {dict_path}")
-        
+
     return HookPlannerParser(dictionary_path=str(dict_path))
 
 
@@ -50,7 +50,7 @@ def test_grammar_example_itself_is_valid(parser):
     example_output = prompt[start_example:end_example]
 
     script, is_unresolved, reason = parser.parse(example_output)
-    
+
     assert is_unresolved is False
     assert script.startswith("Java.perform(")
     assert script.endswith("});")

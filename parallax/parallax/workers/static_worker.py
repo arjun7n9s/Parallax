@@ -9,12 +9,12 @@ import zipfile
 from celery import Task
 from sqlalchemy.future import select
 
+from parallax.ai.hypothesis.engine import HypothesisEngine
 from parallax.ai.re_workbench.artifact_model import (
     REArtifactModel,
     StaticAnalysisFeatures,
     YaraMatch,
 )
-from parallax.ai.hypothesis.engine import HypothesisEngine
 from parallax.analysis.static.androguard_runner import run_androguard
 from parallax.analysis.static.jadx_runner import run_jadx
 from parallax.analysis.static.yara_runner import run_yara

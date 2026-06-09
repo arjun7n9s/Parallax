@@ -1,16 +1,12 @@
-import json
 import logging
-from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from parallax.ai.hook_planner.generator import HookPlannerGenerator
 from parallax.ai.hook_planner.parser import HookPlannerParser, HookPlannerParserError
 from parallax.ai.ollama_client import ollama_client
-from parallax.core.database import get_session
 
 logger = logging.getLogger(__name__)
 

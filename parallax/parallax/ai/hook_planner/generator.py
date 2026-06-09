@@ -54,7 +54,7 @@ class HookPlannerGenerator:
                 if attempt == self.max_retries - 1:
                     # Final attempt failed, mark as unresolved
                     return ("", True, f"parser_violation_after_{self.max_retries}_retries: {e}")
-                
+
                 # Inject error feedback into prompt for next retry
                 prompt = prompt + f"\n\n# PREVIOUS ATTEMPT FAILED\n{e}\n# Fix the issue and try again."
 

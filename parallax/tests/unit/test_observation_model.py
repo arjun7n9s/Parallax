@@ -1,9 +1,9 @@
 from sqlalchemy import create_engine
-from sqlalchemy.schema import CreateTable
 from sqlalchemy.dialects import postgresql
+from sqlalchemy.schema import CreateTable
 
 from parallax.core.database import Base
-from parallax.core.models.observation import Observation, ExperimentObservationLink
+from parallax.core.models.observation import ExperimentObservationLink, Observation
 
 
 def test_observation_table_name():
@@ -12,7 +12,7 @@ def test_observation_table_name():
 
 def test_observation_required_fields():
     cols = Observation.__table__.columns
-    
+
     assert cols["source"].nullable is False
     assert cols["event_type"].nullable is False
     assert cols["captured_at_ms"].nullable is False
@@ -21,7 +21,7 @@ def test_observation_required_fields():
 
 def test_observation_optional_fields():
     cols = Observation.__table__.columns
-    
+
     assert cols["thread_id"].nullable is True
     assert cols["thread_name"].nullable is True
     assert cols["caller_package"].nullable is True
@@ -64,7 +64,7 @@ def test_experiment_observation_link_cascade_delete():
     col_hyp = ExperimentObservationLink.__table__.columns["hypothesis_id"]
     fk_hyp = list(col_hyp.foreign_keys)[0]
     assert fk_hyp.ondelete == "CASCADE"
-    
+
     col_obs = ExperimentObservationLink.__table__.columns["observation_id"]
     fk_obs = list(col_obs.foreign_keys)[0]
     assert fk_obs.ondelete == "CASCADE"

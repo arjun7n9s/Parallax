@@ -88,7 +88,7 @@ class MitmproxyRunner:
         Starts the mitmproxy master asynchronously.
         """
         try:
-            opts = Options(listen_host="0.0.0.0", listen_port=self.listen_port)
+            opts = Options(listen_host="0.0.0.0", listen_port=self.listen_port)  # nosec B104
             self.master = DumpMaster(
                 opts,
                 with_termlog=False,

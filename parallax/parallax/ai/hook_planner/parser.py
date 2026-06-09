@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -88,11 +88,11 @@ class HookPlannerParser:
             args_str = re.sub(r"\s+", " ", args_str).strip()
             # Process the arguments string: split by comma, strip whitespace and quotes
             args_list = [arg.strip(" '\"") for arg in args_str.split(",")] if args_str else []
-            
+
             # Find which class(es) have this method in the dictionary to check the overload
             found_method = False
             valid_overload = False
-            
+
             for class_name, definition in self.api_dictionary.items():
                 if definition.get("method") == method_name:
                     found_method = True
@@ -102,7 +102,7 @@ class HookPlannerParser:
                             break
                     if valid_overload:
                         break
-            
+
             # If the method exists in the dict, but we didn't find the matching overload:
             if found_method and not valid_overload:
                 raise HookPlannerParserError(f"Method '{method_name}' with overload params {args_list} is not allowed.")

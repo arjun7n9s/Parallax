@@ -27,6 +27,7 @@ yara-python>=4.5.1
 # Layer 2B: Dynamic Analysis
 frida-tools>=13.0.0
 mitmproxy>=11.0.0
+bcrypt<4.0.0
 scapy>=2.5.0
 adb-shell>=0.4.4
 pure-python-adb

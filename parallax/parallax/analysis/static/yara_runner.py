@@ -1,7 +1,7 @@
+import functools
 import glob
 import logging
 import os
-import functools
 from typing import Any, Dict, List
 
 import yara

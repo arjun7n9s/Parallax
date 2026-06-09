@@ -28,7 +28,7 @@ from qdrant_client import QdrantClient
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from parallax.ai.ollama_client import ollama_client
-from parallax.api.routes import analyze_router, history_router, status_router, dynamic_router
+from parallax.api.routes import analyze_router, dynamic_router, history_router, status_router
 from parallax.core.config import settings
 from parallax.core.logging import setup_logging
 from parallax.core.storage import init_buckets

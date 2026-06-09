@@ -1,6 +1,7 @@
+from unittest.mock import AsyncMock
+
 import pytest
-from httpx import AsyncClient, ASGITransport
-from unittest.mock import patch, AsyncMock
+from httpx import ASGITransport, AsyncClient
 
 from parallax.api.main import app
 from parallax.api.routes.dynamic import get_generator

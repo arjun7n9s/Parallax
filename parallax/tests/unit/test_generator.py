@@ -1,5 +1,6 @@
-import pytest
 from unittest.mock import AsyncMock
+
+import pytest
 
 from parallax.ai.hook_planner.generator import HookPlannerGenerator
 from parallax.ai.hook_planner.parser import HookPlannerParser
@@ -64,7 +65,7 @@ async def test_generator_retry_on_grammar_violation(parser, ollama_client):
     assert is_unresolved is False
     assert "SmsManager" in script
     assert ollama_client.generate.call_count == 2
-    
+
     # Check that error feedback was injected
     second_call_prompt = ollama_client.generate.call_args_list[1][1]['prompt']
     assert "# PREVIOUS ATTEMPT FAILED" in second_call_prompt
