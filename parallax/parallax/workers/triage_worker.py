@@ -133,7 +133,7 @@ async def _async_run_triage_pipeline(submission_id_str: str):
             # 4. Initialize Hypothesis Engine
             engine = HypothesisEngine(db)
             logger.info(f"Seeding Hypothesis Engine for {sha256}")
-            await engine.seed_initial_hypotheses(str(submission.id), sha256, triage_result)
+            await engine.seed_initial_hypotheses(submission.id, sha256, triage_result)
 
             # 5. Transition to next stage
             submission.status = "static"

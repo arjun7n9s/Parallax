@@ -72,7 +72,7 @@ class OllamaClient:
             response = await self.client.post("/api/generate", json=payload)
             response.raise_for_status()
             result = response.json()
-            return result.get("response", "")
+            return str(result.get("response", ""))
         except httpx.HTTPError as e:
             logger.error(f"HTTP error communicating with Ollama: {e}")
             raise
