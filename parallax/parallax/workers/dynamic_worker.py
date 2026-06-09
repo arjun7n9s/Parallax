@@ -124,7 +124,7 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
                     )
 
                     script, is_unresolved, reason = await generator.generate_hook(
-                        str(hyp.id),
+                        str(hyp.hypothesis_id),
                         hyp.claim,
                         submission.package_name or "com.example.malware",
                         permissions,
@@ -132,15 +132,15 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
                     )
 
                     if is_unresolved:
-                        logger.info(f"Hypothesis {hyp.id} unresolved: {reason}")
+                        logger.info(f"Hypothesis {hyp.hypothesis_id} unresolved: {reason}")
                         # Could mark it here or let the reasoning agent handle it
                         continue
 
                     combined_script += "\n" + script
-                    active_hypothesis_ids.append(str(hyp.id))
+                    active_hypothesis_ids.append(str(hyp.hypothesis_id))
 
                 except Exception as e:
-                    logger.error(f"Failed to generate hook for hypothesis {hyp.id}: {e}")
+                    logger.error(f"Failed to generate hook for hypothesis {hyp.hypothesis_id}: {e}")
 
             if not active_hypothesis_ids:
                 logger.warning(
