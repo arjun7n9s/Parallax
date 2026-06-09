@@ -9,13 +9,22 @@ from parallax.ai.hook_planner.parser import HookPlannerParser
 @pytest.fixture
 def parser(tmp_path):
     import json
+
     # Mock dictionary
     dict_content = {
         "android.telephony.SmsManager": {
             "method": "sendTextMessage",
             "overloads": [
-                {"params": ["java.lang.String", "java.lang.String", "java.lang.String", "android.app.PendingIntent", "android.app.PendingIntent"]}
-            ]
+                {
+                    "params": [
+                        "java.lang.String",
+                        "java.lang.String",
+                        "java.lang.String",
+                        "android.app.PendingIntent",
+                        "android.app.PendingIntent",
+                    ]
+                }
+            ],
         }
     }
     dict_file = tmp_path / "api_signatures.json"
@@ -54,7 +63,7 @@ async def test_generator_retry_on_grammar_violation(parser, ollama_client):
     # Second attempt: valid
     ollama_client.generate.side_effect = [
         "<<<HOOK_START>>>\nJava.perform(function() { });",
-        "<<<HOOK_START>>>\nJava.perform(function() { var SmsManager = Java.use('android.telephony.SmsManager'); });\n<<<HOOK_END>>>"
+        "<<<HOOK_START>>>\nJava.perform(function() { var SmsManager = Java.use('android.telephony.SmsManager'); });\n<<<HOOK_END>>>",
     ]
 
     generator = HookPlannerGenerator(ollama_client, parser)
@@ -67,7 +76,7 @@ async def test_generator_retry_on_grammar_violation(parser, ollama_client):
     assert ollama_client.generate.call_count == 2
 
     # Check that error feedback was injected
-    second_call_prompt = ollama_client.generate.call_args_list[1][1]['prompt']
+    second_call_prompt = ollama_client.generate.call_args_list[1][1]["prompt"]
     assert "# PREVIOUS ATTEMPT FAILED" in second_call_prompt
     assert "Missing <<<HOOK_START>>> or <<<HOOK_END>>> markers" in second_call_prompt
 

@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 _parser: Optional[HookPlannerParser] = None
 _generator: Optional[HookPlannerGenerator] = None
 
+
 def get_generator() -> HookPlannerGenerator:
     global _parser, _generator
     if _generator is None:
@@ -174,7 +175,7 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
                     return_value=obs_payload.get("return_value"),
                     exception=obs_payload.get("exception"),
                     captured_at_ms=obs_payload.get("captured_at_ms", 0),
-                    session_id=obs_payload.get("session_id")
+                    session_id=obs_payload.get("session_id"),
                 )
                 db.add(new_obs)
 
@@ -185,8 +186,7 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
                 hyp_id_str = obs_payload.get("hypothesis_id")
                 if hyp_id_str:
                     link = ExperimentObservationLink(
-                        hypothesis_id=hyp_id_str,
-                        observation_id=new_obs.id
+                        hypothesis_id=hyp_id_str, observation_id=new_obs.id
                     )
                     db.add(link)
 

@@ -37,23 +37,27 @@ class DynamicAnalysisResponse(BaseModel):
 _parser: Optional[HookPlannerParser] = None
 _generator: Optional[HookPlannerGenerator] = None
 
+
 def get_generator() -> HookPlannerGenerator:
     global _parser, _generator
     if _generator is None:
         _parser = HookPlannerParser()
-        _generator = HookPlannerGenerator(ollama_client=ollama_client, parser=_parser, max_retries=3)
+        _generator = HookPlannerGenerator(
+            ollama_client=ollama_client, parser=_parser, max_retries=3
+        )
     return _generator
 
 
 @router.post("/analyze", response_model=DynamicAnalysisResponse)
 async def generate_dynamic_hook(
-    request: DynamicAnalysisRequest,
-    generator: HookPlannerGenerator = Depends(get_generator)
+    request: DynamicAnalysisRequest, generator: HookPlannerGenerator = Depends(get_generator)
 ):
     """
     Generate a Frida hook for a specific hypothesis using the Hook Planner LLM.
     """
-    logger.info(f"Generating dynamic hook for hypothesis {request.hypothesis_id} (Submission {request.submission_id})")
+    logger.info(
+        f"Generating dynamic hook for hypothesis {request.hypothesis_id} (Submission {request.submission_id})"
+    )
 
     try:
         script, is_unresolved, reason = await generator.generate_hook(
@@ -69,7 +73,7 @@ async def generate_dynamic_hook(
             hypothesis_id=request.hypothesis_id,
             script=script,
             is_unresolved=is_unresolved,
-            unresolved_reason=reason
+            unresolved_reason=reason,
         )
     except HookPlannerParserError as e:
         logger.exception(f"Parser error for hypothesis {request.hypothesis_id}: {e}")

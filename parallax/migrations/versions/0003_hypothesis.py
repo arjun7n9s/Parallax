@@ -45,12 +45,12 @@ def upgrade() -> None:
         sa.ForeignKeyConstraint(
             ["spawned_from"], ["hypotheses.hypothesis_id"], ondelete="SET NULL"
         ),
-        sa.ForeignKeyConstraint(
-            ["submission_id"], ["submissions.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["submission_id"], ["submissions.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("hypothesis_id"),
     )
-    op.create_index(op.f("ix_hypotheses_submission_id"), "hypotheses", ["submission_id"], unique=False)
+    op.create_index(
+        op.f("ix_hypotheses_submission_id"), "hypotheses", ["submission_id"], unique=False
+    )
     op.create_index(op.f("ix_hypotheses_apk_sha256"), "hypotheses", ["apk_sha256"], unique=False)
     op.create_index(op.f("ix_hypotheses_status"), "hypotheses", ["status"], unique=False)
 

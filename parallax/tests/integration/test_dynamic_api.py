@@ -14,7 +14,7 @@ def mock_generator():
     generator.generate_hook.return_value = (
         "<<<HOOK_START>>>\nJava.perform(function() {});\n<<<HOOK_END>>>",
         False,
-        None
+        None,
     )
     generator.api_dictionary = {"mock_api": {}}
     return generator
@@ -34,7 +34,7 @@ async def test_dynamic_analyze_endpoint_success(override_generator):
         "hypothesis_id": "hyp-456",
         "hypothesis_claim": "The app reads contacts.",
         "package_name": "com.example.malware",
-        "permissions": ["android.permission.READ_CONTACTS"]
+        "permissions": ["android.permission.READ_CONTACTS"],
     }
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
@@ -53,7 +53,7 @@ async def test_dynamic_analyze_endpoint_success(override_generator):
         hypothesis_claim="The app reads contacts.",
         package_name="com.example.malware",
         permissions=["android.permission.READ_CONTACTS"],
-        api_dictionary={"mock_api": {}}
+        api_dictionary={"mock_api": {}},
     )
 
 
@@ -66,7 +66,7 @@ async def test_dynamic_analyze_endpoint_unresolved(override_generator):
         "hypothesis_id": "hyp-456",
         "hypothesis_claim": "The app reads contacts via JNI.",
         "package_name": "com.example.malware",
-        "permissions": []
+        "permissions": [],
     }
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
@@ -88,7 +88,7 @@ async def test_dynamic_analyze_endpoint_internal_error(override_generator):
         "hypothesis_id": "hyp-456",
         "hypothesis_claim": "Test claim",
         "package_name": "com.example.malware",
-        "permissions": []
+        "permissions": [],
     }
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:

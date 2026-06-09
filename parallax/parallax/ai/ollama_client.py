@@ -53,9 +53,7 @@ class OllamaClient:
             logger.debug(f"Raw response: {result.get('response', '')}")
             raise
 
-    async def generate(
-        self, model: str, prompt: str, system_prompt: str = ""
-    ) -> str:
+    async def generate(self, model: str, prompt: str, system_prompt: str = "") -> str:
         """
         Generate a raw text response from the specified Ollama model.
         """

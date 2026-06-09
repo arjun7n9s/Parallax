@@ -6,6 +6,7 @@ from typing import Any, Dict, Optional, Tuple
 
 logger = logging.getLogger(__name__)
 
+
 class HookPlannerParserError(Exception):
     pass
 
@@ -77,7 +78,9 @@ class HookPlannerParser:
             if class_name in ["java.lang.Exception", "android.os.Process"]:
                 continue
             if class_name not in self.api_dictionary:
-                raise HookPlannerParserError(f"Java.use('{class_name}') violates the allowed API dictionary.")
+                raise HookPlannerParserError(
+                    f"Java.use('{class_name}') violates the allowed API dictionary."
+                )
 
         # Extract all overloads: someVar.methodName.overload('type1', 'type2')
         # This is a basic regex to catch the pattern. We extract the method name and the arguments string.
@@ -105,7 +108,9 @@ class HookPlannerParser:
 
             # If the method exists in the dict, but we didn't find the matching overload:
             if found_method and not valid_overload:
-                raise HookPlannerParserError(f"Method '{method_name}' with overload params {args_list} is not allowed.")
+                raise HookPlannerParserError(
+                    f"Method '{method_name}' with overload params {args_list} is not allowed."
+                )
 
     def parse(self, raw_output: str) -> Tuple[str, bool, Optional[str]]:
         """

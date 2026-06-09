@@ -36,28 +36,32 @@ def upgrade() -> None:
         sa.Column("captured_at_ms", sa.Integer(), nullable=False),
         sa.Column("session_id", sa.String(length=128), nullable=True),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
         ),
-        sa.ForeignKeyConstraint(
-            ["submission_id"], ["submissions.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["submission_id"], ["submissions.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("id"),
     )
-    op.create_index(op.f("ix_observations_submission_id"), "observations", ["submission_id"], unique=False)
+    op.create_index(
+        op.f("ix_observations_submission_id"), "observations", ["submission_id"], unique=False
+    )
 
     op.create_table(
         "experiment_observation_links",
         sa.Column("hypothesis_id", sa.String(length=128), nullable=False),
         sa.Column("observation_id", postgresql.UUID(as_uuid=True), nullable=False),
         sa.Column(
-            "created_at", sa.DateTime(timezone=True), server_default=sa.text("now()"), nullable=False
+            "created_at",
+            sa.DateTime(timezone=True),
+            server_default=sa.text("now()"),
+            nullable=False,
         ),
         sa.ForeignKeyConstraint(
             ["hypothesis_id"], ["hypotheses.hypothesis_id"], ondelete="CASCADE"
         ),
-        sa.ForeignKeyConstraint(
-            ["observation_id"], ["observations.id"], ondelete="CASCADE"
-        ),
+        sa.ForeignKeyConstraint(["observation_id"], ["observations.id"], ondelete="CASCADE"),
         sa.PrimaryKeyConstraint("hypothesis_id", "observation_id"),
     )
     # ### end Alembic commands ###

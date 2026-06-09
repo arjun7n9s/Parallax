@@ -11,7 +11,9 @@ def parser():
     """Returns a HookPlannerParser initialized with the actual api_signatures.json"""
     # Assuming test is run from project root or parallax/
     project_root = Path(__file__).resolve().parents[3]
-    dict_path = project_root / "parallax" / "parallax" / "analysis" / "dynamic" / "api_signatures.json"
+    dict_path = (
+        project_root / "parallax" / "parallax" / "analysis" / "dynamic" / "api_signatures.json"
+    )
 
     if not dict_path.exists():
         pytest.skip(f"Dictionary not found at {dict_path}")
@@ -32,7 +34,9 @@ def test_grammar_end_marker_required(parser):
 
 
 def test_grammar_empty_script_form_valid(parser):
-    output = "<<<HOOK_START>>>\n// UNRESOLVED: native code behavior requires Phase 3.5\n<<<HOOK_END>>>"
+    output = (
+        "<<<HOOK_START>>>\n// UNRESOLVED: native code behavior requires Phase 3.5\n<<<HOOK_END>>>"
+    )
     script, is_unresolved, reason = parser.parse(output)
     assert is_unresolved is True
     assert script == ""
@@ -113,5 +117,6 @@ def test_args_is_named_object_not_positional():
 def test_hook_registry_check_present():
     """Ensures the deduplication / Identity reuse logic is present"""
     assert "globalThis.HookRegistry.isHooked" in HOOK_PLANNER_PROMPT
+
 
 # TODO: Add test_llm_produces_valid_output_for_sms_hypothesis (integration test)

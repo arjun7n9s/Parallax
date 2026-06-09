@@ -42,6 +42,7 @@ def test_experiment_observation_link_observation_id_is_uuid():
     col = ExperimentObservationLink.__table__.columns["observation_id"]
     # Check if type is UUID. python_type on UUID can be uuid.UUID
     import uuid
+
     assert col.type.python_type == uuid.UUID
 
 
@@ -68,6 +69,7 @@ def test_experiment_observation_link_cascade_delete():
     col_obs = ExperimentObservationLink.__table__.columns["observation_id"]
     fk_obs = list(col_obs.foreign_keys)[0]
     assert fk_obs.ondelete == "CASCADE"
+
 
 # You can optionally print schema compilation like user suggested
 if __name__ == "__main__":

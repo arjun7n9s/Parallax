@@ -97,6 +97,7 @@ async def lifespan(app: FastAPI):
     # Eager init for the dynamic generator
     try:
         from parallax.api.routes.dynamic import get_generator
+
         get_generator()
         logger.info("Dynamic generator eagerly initialized")
     except Exception as e:
