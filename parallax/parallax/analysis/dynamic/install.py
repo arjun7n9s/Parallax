@@ -7,6 +7,7 @@ Handles installing the mitmproxy CA certificate and setting up frida-server.
 import hashlib
 import logging
 import lzma
+import time
 import urllib.request
 from pathlib import Path
 
@@ -29,8 +30,10 @@ def get_android_ca_hash(cert_pem: bytes) -> str:
 def install_mitmproxy_ca(avd_manager: AVDManager, ca_path: str | Path) -> str:
     """
     Install a mitmproxy CA certificate into Android's system trust store.
-    Uses a tmpfs memory-mount overlay over /system/etc/security/cacerts/ to avoid
-    disabling verity, partition writes, and reboots entirely.
+
+    Uses adb disable-verity + reboot + remount to make /system writable,
+    then pushes the certificate into /system/etc/security/cacerts/.
+    The cert persists across reboots.
     """
     ca_path = Path(ca_path)
     if not ca_path.exists():
@@ -44,40 +47,59 @@ def install_mitmproxy_ca(avd_manager: AVDManager, ca_path: str | Path) -> str:
     # 1. Switch adbd to root
     avd_manager.root()
 
-    # 2. Create a temp directory to hold the certs
-    avd_manager.shell("mkdir -p /data/local/tmp/cacerts")
-
-    # 3. Copy existing system certificates into the temp directory
-    avd_manager.shell("cp -r /system/etc/security/cacerts/* /data/local/tmp/cacerts/")
-
-    # 4. Push our new CA cert into the temp directory
-    remote_temp_path = f"/data/local/tmp/cacerts/{cert_filename}"
-    avd_manager.push_file(ca_path, remote_temp_path)
-
-    # 5. Set correct permissions and ownership on the temp certs
-    avd_manager.shell("chown root:root /data/local/tmp/cacerts/*")
-    avd_manager.shell("chmod 644 /data/local/tmp/cacerts/*")
-
-    # 6. Mount a tmpfs over the system certs directory
-    avd_manager.shell("mount -t tmpfs tmpfs /system/etc/security/cacerts")
-
-    # 7. Copy all certs from temp directory into the mounted system directory
-    avd_manager.shell("cp -r /data/local/tmp/cacerts/* /system/etc/security/cacerts/")
-
-    # 8. Set correct permissions and SELinux contexts on the mounted files
-    avd_manager.shell("chown root:root /system/etc/security/cacerts/*")
-    avd_manager.shell("chmod 644 /system/etc/security/cacerts/*")
+    # 2. Disable dm-verity so /system can be mounted writable
+    logger.info("Disabling dm-verity...")
     try:
-        avd_manager.shell("restorecon -F -R /system/etc/security/cacerts")
-    except Exception as e:
-        logger.warning(f"restorecon failed (this is expected on some systems): {e}")
-
-    # 9. Clean up temp files
-    try:
-        avd_manager.shell("rm -rf /data/local/tmp/cacerts")
+        output = avd_manager.shell("avbctl disable-verification", timeout=10)
+        logger.debug(f"avbctl output: {output}")
     except Exception:
-        pass
+        # Fallback: older emulators use disable-verity via adb directly
+        try:
+            avd_manager._run_adb(["disable-verity"])
+        except Exception as e:
+            logger.warning(f"disable-verity failed (may already be disabled): {e}")
 
+    # 3. Reboot to apply verity changes, then wait for boot
+    logger.info("Rebooting emulator to apply verity changes...")
+    try:
+        avd_manager._run_adb(["reboot"], check=False)
+    except Exception:
+        pass  # reboot often kills the connection before returning
+
+    time.sleep(5)  # Give the emulator a moment to begin rebooting
+    avd_manager.wait_for_ready(timeout=180)
+
+    # 4. Re-root after reboot
+    avd_manager.root()
+
+    # 5. Remount /system as writable
+    logger.info("Remounting /system as writable...")
+    remount_out = avd_manager._run_adb(["remount"])
+    logger.debug(f"Remount output: {remount_out.stdout}")
+
+    # 6. Push the CA certificate
+    dest_path = f"/system/etc/security/cacerts/{cert_filename}"
+    logger.info(f"Pushing CA cert to {dest_path}...")
+    avd_manager.push_file(ca_path, dest_path)
+
+    # 7. Set correct ownership and permissions
+    avd_manager.shell(f"chown root:root {dest_path}")
+    avd_manager.shell(f"chmod 644 {dest_path}")
+
+    # 8. Restore SELinux context (best-effort)
+    try:
+        avd_manager.shell(f"restorecon {dest_path}")
+    except Exception as e:
+        logger.warning(f"restorecon failed (non-fatal): {e}")
+
+    # 9. Verify the cert is readable on the device
+    verify = avd_manager.shell(f"cat {dest_path} | head -1")
+    if "BEGIN CERTIFICATE" not in verify and "BEGIN" not in verify:
+        raise AVDManagerError(
+            f"CA cert verification failed: {dest_path} does not contain a valid certificate"
+        )
+
+    logger.info(f"CA certificate {cert_filename} installed and verified at {dest_path}")
     return cert_filename
 
 

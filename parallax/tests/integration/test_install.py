@@ -8,6 +8,8 @@ import tempfile
 from pathlib import Path
 
 import pytest
+
+pytest.importorskip("cryptography")
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -62,9 +64,10 @@ def test_install_mitmproxy_ca(avd_manager):
         cert_filename = install_mitmproxy_ca(avd_manager, tmp_path)
         dest_path = f"/system/etc/security/cacerts/{cert_filename}"
 
-        # Verify it exists in the cacerts path
-        ls_out = avd_manager.shell(f"ls -la {dest_path}")
-        assert cert_filename in ls_out
+        # Verify it exists and matches the content
+        cat_out = avd_manager.shell(f"cat {dest_path}")
+        assert "BEGIN CERTIFICATE" in cat_out
+        assert cert_pem.decode("utf-8").strip() in cat_out.replace("\r", "")
 
         # Clean up
         avd_manager.shell(f"rm -f {dest_path}")

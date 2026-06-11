@@ -26,7 +26,8 @@ networkx>=3.3
 yara-python>=4.5.1
 
 # Layer 2B: Dynamic Analysis
-frida-tools>=13.0.0
+frida==17.11.0
+frida-tools>=17.11.0
 mitmproxy>=11.0.0
 scapy>=2.5.0
 adb-shell>=0.4.4
