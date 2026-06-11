@@ -4,16 +4,9 @@ import os
 import shutil
 import tempfile
 import uuid
+from pathlib import Path
 from typing import Optional
 
-# Celery is optional in lightweight dev venvs (e.g. .venv-fast).
-# When missing, fall back to a stub class so module import succeeds.
-# Tests that mock at the function level will still work; only the
-# @shared_task decorator will fail at runtime if celery is absent.
-try:
-    from celery import Task
-except ImportError:
-    Task = object  # type: ignore[assignment,misc]
 from sqlalchemy.future import select
 
 from parallax.ai.hook_planner.generator import HookPlannerGenerator
@@ -24,6 +17,29 @@ from parallax.core.models import ExperimentObservationLink, Hypothesis, Observat
 from parallax.core.storage import APK_BUCKET, get_minio_client
 from parallax.sandbox.runner import SandboxRunner
 from parallax.workers.celery_app import celery_app
+
+try:
+    from celery import Task
+except ImportError:
+    Task = object  # type: ignore[assignment,misc]
+
+STATIC_HOOK_MAP = {
+    "sms": "sms_interception.js",
+    "text message": "sms_interception.js",
+    "message": "sms_interception.js",
+    "accessibility": "accessibility_abuse.js",
+    "abuse": "accessibility_abuse.js",
+    "key": "keylogger.js",
+    "keyboard": "keylogger.js",
+    "input": "keylogger.js",
+    "crypto": "crypto_extraction.js",
+    "cipher": "crypto_extraction.js",
+    "encrypt": "crypto_extraction.js",
+    "decrypt": "crypto_extraction.js",
+    "network": "network_logger.js",
+    "http": "network_logger.js",
+    "url": "network_logger.js",
+}
 
 logger = logging.getLogger(__name__)
 
@@ -140,8 +156,44 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
                     )
 
                     if is_unresolved:
-                        logger.info(f"Hypothesis {hyp.hypothesis_id} unresolved: {reason}")
-                        # Could mark it here or let the reasoning agent handle it
+                        logger.info(
+                            f"Hypothesis {hyp.hypothesis_id} unresolved: {reason}. Trying static fallback..."
+                        )
+                        claim_lower = hyp.claim.lower()
+                        hook_file = None
+                        for kw, fname in STATIC_HOOK_MAP.items():
+                            if kw in claim_lower:
+                                hook_file = fname
+                                break
+
+                        if hook_file:
+                            hook_path = (
+                                Path(__file__).parent.parent
+                                / "analysis"
+                                / "dynamic"
+                                / "frida_hooks"
+                                / hook_file
+                            )
+                            if hook_path.exists():
+                                logger.info(
+                                    f"Loaded static hook {hook_file} for claim: {hyp.claim}"
+                                )
+                                fallback_script = hook_path.read_text()
+                                # Substitute placeholders
+                                pkg = submission.package_name or "com.example.malware"
+                                fallback_script = fallback_script.replace("{package_name}", pkg)
+                                fallback_script = fallback_script.replace(
+                                    "{hypothesis_id}", str(hyp.hypothesis_id)
+                                )
+                                combined_script += "\n" + fallback_script
+                                active_hypothesis_ids.append(str(hyp.hypothesis_id))
+                                continue
+                            else:
+                                logger.error(f"Static hook file not found at {hook_path}")
+
+                        logger.info(
+                            f"Hypothesis {hyp.hypothesis_id} unresolved and no static fallback found."
+                        )
                         continue
 
                     combined_script += "\n" + script

@@ -208,3 +208,53 @@ async def test_worker_transitions_to_failed_on_exception(
     # Need to intercept the assignment or check if commit was called.
     # Because of the nested try/except that opens a new async_session, it's a bit harder to assert directly on the same submission object without tracking it properly.
     assert True  # Implicit pass if no crash
+
+
+@pytest.mark.asyncio
+@patch("parallax.workers.dynamic_worker.get_minio_client")
+@patch("parallax.workers.dynamic_worker.async_session")
+@patch("parallax.workers.dynamic_worker.get_generator")
+@patch("parallax.workers.dynamic_worker.SandboxRunner")
+@patch("parallax.workers.dynamic_worker.ollama_client")
+async def test_worker_fallback_to_static_hooks(
+    mock_ollama,
+    MockSandboxRunner,
+    mock_get_generator,
+    mock_async_session,
+    mock_minio,
+    mock_db_session,
+):
+    ctx, session = mock_db_session
+    mock_async_session.return_value = ctx
+
+    result = MagicMock()
+    sub = Submission(id=uuid.uuid4(), sha256="testsha", status="pending", package_name="com.test")
+    result.scalar_one_or_none.return_value = sub
+
+    hyp1 = Hypothesis(
+        hypothesis_id="HYP-SMS",
+        submission_id=uuid.uuid4(),
+        status="INVESTIGATING",
+        claim="Intercepts outbound SMS messages",
+    )
+    result.scalars.return_value.all.return_value = [hyp1]
+
+    def fake_execute(*args, **kwargs):
+        return result
+
+    session.execute.side_effect = AsyncMock(side_effect=fake_execute)
+
+    gen_mock = AsyncMock()
+    gen_mock.generate_hook.return_value = ("", True, "Not observable")
+    mock_get_generator.return_value = gen_mock
+
+    sandbox_mock = AsyncMock()
+    sandbox_mock.run_analysis.return_value = []
+    MockSandboxRunner.return_value = sandbox_mock
+
+    await _async_run_dynamic_pipeline(str(uuid.uuid4()))
+
+    args, kwargs = sandbox_mock.run_analysis.call_args
+    script = kwargs.get("frida_script", "")
+    assert "android.telephony.SmsManager.sendTextMessage" in script
+    assert "HYP-SMS" in script
