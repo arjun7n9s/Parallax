@@ -7,10 +7,11 @@ Handles installing the mitmproxy CA certificate and setting up frida-server.
 import hashlib
 import logging
 import lzma
-import os
 import urllib.request
 from pathlib import Path
+
 from cryptography import x509
+
 from parallax.analysis.dynamic.avd_manager import AVDManager, AVDManagerError
 
 logger = logging.getLogger(__name__)
@@ -28,74 +29,52 @@ def get_android_ca_hash(cert_pem: bytes) -> str:
 def install_mitmproxy_ca(avd_manager: AVDManager, ca_path: str | Path) -> str:
     """
     Install a mitmproxy CA certificate into Android's system trust store.
-    Attempts system remount, and falls back to a tmpfs overlay workaround if read-only.
+    Uses a tmpfs memory-mount overlay over /system/etc/security/cacerts/ to avoid
+    disabling verity, partition writes, and reboots entirely.
     """
     ca_path = Path(ca_path)
     if not ca_path.exists():
         raise FileNotFoundError(f"CA certificate file not found: {ca_path}")
 
-    # Calculate Android subject hash
+    # Calculate Android subject hash filename (e.g. c8750f0d.0)
     cert_bytes = ca_path.read_bytes()
     cert_filename = get_android_ca_hash(cert_bytes)
     logger.info(f"Calculated CA cert filename: {cert_filename}")
 
-    # Ensure ADB is root
-    avd_manager._run_adb(["root"])
+    # 1. Switch adbd to root
+    avd_manager.root()
 
-    # Push file to temporary location
-    temp_device_path = f"/data/local/tmp/{cert_filename}"
-    avd_manager.push_file(ca_path, temp_device_path)
+    # 2. Create a temp directory to hold the certs
+    avd_manager.shell("mkdir -p /data/local/tmp/cacerts")
 
-    dest_path = f"/system/etc/security/cacerts/{cert_filename}"
-    installed = False
+    # 3. Copy existing system certificates into the temp directory
+    avd_manager.shell("cp -r /system/etc/security/cacerts/* /data/local/tmp/cacerts/")
 
-    # Attempt 1: Standard mount remount and write
+    # 4. Push our new CA cert into the temp directory
+    remote_temp_path = f"/data/local/tmp/cacerts/{cert_filename}"
+    avd_manager.push_file(ca_path, remote_temp_path)
+
+    # 5. Set correct permissions and ownership on the temp certs
+    avd_manager.shell("chown root:root /data/local/tmp/cacerts/*")
+    avd_manager.shell("chmod 644 /data/local/tmp/cacerts/*")
+
+    # 6. Mount a tmpfs over the system certs directory
+    avd_manager.shell("mount -t tmpfs tmpfs /system/etc/security/cacerts")
+
+    # 7. Copy all certs from temp directory into the mounted system directory
+    avd_manager.shell("cp -r /data/local/tmp/cacerts/* /system/etc/security/cacerts/")
+
+    # 8. Set correct permissions and SELinux contexts on the mounted files
+    avd_manager.shell("chown root:root /system/etc/security/cacerts/*")
+    avd_manager.shell("chmod 644 /system/etc/security/cacerts/*")
     try:
-        # Try remounting root or system
-        for mount_cmd in ["mount -o rw,remount /system", "mount -o rw,remount /"]:
-            try:
-                avd_manager.shell(mount_cmd)
-            except Exception:
-                pass
-
-        # Try to copy and set permissions
-        avd_manager.shell(f"cp {temp_device_path} {dest_path}")
-        avd_manager.shell(f"chmod 644 {dest_path}")
-        avd_manager.shell(f"chown root:root {dest_path}")
-
-        # Check if file exists and has size > 0
-        ls_out = avd_manager.shell(f"ls -la {dest_path}")
-        if cert_filename in ls_out:
-            logger.info("Successfully installed CA certificate via standard write.")
-            installed = True
+        avd_manager.shell("restorecon -F -R /system/etc/security/cacerts")
     except Exception as e:
-        logger.warning(f"Standard CA install failed: {e}. Falling back to tmpfs workaround.")
+        logger.warning(f"restorecon failed (this is expected on some systems): {e}")
 
-    # Attempt 2: Tmpfs overlay fallback
-    if not installed:
-        try:
-            mounts = avd_manager.shell("mount")
-            if "tmpfs on /system/etc/security/cacerts" not in mounts:
-                logger.info("Setting up tmpfs overlay on /system/etc/security/cacerts")
-                avd_manager.shell("mkdir -p /data/local/tmp/cacerts")
-                avd_manager.shell("cp -d /system/etc/security/cacerts/* /data/local/tmp/cacerts/")
-                avd_manager.shell("mount -t tmpfs tmpfs /system/etc/security/cacerts/")
-                avd_manager.shell("cp -d /data/local/tmp/cacerts/* /system/etc/security/cacerts/")
-                avd_manager.shell("rm -rf /data/local/tmp/cacerts")
-
-            # Push to the now writeable tmpfs-backed directory
-            avd_manager.shell(f"cp {temp_device_path} {dest_path}")
-            avd_manager.shell(f"chmod 644 {dest_path}")
-            avd_manager.shell(f"chown root:root {dest_path}")
-            logger.info("Successfully installed CA certificate via tmpfs overlay.")
-            installed = True
-        except Exception as e:
-            logger.error(f"Failed to install CA cert via tmpfs overlay: {e}")
-            raise AVDManagerError(f"Failed to install CA certificate on device: {e}") from e
-
-    # Clean up temp file
+    # 9. Clean up temp files
     try:
-        avd_manager.shell(f"rm -f {temp_device_path}")
+        avd_manager.shell("rm -rf /data/local/tmp/cacerts")
     except Exception:
         pass
 
@@ -156,7 +135,7 @@ def install_frida_server(avd_manager: AVDManager, binary_path: str | Path) -> No
         raise FileNotFoundError(f"Frida server binary not found: {binary_path}")
 
     # Ensure ADB root
-    avd_manager._run_adb(["root"])
+    avd_manager.root()
 
     remote_path = "/data/local/tmp/frida-server"
     logger.info(f"Pushing frida-server from {binary_path} to {remote_path}...")

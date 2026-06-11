@@ -2,26 +2,30 @@
 Integration tests for the installation script (install.py).
 """
 
-import tempfile
-from pathlib import Path
-import pytest
 import datetime
 import os
+import tempfile
+from pathlib import Path
+
+import pytest
 from cryptography import x509
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import rsa
+
 from parallax.analysis.dynamic.avd_manager import AVDManager
 from parallax.analysis.dynamic.install import (
     get_android_ca_hash,
-    install_mitmproxy_ca,
     get_default_frida_server_path,
     install_frida_server,
+    install_mitmproxy_ca,
 )
 
 
 @pytest.fixture(scope="module")
 def avd_manager():
-    return AVDManager(adb_host="localhost", adb_port=5555)
+    manager = AVDManager(adb_host="127.0.0.1", adb_port=5555)
+    manager.wait_for_ready(timeout=180)
+    return manager
 
 
 def generate_self_signed_cert() -> bytes:
