@@ -18,7 +18,7 @@ class OllamaClient:
         self.client = httpx.AsyncClient(base_url=self.base_url, timeout=120.0)
 
     async def generate_json(
-        self, model: str, prompt: str, system_prompt: str = ""
+        self, model: str, prompt: str, system_prompt: str = "", images: list[str] | None = None
     ) -> dict[str, Any]:
         """
         Generate a JSON response from the specified Ollama model.
@@ -34,6 +34,8 @@ class OllamaClient:
         }
         if system_prompt:
             payload["system"] = system_prompt
+        if images:
+            payload["images"] = images
 
         try:
             response = await self.client.post("/api/generate", json=payload)
@@ -53,7 +55,9 @@ class OllamaClient:
             logger.debug(f"Raw response: {result.get('response', '')}")
             raise
 
-    async def generate(self, model: str, prompt: str, system_prompt: str = "") -> str:
+    async def generate(
+        self, model: str, prompt: str, system_prompt: str = "", images: list[str] | None = None
+    ) -> str:
         """
         Generate a raw text response from the specified Ollama model.
         """
@@ -67,6 +71,8 @@ class OllamaClient:
         }
         if system_prompt:
             payload["system"] = system_prompt
+        if images:
+            payload["images"] = images
 
         try:
             response = await self.client.post("/api/generate", json=payload)
