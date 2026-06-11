@@ -35,12 +35,12 @@ try:
     OTEL_AVAILABLE = True
 except ImportError:
     OTEL_AVAILABLE = False
-    trace = None
-    OTLPSpanExporter = None
-    FastAPIInstrumentor = None
-    Resource = None
-    TracerProvider = None
-    BatchSpanProcessor = None
+    trace = None  # type: ignore[assignment]
+    OTLPSpanExporter = None  # type: ignore[assignment,misc]
+    FastAPIInstrumentor = None  # type: ignore[assignment,misc]
+    Resource = None  # type: ignore[assignment,misc]
+    TracerProvider = None  # type: ignore[assignment,misc]
+    BatchSpanProcessor = None  # type: ignore[assignment,misc]
 
 from parallax.ai.ollama_client import ollama_client
 from parallax.api.routes import analyze_router, dynamic_router, history_router, status_router

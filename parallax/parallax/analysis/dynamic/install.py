@@ -21,7 +21,7 @@ def get_android_ca_hash(cert_pem: bytes) -> str:
     """Calculate the Android-compatible MD5-based subject name hash for a CA cert."""
     cert = x509.load_pem_x509_certificate(cert_pem)
     der_subject = cert.subject.public_bytes()
-    md5_hash = hashlib.md5(der_subject).digest()
+    md5_hash = hashlib.md5(der_subject, usedforsecurity=False).digest()
     hash_val = int.from_bytes(md5_hash[:4], byteorder="little")
     return f"{hash_val:08x}.0"
 

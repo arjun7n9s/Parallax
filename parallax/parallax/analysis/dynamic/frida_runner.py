@@ -71,7 +71,7 @@ class FridaRunner:
             # Attach and load script
             self.session = self.device.attach(pid)
             self.script = self.session.create_script(self.script_content)
-            self.script.on("message", self._on_message)
+            self.script.on("message", self._on_message)  # type: ignore[call-overload]
             self.script.load()
 
             # Resume execution

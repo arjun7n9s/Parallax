@@ -248,7 +248,7 @@ class AVDManager:
     def shell(self, command: str, timeout: int = 30) -> str:
         """Execute a shell command inside the emulator and return stdout."""
         res = self._run_adb(["shell", command], timeout=timeout)
-        return res.stdout
+        return str(res.stdout)
 
     def forward(self, local_port: int, remote_port: int) -> None:
         """Set up port forwarding."""

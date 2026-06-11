@@ -58,8 +58,8 @@ class FlowDroidRunner:
     def run(
         self,
         apk_path: str | Path,
-        sources: list[tuple[str, str]] | None = None,
-        sinks: list[tuple[str, str]] | None = None,
+        sources: list[tuple[str, str, str]] | None = None,
+        sinks: list[tuple[str, str, str]] | None = None,
         timeout: int = 300,
     ) -> list[TaintFlow]:
         """
@@ -136,8 +136,8 @@ class FlowDroidRunner:
     def _write_sources_sinks(
         self,
         path: Path,
-        sources: list[tuple[str, str]],
-        sinks: list[tuple[str, str]],
+        sources: list[tuple[str, str, str]],
+        sinks: list[tuple[str, str, str]],
     ) -> None:
         """
         Write FlowDroid's source/sink definition file.
@@ -147,9 +147,9 @@ class FlowDroidRunner:
             <category> <class>-><method>(<params>)
         """
         lines = []
-        for cls, method in sources:
+        for cls, method, _desc in sources:
             lines.append(f"Source: {cls}->{method}")
-        for cls, method in sinks:
+        for cls, method, _desc in sinks:
             lines.append(f"Sink: {cls}->{method}")
         path.write_text("\n".join(lines))
 

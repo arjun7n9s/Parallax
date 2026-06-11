@@ -39,8 +39,8 @@ class TestSourcesSinksWriter:
         ss_file = tmp_path / "sinks.txt"
         runner._write_sources_sinks(
             ss_file,
-            sources=[("android.telephony.SmsMessage", "getMessageBody")],
-            sinks=[("android.telephony.SmsManager", "sendTextMessage")],
+            sources=[("android.telephony.SmsMessage", "getMessageBody", "Read SMS body")],
+            sinks=[("android.telephony.SmsManager", "sendTextMessage", "Send SMS")],
         )
 
         content = ss_file.read_text()
