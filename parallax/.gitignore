@@ -69,3 +69,4 @@ venv.bak/
 apks/
 data/
 logs/
+parallax/analysis/dynamic/cache/

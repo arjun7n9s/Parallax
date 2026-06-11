@@ -29,13 +29,16 @@ _OPTIONAL_PACKAGES = {
 }
 
 for _pkg_name, _submodules in _OPTIONAL_PACKAGES.items():
-    if _pkg_name not in sys.modules:
-        _pkg = types.ModuleType(_pkg_name)
-        _pkg.__path__ = []  # Mark as a package so submodule imports work
-        sys.modules[_pkg_name] = _pkg
-    for _submod in _submodules:
-        if _submod not in sys.modules:
-            sys.modules[_submod] = MagicMock()
+    try:
+        __import__(_pkg_name)
+    except ImportError:
+        if _pkg_name not in sys.modules:
+            _pkg = types.ModuleType(_pkg_name)
+            _pkg.__path__ = []  # Mark as a package so submodule imports work
+            sys.modules[_pkg_name] = _pkg
+        for _submod in _submodules:
+            if _submod not in sys.modules:
+                sys.modules[_submod] = MagicMock()
 
 # Patch the top-level mock modules to expose attributes used in type annotations
 # (e.g. `yara.Rules | None`, `celery.Celery`). MagicMock returns a child MagicMock

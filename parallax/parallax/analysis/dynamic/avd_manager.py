@@ -98,13 +98,35 @@ class AVDManager:
         except Exception:
             return False
 
-    def boot(self, timeout: int = 300) -> bool:
-        """Ensure the emulator is booted and ready (idempotent)."""
+    def is_frida_running(self) -> bool:
+        """Check if frida-server is running on the emulator."""
+        try:
+            output = self.shell("ps -A")
+            return "frida-server" in output
+        except Exception:
+            return False
+
+    def boot(self, timeout: int = 300, frida_server_path: str | Path | None = None) -> bool:
+        """Ensure the emulator is booted and ready (idempotent) and frida-server is running."""
         if self.is_running():
             logger.info("Emulator is already running.")
+            if not self.is_frida_running():
+                logger.info("Frida-server is not running. Launching setup...")
+                from parallax.analysis.dynamic.install import get_default_frida_server_path, install_frida_server
+                if not frida_server_path:
+                    frida_server_path = get_default_frida_server_path(self)
+                install_frida_server(self, frida_server_path)
             return True
         logger.info("Waiting for emulator to be ready...")
-        return self.wait_for_ready(timeout)
+        ready = self.wait_for_ready(timeout)
+        if ready:
+            if not self.is_frida_running():
+                logger.info("Frida-server is not running. Launching setup...")
+                from parallax.analysis.dynamic.install import get_default_frida_server_path, install_frida_server
+                if not frida_server_path:
+                    frida_server_path = get_default_frida_server_path(self)
+                install_frida_server(self, frida_server_path)
+        return ready
 
     def wait_for_ready(self, timeout: int = 300) -> bool:
         """Poll sys.boot_completed until the device is ready."""
