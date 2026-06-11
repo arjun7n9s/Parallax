@@ -7,14 +7,17 @@ android-emulator container, query its status, push files, and execute shell comm
 
 import tempfile
 from pathlib import Path
+
 import pytest
-from parallax.analysis.dynamic.avd_manager import AVDManager, AVDManagerError
+
+from parallax.analysis.dynamic.avd_manager import AVDManager
 
 
 @pytest.fixture(scope="module")
 def avd_manager():
-    """Returns an AVDManager instance configured for localhost:5555."""
-    manager = AVDManager(adb_host="localhost", adb_port=5555)
+    """Returns an AVDManager instance configured for 127.0.0.1:5555."""
+    manager = AVDManager(adb_host="127.0.0.1", adb_port=5555)
+    manager.wait_for_ready(timeout=180)
     return manager
 
 

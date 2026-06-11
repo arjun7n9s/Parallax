@@ -41,7 +41,15 @@ def _find_adb() -> str:
     if os.name == "nt":
         user_profile = os.getenv("USERPROFILE")
         if user_profile:
-            p = Path(user_profile) / "AppData" / "Local" / "Android" / "Sdk" / "platform-tools" / "adb.exe"
+            p = (
+                Path(user_profile)
+                / "AppData"
+                / "Local"
+                / "Android"
+                / "Sdk"
+                / "platform-tools"
+                / "adb.exe"
+            )
             if p.exists():
                 return str(p)
 
@@ -52,7 +60,9 @@ def _find_adb() -> str:
 class AVDManager:
     """Manager for emulator lifecycle and ADB interactions."""
 
-    def __init__(self, adb_host: str = "localhost", adb_port: int = 5555, device_id: str | None = None):
+    def __init__(
+        self, adb_host: str = "localhost", adb_port: int = 5555, device_id: str | None = None
+    ):
         self.adb_host = adb_host
         self.adb_port = adb_port
         self.adb_bin = _find_adb()
@@ -60,7 +70,9 @@ class AVDManager:
         self.device_id = device_id or f"{self.adb_host}:{self.adb_port}"
         self._connect()
 
-    def _run_adb(self, args: list[str], timeout: int | None = None, check: bool = True) -> subprocess.CompletedProcess:
+    def _run_adb(
+        self, args: list[str], timeout: int | None = None, check: bool = True
+    ) -> subprocess.CompletedProcess:
         """Helper to run adb command targeting the specific device."""
         cmd = [self.adb_bin, "-s", self.device_id] + args
         try:
@@ -76,14 +88,85 @@ class AVDManager:
             raise AVDManagerError(f"ADB command timed out: {' '.join(cmd)}") from e
 
     def _connect(self) -> None:
-        """Connect to the remote ADB daemon if not already connected."""
-        # Only run connect if it's an IP:port target
+        """Connect to the remote ADB daemon, forcing a disconnect first if it is offline or missing."""
         if ":" in self.device_id or self.adb_host not in ("localhost", "127.0.0.1"):
             target = f"{self.adb_host}:{self.adb_port}"
             try:
-                subprocess.run([self.adb_bin, "connect", target], capture_output=True, text=True, check=False)
+                # Check if the device is already connected and online
+                res = subprocess.run(
+                    [self.adb_bin, "devices"], capture_output=True, text=True, check=False
+                )
+                devices_output = res.stdout or ""
+
+                needs_reconnect = True
+                for line in devices_output.splitlines():
+                    if target in line and "device" in line and "offline" not in line:
+                        needs_reconnect = False
+                        break
+
+                if needs_reconnect:
+                    logger.debug(
+                        f"Device {target} is offline or not connected. Forcing reconnect..."
+                    )
+                    subprocess.run(
+                        [self.adb_bin, "disconnect", target],
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
+                    subprocess.run(
+                        [self.adb_bin, "connect", target],
+                        capture_output=True,
+                        text=True,
+                        check=False,
+                    )
             except Exception as e:
-                logger.warning(f"Failed to run adb connect {target}: {e}")
+                logger.warning(f"Failed to manage adb connection to {target}: {e}")
+
+    def root(self) -> None:
+        """Switch adbd to root mode, reconnecting and waiting for the daemon to restart if it's a TCP device."""
+        # Check if already root
+        try:
+            res = self._run_adb(["shell", "id"], timeout=5, check=False)
+            if res.returncode == 0 and "root" in res.stdout:
+                logger.info("Already root, skipping adb root command.")
+                return
+        except Exception:
+            pass
+
+        logger.info("Switching adbd to root...")
+        try:
+            # We don't check=True because adb root restarting adbd will drop connection on TCP
+            res = self._run_adb(["root"], timeout=15, check=False)
+            logger.info(f"adb root output: stdout='{res.stdout}', stderr='{res.stderr}'")
+        except Exception as e:
+            logger.warning(f"adb root command triggered exception: {e}")
+
+        # Sleep briefly to let the adb daemon shut down and restart
+        time.sleep(3)
+
+        # Reconnect to the TCP target if necessary
+        self._connect()
+
+        # Poll/wait until adb is responding again
+        start_time = time.time()
+        connected = False
+        while time.time() - start_time < 45:
+            try:
+                # Test connectivity
+                res = self._run_adb(["shell", "id"], timeout=5, check=False)
+                if res.returncode == 0 and "root" in res.stdout:
+                    logger.info("Successfully switched to root and verified connection.")
+                    connected = True
+                    break
+            except Exception:
+                pass
+            time.sleep(2)
+            # Reconnect each iteration just in case the server lost the device
+            self._connect()
+
+        if not connected:
+            raise AVDManagerError("Failed to establish root connection after adb root command.")
 
     def is_running(self) -> bool:
         """Check if the emulator device is connected and responsive."""
@@ -112,7 +195,11 @@ class AVDManager:
             logger.info("Emulator is already running.")
             if not self.is_frida_running():
                 logger.info("Frida-server is not running. Launching setup...")
-                from parallax.analysis.dynamic.install import get_default_frida_server_path, install_frida_server
+                from parallax.analysis.dynamic.install import (
+                    get_default_frida_server_path,
+                    install_frida_server,
+                )
+
                 if not frida_server_path:
                     frida_server_path = get_default_frida_server_path(self)
                 install_frida_server(self, frida_server_path)
@@ -122,7 +209,11 @@ class AVDManager:
         if ready:
             if not self.is_frida_running():
                 logger.info("Frida-server is not running. Launching setup...")
-                from parallax.analysis.dynamic.install import get_default_frida_server_path, install_frida_server
+                from parallax.analysis.dynamic.install import (
+                    get_default_frida_server_path,
+                    install_frida_server,
+                )
+
                 if not frida_server_path:
                     frida_server_path = get_default_frida_server_path(self)
                 install_frida_server(self, frida_server_path)
@@ -135,7 +226,9 @@ class AVDManager:
             if self.is_running():
                 return True
             time.sleep(5)
-        raise AVDManagerError(f"Timeout waiting for emulator {self.device_id} to boot after {timeout}s")
+        raise AVDManagerError(
+            f"Timeout waiting for emulator {self.device_id} to boot after {timeout}s"
+        )
 
     def install_apk(self, apk_path: str | Path) -> None:
         """Install an APK on the emulator."""
