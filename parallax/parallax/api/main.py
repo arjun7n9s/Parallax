@@ -18,14 +18,28 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from minio import Minio
 from neo4j import GraphDatabase
-from opentelemetry import trace
-from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
-from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-from opentelemetry.sdk.resources import Resource
-from opentelemetry.sdk.trace import TracerProvider
-from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from qdrant_client import QdrantClient
 from starlette.middleware.base import BaseHTTPMiddleware
+
+# OpenTelemetry is optional in lightweight dev venvs (e.g. .venv-fast).
+# Guarded imports allow the app to import in environments without the otel
+# packages installed. Telemetry is silently disabled in that case.
+try:
+    from opentelemetry import trace
+    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+    from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
+    from opentelemetry.sdk.resources import Resource
+    from opentelemetry.sdk.trace import TracerProvider
+    from opentelemetry.sdk.trace.export import BatchSpanProcessor
+    OTEL_AVAILABLE = True
+except ImportError:
+    OTEL_AVAILABLE = False
+    trace = None
+    OTLPSpanExporter = None
+    FastAPIInstrumentor = None
+    Resource = None
+    TracerProvider = None
+    BatchSpanProcessor = None
 
 from parallax.ai.ollama_client import ollama_client
 from parallax.api.routes import analyze_router, dynamic_router, history_router, status_router
@@ -38,7 +52,13 @@ logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------ Telemetry
 def _init_telemetry() -> None:
-    """Initialize OpenTelemetry tracing with OTLP exporter to Jaeger."""
+    """Initialize OpenTelemetry tracing with OTLP exporter to Jaeger.
+
+    No-op if the opentelemetry packages are not installed (lightweight dev venv).
+    """
+    if not OTEL_AVAILABLE:
+        logger.debug("OpenTelemetry not installed; skipping telemetry init")
+        return
     resource = Resource.create(
         {
             "service.name": "parallax-api",
@@ -118,8 +138,10 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Instrument FastAPI with OpenTelemetry (auto-creates spans for every request)
-FastAPIInstrumentor.instrument_app(app)
+# Instrument FastAPI with OpenTelemetry (auto-creates spans for every request).
+# Skipped if the opentelemetry packages are not installed.
+if OTEL_AVAILABLE:
+    FastAPIInstrumentor.instrument_app(app)
 
 app.include_router(analyze_router, prefix=settings.API_V1_STR)
 app.include_router(status_router, prefix=settings.API_V1_STR)
