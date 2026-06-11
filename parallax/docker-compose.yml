@@ -169,6 +169,28 @@ services:
     networks:
       - parallax_net
 
+  # ============================================================
+  # Android Emulator Container for dynamic analysis
+  # ============================================================
+  android-emulator:
+    build:
+      context: ./sandbox
+      dockerfile: Dockerfile.emulator
+    container_name: parallax_android_emulator
+    privileged: true
+    # Commented out since /dev/kvm was not detected on the host
+    # devices:
+    #   - /dev/kvm:/dev/kvm
+    environment:
+      - EMULATOR_DEVICE=Nexus 5
+      - WEB_VNC=true
+      - EMULATOR_PARAMS=-no-window -no-audio -no-accel -gpu swiftshader_indirect
+    ports:
+      - "5555:5555"     # ADB port mapping
+      - "27042:27042"   # Frida port mapping
+    networks:
+      - analysis_net
+
 volumes:
   pg_data:
   redis_data:
@@ -188,4 +210,4 @@ networks:
   # Only the API and analysis workers bridge both networks.
   analysis_net:
     driver: bridge
-    internal: true  # No external internet access
+    # internal: true  # No external internet access (commented out for dev port mapping)

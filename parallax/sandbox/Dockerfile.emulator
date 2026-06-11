@@ -1,0 +1,28 @@
+FROM budtmo/docker-android:emulator_11.0
+
+USER root
+
+# Install xz-utils and curl to decompress and fetch frida-server packages
+RUN apt-get update && apt-get install -y xz-utils ca-certificates curl && rm -rf /var/lib/apt/lists/*
+
+# Download and extract Frida-server for x86 and x86_64
+RUN curl -L -o /tmp/frida-server-x86.xz https://github.com/frida/frida/releases/download/17.11.0/frida-server-17.11.0-android-x86.xz \
+    && unxz /tmp/frida-server-x86.xz \
+    && mv /tmp/frida-server-x86 /usr/local/bin/frida-server-x86 \
+    && chmod +x /usr/local/bin/frida-server-x86
+
+RUN curl -L -o /tmp/frida-server-x86_64.xz https://github.com/frida/frida/releases/download/17.11.0/frida-server-17.11.0-android-x86_64.xz \
+    && unxz /tmp/frida-server-x86_64.xz \
+    && mv /tmp/frida-server-x86_64 /usr/local/bin/frida-server-x86_64 \
+    && chmod +x /usr/local/bin/frida-server-x86_64
+
+# Copy custom entrypoint script
+COPY entrypoint-emulator.sh /usr/local/bin/entrypoint-emulator.sh
+RUN chmod +x /usr/local/bin/entrypoint-emulator.sh
+
+# Expose ADB port and Frida port
+EXPOSE 5555 27042
+
+USER androidusr
+
+ENTRYPOINT ["/usr/local/bin/entrypoint-emulator.sh"]
