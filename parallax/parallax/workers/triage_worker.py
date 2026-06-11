@@ -5,7 +5,14 @@ import shutil
 import tempfile
 import uuid
 
-from celery import Task
+# Celery is optional in lightweight dev venvs (e.g. .venv-fast).
+# When missing, fall back to a stub class so module import succeeds.
+# Tests that mock at the function level will still work; only the
+# @shared_task decorator will fail at runtime if celery is absent.
+try:
+    from celery import Task
+except ImportError:
+    Task = object  # type: ignore[assignment,misc]
 from sqlalchemy.future import select
 
 from parallax.ai.agents.triage import run_llm_triage
