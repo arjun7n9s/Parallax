@@ -178,13 +178,12 @@ services:
       dockerfile: Dockerfile.emulator
     container_name: parallax_android_emulator
     privileged: true
-    # Commented out since /dev/kvm was not detected on the host
-    # devices:
-    #   - /dev/kvm:/dev/kvm
+    devices:
+      - /dev/kvm:/dev/kvm
     environment:
       - EMULATOR_DEVICE=Nexus 5
       - WEB_VNC=true
-      - EMULATOR_PARAMS=-no-window -no-audio -no-accel -gpu swiftshader_indirect
+      - EMULATOR_PARAMS=-no-window -no-audio -writable-system
     ports:
       - "5555:5555"     # ADB port mapping
       - "27042:27042"   # Frida port mapping

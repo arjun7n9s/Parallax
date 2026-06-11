@@ -2,6 +2,9 @@ FROM budtmo/docker-android:emulator_11.0
 
 USER root
 
+# Fix missing root user in /etc/passwd which causes sudo: unknown user root
+RUN echo "root:x:0:0:root:/root:/bin/bash" >> /etc/passwd
+
 # Install xz-utils and curl to decompress and fetch frida-server packages
 RUN apt-get update && apt-get install -y xz-utils ca-certificates curl && rm -rf /var/lib/apt/lists/*
 
@@ -15,6 +18,9 @@ RUN curl -L -o /tmp/frida-server-x86_64.xz https://github.com/frida/frida/releas
     && unxz /tmp/frida-server-x86_64.xz \
     && mv /tmp/frida-server-x86_64 /usr/local/bin/frida-server-x86_64 \
     && chmod +x /usr/local/bin/frida-server-x86_64
+
+# Enable supervisord autorestart for device so adb reboot works correctly inside container
+RUN sed -i 's/autorestart=false/autorestart=true/g' /home/androidusr/docker-android/mixins/configs/process/supervisord-base.conf
 
 # Copy custom entrypoint script
 COPY entrypoint-emulator.sh /usr/local/bin/entrypoint-emulator.sh
