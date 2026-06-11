@@ -110,8 +110,14 @@ def get_default_frida_server_path(avd_manager: AVDManager) -> Path:
         abi = "x86_64"  # Default fallback
 
     import frida
+    from importlib import metadata as importlib_metadata
 
-    version = frida.__version__
+    # Prefer the package metadata (always present); fall back to module attribute
+    # for older installs and stubbed imports (e.g. .venv-fast conftest mocks).
+    try:
+        version = importlib_metadata.version("frida")
+    except (importlib_metadata.PackageNotFoundError, Exception):
+        version = getattr(frida, "__version__", "17.11.0")
 
     cache_dir = Path(__file__).parent / "cache"
     cache_dir.mkdir(parents=True, exist_ok=True)
