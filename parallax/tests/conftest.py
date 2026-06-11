@@ -21,9 +21,20 @@ sys.modules["passlib.apache"] = MagicMock()
 # We must create *real* module entries (not just MagicMock) for the parent module
 # so that `from X.submodule import Y` resolves. Submodules are then mocked.
 _OPTIONAL_PACKAGES = {
-    "frida": ["frida.core", "frida.core.Device", "frida.TimedOutError", "frida.ServerNotRunningError", "frida.ExecutableNotFoundError"],
+    "frida": [
+        "frida.core",
+        "frida.core.Device",
+        "frida.TimedOutError",
+        "frida.ServerNotRunningError",
+        "frida.ExecutableNotFoundError",
+    ],
     "androguard": ["androguard.misc", "androguard.misc.AnalyzeAPK"],
-    "mitmproxy": ["mitmproxy.options", "mitmproxy.tools.dump", "mitmproxy.http", "mitmproxy.http.HTTPFlow"],
+    "mitmproxy": [
+        "mitmproxy.options",
+        "mitmproxy.tools.dump",
+        "mitmproxy.http",
+        "mitmproxy.http.HTTPFlow",
+    ],
     "celery": ["celery", "celery.Celery", "celery.Task", "celery.shared_task"],
     "yara": ["yara"],
 }
@@ -54,10 +65,10 @@ for _attr_module in ("yara", "celery", "frida", "androguard", "mitmproxy"):
         _mod.Rules = MagicMock
         _mod.SyntaxError = type("SyntaxError", (Exception,), {})
 
-import pytest
-from fastapi.testclient import TestClient
+import pytest  # noqa: E402
+from fastapi.testclient import TestClient  # noqa: E402
 
-from parallax.api.main import app
+from parallax.api.main import app  # noqa: E402
 
 
 @pytest.fixture

@@ -10,17 +10,13 @@ Tests:
 - Missing JAR raises FileNotFoundError
 """
 
-import tempfile
-import xml.etree.ElementTree as ET
-from pathlib import Path
-
 import pytest
 
 from parallax.analysis.static.flowdroid_runner import (
     FlowDroidRunner,
-    FlowDroidError,
     TaintFlow,
 )
+
 
 class TestFlowDroidRunnerInit:
     def test_jar_path_must_exist(self, tmp_path):
@@ -32,6 +28,7 @@ class TestFlowDroidRunnerInit:
         jar.write_bytes(b"fake")
         runner = FlowDroidRunner(jar_path=jar)
         assert runner.jar_path == jar
+
 
 class TestSourcesSinksWriter:
     def test_writes_sources_and_sinks(self, tmp_path):
@@ -49,6 +46,7 @@ class TestSourcesSinksWriter:
         content = ss_file.read_text()
         assert "Source: android.telephony.SmsMessage->getMessageBody" in content
         assert "Sink: android.telephony.SmsManager->sendTextMessage" in content
+
 
 class TestXmlParser:
     def _make_runner(self, tmp_path) -> FlowDroidRunner:
@@ -142,6 +140,7 @@ class TestXmlParser:
         flows = runner._parse_xml_output(xml_path)
         assert flows[0].attck_technique == "T1437.001"
 
+
 class TestTaintFlow:
     def test_sink_key(self):
         f = TaintFlow(
@@ -155,12 +154,15 @@ class TestTaintFlow:
 
     def test_default_risk_is_medium(self):
         f = TaintFlow(
-            source_class="a", source_method="b",
-            sink_class="c", sink_method="d",
+            source_class="a",
+            source_method="b",
+            sink_class="c",
+            sink_method="d",
         )
         assert f.risk == "MEDIUM"
         assert f.attck_technique is None
         assert f.path == []
+
 
 class TestRun:
     def test_missing_apk_raises(self, tmp_path):
