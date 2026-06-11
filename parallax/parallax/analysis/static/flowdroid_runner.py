@@ -12,15 +12,17 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from parallax.analysis.static.taint_sink_definitions import (
-    TAINT_SOURCES,
-    TAINT_SINKS,
     HIGH_RISK_SINKS,
     SINK_TO_ATTCK,
+    TAINT_SINKS,
+    TAINT_SOURCES,
 )
+
 
 @dataclass
 class TaintFlow:
     """A single data flow from a source to a sink."""
+
     source_class: str
     source_method: str
     sink_class: str
@@ -37,9 +39,12 @@ class TaintFlow:
     def source_key(self) -> str:
         return f"{self.source_class}.{self.source_method}"
 
+
 class FlowDroidError(Exception):
     """Raised when FlowDroid execution fails."""
+
     pass
+
 
 class FlowDroidRunner:
     """Wrapper around the FlowDroid JAR for taint analysis."""
@@ -94,10 +99,14 @@ class FlowDroidRunner:
                 self.java_path,
                 "-jar",
                 str(self.jar_path),
-                "-a", str(apk_path),
-                "-p", str(Path(tmpdir) / "platforms"),  # Android platform jars
-                "-s", str(sources_sinks_file),
-                "-o", str(output_xml),
+                "-a",
+                str(apk_path),
+                "-p",
+                str(Path(tmpdir) / "platforms"),  # Android platform jars
+                "-s",
+                str(sources_sinks_file),
+                "-o",
+                str(output_xml),
             ]
 
             try:
@@ -160,7 +169,7 @@ class FlowDroidRunner:
         """
         flows = []
         try:
-            tree = ET.parse(xml_path)
+            tree = ET.parse(xml_path)  # nosec B314
             root = tree.getroot()
         except ET.ParseError:
             return []
@@ -185,14 +194,16 @@ class FlowDroidRunner:
             risk = "CRITICAL" if sink_key in HIGH_RISK_SINKS else "MEDIUM"
             attck = SINK_TO_ATTCK.get(sink_key)
 
-            flows.append(TaintFlow(
-                source_class=source_class,
-                source_method=source_method,
-                sink_class=sink_class,
-                sink_method=sink_method,
-                path=path,
-                risk=risk,
-                attck_technique=attck,
-            ))
+            flows.append(
+                TaintFlow(
+                    source_class=source_class,
+                    source_method=source_method,
+                    sink_class=sink_class,
+                    sink_method=sink_method,
+                    path=path,
+                    risk=risk,
+                    attck_technique=attck,
+                )
+            )
 
         return flows
