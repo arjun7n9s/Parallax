@@ -63,6 +63,20 @@ class TrafficInterceptorAddon:
                 "exception": None,
                 "session_id": self.submission_id,
             }
+
+            # Attempt structured decoding of non-trivial protocols (DoH, gRPC,
+            # WebSocket) carried over the HTTP response body.
+            try:
+                from parallax.analysis.dynamic.protocol_decoders import decode_payload
+
+                content_type = res.headers.get("content-type", "") if res else ""
+                body = res.content if res else b""
+                decoded = decode_payload(content_type, body or b"")
+                if decoded:
+                    payload["args"]["decoded_protocol"] = decoded
+            except Exception:
+                pass
+
             self.on_flow_callback(payload)
         except Exception as e:
             logger.error(f"Error processing captured flow: {e}", exc_info=True)
