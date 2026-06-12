@@ -24,7 +24,7 @@ from sqlalchemy.future import select
 
 from parallax.ai.orchestration import run_cortex
 from parallax.core.database import async_session
-from parallax.core.models import IOC, Observation, Submission
+from parallax.core.models import IOC, Observation, Submission, TaintFlow
 from parallax.core.storage import DECOMPILED_BUCKET, SCREENSHOTS_BUCKET, get_minio_client
 from parallax.workers.celery_app import celery_app
 
@@ -110,9 +110,7 @@ async def _async_run_reasoning_pipeline(submission_id_str: str):
     temp_dir = None
     try:
         async with async_session() as db:
-            result = await db.execute(
-                select(Submission).where(Submission.id == submission_id)
-            )
+            result = await db.execute(select(Submission).where(Submission.id == submission_id))
             submission = result.scalar_one_or_none()
             if not submission:
                 logger.error("Submission %s not found.", submission_id_str)
@@ -135,10 +133,16 @@ async def _async_run_reasoning_pipeline(submission_id_str: str):
             )
             observations = [_observation_to_dict(o) for o in obs_result.scalars().all()]
 
+            taint_result = await db.execute(
+                select(TaintFlow).where(TaintFlow.submission_id == submission_id)
+            )
+            taint_flows = [t.to_dict() for t in taint_result.scalars().all()]
+
             logger.info(
-                "Cortex inputs for %s: %d observations, %d screenshots, sources=%s",
+                "Cortex inputs for %s: %d observations, %d taint flows, %d screenshots, sources=%s",
                 sha256,
                 len(observations),
+                len(taint_flows),
                 len(screenshot_keys),
                 bool(sources_dir),
             )
@@ -156,6 +160,7 @@ async def _async_run_reasoning_pipeline(submission_id_str: str):
                 screenshot_keys=screenshot_keys,
                 apkid=apkid,
                 related_samples=related_samples,
+                taint_flows=taint_flows,
             )
 
             # Persist verdict + score + full result.
@@ -165,7 +170,7 @@ async def _async_run_reasoning_pipeline(submission_id_str: str):
             submission.metadata_json = metadata
 
             # Persist extracted IOCs (deduped per submission).
-            await _persist_iocs(db, submission_id, cortex)
+            await _persist_iocs(db, submission_id, cortex, observations)
 
             # Enrich the TAIG graph + vector store (the self-improving loop).
             await _enrich_knowledge(sha256, submission_id_str, artifact, cortex)
@@ -191,9 +196,7 @@ async def _async_run_reasoning_pipeline(submission_id_str: str):
         logger.exception("Error during reasoning pipeline for %s", submission_id_str)
         try:
             async with async_session() as db:
-                result = await db.execute(
-                    select(Submission).where(Submission.id == submission_id)
-                )
+                result = await db.execute(select(Submission).where(Submission.id == submission_id))
                 sub = result.scalar_one_or_none()
                 if sub:
                     sub.status = "failed"
@@ -251,24 +254,34 @@ async def _enrich_knowledge(sha256, submission_id_str, artifact, cortex) -> None
     try:
         from parallax.knowledge.pattern_memory import enrich_pattern_memory
 
-        await enrich_pattern_memory(
-            sha256, cortex, features.get("permissions", []), None
-        )
+        await enrich_pattern_memory(sha256, cortex, features.get("permissions", []), None)
     except Exception as exc:
         logger.warning("Pattern memory enrichment skipped: %s", exc)
 
 
-async def _persist_iocs(db, submission_id: uuid.UUID, cortex) -> None:
+async def _persist_iocs(
+    db, submission_id: uuid.UUID, cortex, observations: list[dict] | None = None
+) -> None:
+    # IOCs confirmed in runtime traffic are stronger evidence than strings
+    # that only appear in decompiled code or agent narratives.
+    runtime_blob = " ".join(
+        str(o.get("args")) + " " + str(o.get("event_type")) for o in (observations or [])
+    )
     type_map = {"urls": "url", "domains": "domain", "ips": "ip"}
     for bucket, ioc_type in type_map.items():
         for value in cortex.iocs.get(bucket, []):
+            observed_live = bool(runtime_blob) and value in runtime_blob
             db.add(
                 IOC(
                     submission_id=submission_id,
                     ioc_type=ioc_type,
                     value=value,
-                    context="extracted by reasoning cortex",
-                    confidence=0.7,
+                    context=(
+                        "observed in runtime traffic"
+                        if observed_live
+                        else "extracted from static code/agent evidence"
+                    ),
+                    confidence=0.85 if observed_live else 0.6,
                     source_agent="cortex",
                 )
             )

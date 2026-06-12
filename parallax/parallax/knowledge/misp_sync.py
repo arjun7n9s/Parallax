@@ -56,7 +56,7 @@ async def push_event(sha256: str, package: str, cortex: CortexResult) -> bool:
         }
     }
     try:
-        async with httpx.AsyncClient(timeout=20.0, verify=False) as client:  # noqa: S501
+        async with httpx.AsyncClient(timeout=20.0, verify=settings.MISP_VERIFY_TLS) as client:
             resp = await client.post(
                 f"{settings.MISP_URL.rstrip('/')}/events/add",
                 json=event,
@@ -76,7 +76,7 @@ async def pull_recent_events(days: int = 30, limit: int = 100) -> list[dict]:
     if not _configured():
         return []
     try:
-        async with httpx.AsyncClient(timeout=30.0, verify=False) as client:  # noqa: S501
+        async with httpx.AsyncClient(timeout=30.0, verify=settings.MISP_VERIFY_TLS) as client:
             resp = await client.post(
                 f"{settings.MISP_URL.rstrip('/')}/events/restSearch",
                 json={"last": f"{days}d", "limit": limit, "tags": ["android", "banking"]},

@@ -30,7 +30,9 @@ def _malicious_behavior():
 
 
 def test_debate_detects_evasion():
-    d = run_debate(_clean_code(), _malicious_behavior(), IntelCorrelatorOutput(), VisualIntelOutput())
+    d = run_debate(
+        _clean_code(), _malicious_behavior(), IntelCorrelatorOutput(), VisualIntelOutput()
+    )
     assert d.evasion_suspected is True
     assert d.confidence_modifier >= 0.15
     assert len(d.contradictions) == 1
@@ -46,7 +48,9 @@ def test_debate_detects_dormant_payload():
 
 
 def test_risk_score_monotonic_and_bounded():
-    d = run_debate(_clean_code(), _malicious_behavior(), IntelCorrelatorOutput(), VisualIntelOutput())
+    d = run_debate(
+        _clean_code(), _malicious_behavior(), IntelCorrelatorOutput(), VisualIntelOutput()
+    )
     r = compute_risk(
         permissions=[
             "android.permission.BIND_ACCESSIBILITY_SERVICE",
@@ -72,14 +76,24 @@ def test_risk_clean_app_is_low():
         behavior=BehaviorAnalystOutput(risk_level="LOW"),
         intel=IntelCorrelatorOutput(),
         visual=VisualIntelOutput(),
-        debate=run_debate(_clean_code(), BehaviorAnalystOutput(risk_level="LOW"), IntelCorrelatorOutput(), VisualIntelOutput()),
+        debate=run_debate(
+            _clean_code(),
+            BehaviorAnalystOutput(risk_level="LOW"),
+            IntelCorrelatorOutput(),
+            VisualIntelOutput(),
+        ),
     )
     assert r.verdict in ("LOW", "CLEAN")
 
 
 def test_ioc_extraction():
     iocs = orchestration._extract_iocs(
-        [{"args": {"url": "http://185.220.101.47/gate.php"}, "event_type": "HttpURLConnection.connect"}],
+        [
+            {
+                "args": {"url": "http://185.220.101.47/gate.php"},
+                "event_type": "HttpURLConnection.connect",
+            }
+        ],
         _malicious_behavior(),
         _clean_code(),
     )

@@ -61,16 +61,26 @@ def _permission_abuse(permissions: list[str]) -> float:
     return min(1.0, score / 3.5)
 
 
-def _network_exfil(behavior: BehaviorAnalystOutput) -> float:
-    if not behavior:
-        return 0.0
+def _network_exfil(
+    behavior: BehaviorAnalystOutput | None, taint_flows: list[dict] | None = None
+) -> float:
     val = 0.0
-    if behavior.network_iocs:
-        val = 0.5 + min(0.4, 0.1 * len(behavior.network_iocs))
-    if any(p.phase == "exfiltration" for p in behavior.kill_chain):
-        val = max(val, 0.85)
-    if any(p.phase == "command_control" for p in behavior.kill_chain):
-        val = max(val, 0.7)
+    if behavior:
+        if behavior.network_iocs:
+            val = 0.5 + min(0.4, 0.1 * len(behavior.network_iocs))
+        if any(p.phase == "exfiltration" for p in behavior.kill_chain):
+            val = max(val, 0.85)
+        if any(p.phase == "command_control" for p in behavior.kill_chain):
+            val = max(val, 0.7)
+    # Static taint evidence: a proven sensitive-source -> sink path means the
+    # app CAN exfiltrate even if the short dynamic run never triggered it
+    # (logic bombs, time-delayed payloads).
+    if taint_flows:
+        risks = {t.get("risk") for t in taint_flows}
+        if "CRITICAL" in risks:
+            val = max(val, 0.75)
+        else:
+            val = max(val, 0.4)
     return min(1.0, val)
 
 
@@ -98,12 +108,13 @@ def compute_risk(
     debate: DebateResult | None,
     apkid: dict | None = None,
     yara_matches: list[dict] | None = None,
+    taint_flows: list[dict] | None = None,
 ) -> RiskScore:
     comp = RiskComponents(
         permission_abuse=_permission_abuse(permissions),
         behavioral_indicators=_RISK_SCALAR.get(behavior.risk_level, 0.0) if behavior else 0.0,
         code_intent_risk=_RISK_SCALAR.get(code.risk_level, 0.0) if code else 0.0,
-        network_exfiltration=_network_exfil(behavior) if behavior else 0.0,
+        network_exfiltration=_network_exfil(behavior, taint_flows),
         code_obfuscation=_obfuscation(apkid, yara_matches),
         brand_impersonation=visual.brand_impersonation_score if visual else 0.0,
         campaign_association=(

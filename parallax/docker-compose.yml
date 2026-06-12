@@ -1,5 +1,62 @@
 services:
   # ============================================================
+  # PARALLAX application (API + analysis workers)
+  # Opt-in via profile so `docker compose up -d` still brings up
+  # infra only:  docker compose --profile app up -d --build
+  # ============================================================
+  api:
+    build: .
+    container_name: parallax_api
+    profiles: ["app"]
+    environment: &app_env
+      POSTGRES_SERVER: postgres
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-parallax_db_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-parallax}
+      REDIS_HOST: redis
+      REDIS_URL: redis://redis:6379/0
+      MINIO_SERVER: minio:9000
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-admin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-parallax_minio_pass}
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: ${NEO4J_USER:-neo4j}
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:-parallax_neo4j_pass}
+      QDRANT_HOST: qdrant
+      OLLAMA_HOST: http://ollama:11434
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+      API_KEY: ${API_KEY:-}
+      LLM_MODE: ${LLM_MODE:-local}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - parallax_net
+
+  worker:
+    build: .
+    container_name: parallax_worker
+    profiles: ["app"]
+    command: celery -A parallax.workers.celery_app worker -Q celery,triage --loglevel=info --concurrency=2
+    environment: *app_env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    networks:
+      - parallax_net
+      - analysis_net
+
+  # ============================================================
   # Relational metadata store
   # ============================================================
   postgres:
@@ -149,8 +206,14 @@ services:
     environment:
       # Use the correct variable name instead of the truncated GRAF...min
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-admin}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-parallax_db_pass}
+      - POSTGRES_DB=${POSTGRES_DB:-parallax}
     volumes:
       - grafana_data:/var/lib/grafana
+      # Auto-provision datasources + PARALLAX dashboards on first boot
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./parallax/delivery/grafana_dashboards:/var/lib/grafana/dashboards:ro
     depends_on:
       - prometheus
     networks:

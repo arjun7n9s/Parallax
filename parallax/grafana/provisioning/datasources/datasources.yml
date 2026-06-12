@@ -1,0 +1,24 @@
+apiVersion: 1
+
+# Auto-provisioned on first boot. Names must match the "datasource" field
+# used by the dashboards in parallax/delivery/grafana_dashboards/.
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+
+  - name: PostgreSQL
+    type: postgres
+    access: proxy
+    url: postgres:5432
+    # Values come from the grafana service environment in docker-compose.yml
+    # (Grafana provisioning supports ${VAR} but not ${VAR:-default}).
+    user: ${POSTGRES_USER}
+    secureJsonData:
+      password: ${POSTGRES_PASSWORD}
+    jsonData:
+      database: ${POSTGRES_DB}
+      sslmode: disable
+      postgresVersion: 1600

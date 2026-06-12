@@ -51,12 +51,18 @@ async def test_population_and_campaign_detection():
     shared_domain = "pytest-shared-c2.example"
     try:
         await populate_graph(
-            sha256=sha_a, package="com.pytest.a", app_name="A",
-            permissions=["android.permission.RECEIVE_SMS"], cortex=_cortex(sha_a, [shared_domain]),
+            sha256=sha_a,
+            package="com.pytest.a",
+            app_name="A",
+            permissions=["android.permission.RECEIVE_SMS"],
+            cortex=_cortex(sha_a, [shared_domain]),
         )
         await populate_graph(
-            sha256=sha_b, package="com.pytest.b", app_name="B",
-            permissions=["android.permission.RECEIVE_SMS"], cortex=_cortex(sha_b, [shared_domain]),
+            sha256=sha_b,
+            package="com.pytest.b",
+            app_name="B",
+            permissions=["android.permission.RECEIVE_SMS"],
+            cortex=_cortex(sha_b, [shared_domain]),
         )
 
         clusters = await detect_campaigns(min_size=2)
@@ -65,8 +71,7 @@ async def test_population_and_campaign_detection():
 
         # The two APKs must share the C2 domain in the graph.
         rows = await neo4j_client.run_read(
-            "MATCH (a:APK)-[:COMMUNICATES_WITH]->(d:Domain {fqdn:$d}) "
-            "RETURN count(a) AS n",
+            "MATCH (a:APK)-[:COMMUNICATES_WITH]->(d:Domain {fqdn:$d}) RETURN count(a) AS n",
             d=shared_domain,
         )
         assert rows[0]["n"] == 2
@@ -74,9 +79,7 @@ async def test_population_and_campaign_detection():
         await neo4j_client.run_write(
             "MATCH (a:APK) WHERE a.sha256 STARTS WITH $p DETACH DELETE a", p=_TEST_PREFIX
         )
-        await neo4j_client.run_write(
-            "MATCH (d:Domain {fqdn:$d}) DETACH DELETE d", d=shared_domain
-        )
+        await neo4j_client.run_write("MATCH (d:Domain {fqdn:$d}) DETACH DELETE d", d=shared_domain)
         await neo4j_client.run_write(
             "MATCH (c:Campaign) WHERE c.name STARTS WITH 'CAMPAIGN-' + $p DETACH DELETE c",
             p=_TEST_PREFIX,

@@ -61,9 +61,7 @@ async def detect_campaigns(min_size: int = 2) -> list[dict]:
             continue
         # Deterministic campaign name from the smallest member hash.
         name = f"CAMPAIGN-{members[0][:12]}"
-        await neo4j_client.run_write(
-            _WRITE_CAMPAIGN, name=name, members=members, size=len(members)
-        )
+        await neo4j_client.run_write(_WRITE_CAMPAIGN, name=name, members=members, size=len(members))
         clusters.append({"campaign": name, "size": len(members), "members": members})
 
     logger.info("Detected %d campaigns", len(clusters))

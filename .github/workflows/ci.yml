@@ -6,6 +6,12 @@ on:
   pull_request:
     branches: [main]
 
+# gitleaks-action queries the PR commits API; the default restricted token
+# returns 403 without pull-requests read access.
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
   lint:
     name: Lint & Type Check
@@ -35,6 +41,10 @@ jobs:
         working-directory: parallax
     steps:
       - uses: actions/checkout@v4
+        with:
+          # gitleaks scans the full PR commit range; a shallow clone makes
+          # the base ref unresolvable ("unknown revision")
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"

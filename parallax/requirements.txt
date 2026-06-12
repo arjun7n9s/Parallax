@@ -27,7 +27,8 @@ yara-python>=4.5.1
 
 # Layer 2B: Dynamic Analysis
 frida==17.11.0
-frida-tools>=17.11.0
+# frida-tools is versioned independently of frida core; 14.x pairs with frida 17.x
+frida-tools>=14.9.0
 mitmproxy>=11.0.0
 scapy>=2.5.0
 adb-shell>=0.4.4

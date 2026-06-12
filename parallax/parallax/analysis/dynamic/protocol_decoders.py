@@ -86,11 +86,15 @@ def decode_websocket(payload: bytes) -> dict | None:
         if masked:
             mask = payload[idx : idx + 4]
             idx += 4
-            data = bytes(payload[idx + i] ^ mask[i % 4] for i in range(min(length, len(payload) - idx)))
+            data = bytes(
+                payload[idx + i] ^ mask[i % 4] for i in range(min(length, len(payload) - idx))
+            )
         else:
             data = payload[idx : idx + length]
         kind = "text" if opcode == 0x1 else "binary"
-        decoded = data.decode("utf-8", "ignore") if kind == "text" else base64.b64encode(data).decode()
+        decoded = (
+            data.decode("utf-8", "ignore") if kind == "text" else base64.b64encode(data).decode()
+        )
         return {"protocol": "websocket", "frame_type": kind, "payload": decoded[:2000]}
     except Exception:
         return None

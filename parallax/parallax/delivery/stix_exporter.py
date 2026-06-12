@@ -33,15 +33,18 @@ def build_stix_bundle(sha256: str, package: str, cortex: CortexResult) -> dict:
     )
     objects.append(file_obj)
 
-    # Indicators for network IOCs.
+    # Indicators for network IOCs. Values are attacker-controlled strings, so
+    # escape them per the STIX pattern grammar (backslash, then single quote).
+    def _esc(value: str) -> str:
+        return value.replace("\\", "\\\\").replace("'", "\\'")
+
     patterns: list[tuple[str, str]] = []
     for dom in cortex.iocs.get("domains", []):
-        patterns.append((f"[domain-name:value = '{dom}']", f"C2 domain {dom}"))
+        patterns.append((f"[domain-name:value = '{_esc(dom)}']", f"C2 domain {dom}"))
     for ip in cortex.iocs.get("ips", []):
-        patterns.append((f"[ipv4-addr:value = '{ip}']", f"C2 IP {ip}"))
+        patterns.append((f"[ipv4-addr:value = '{_esc(ip)}']", f"C2 IP {ip}"))
     for url in cortex.iocs.get("urls", []):
-        safe = url.replace("'", "")
-        patterns.append((f"[url:value = '{safe}']", f"C2 URL {url}"))
+        patterns.append((f"[url:value = '{_esc(url)}']", f"C2 URL {url}"))
 
     for pattern, desc in patterns:
         try:
@@ -64,15 +67,11 @@ def build_stix_bundle(sha256: str, package: str, cortex: CortexResult) -> dict:
     for tid in cortex.attck_techniques:
         ap = stix2.AttackPattern(
             name=tid,
-            external_references=[
-                {"source_name": "mitre-attack", "external_id": tid}
-            ],
+            external_references=[{"source_name": "mitre-attack", "external_id": tid}],
         )
         objects.append(ap)
         objects.append(
-            stix2.Relationship(
-                relationship_type="uses", source_ref=malware.id, target_ref=ap.id
-            )
+            stix2.Relationship(relationship_type="uses", source_ref=malware.id, target_ref=ap.id)
         )
 
     bundle = stix2.Bundle(objects=objects, allow_custom=True)

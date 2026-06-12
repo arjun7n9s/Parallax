@@ -20,9 +20,7 @@ def _suricata_rules(cortex: CortexResult, start_sid: int = 9100000) -> list[str]
         )
         sid += 1
     for ip in cortex.iocs.get("ips", []):
-        rules.append(
-            f'alert ip any any -> {ip} any (msg:"PARALLAX C2 IP {ip}"; sid:{sid}; rev:1;)'
-        )
+        rules.append(f'alert ip any any -> {ip} any (msg:"PARALLAX C2 IP {ip}"; sid:{sid}; rev:1;)')
         sid += 1
     return rules
 

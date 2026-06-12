@@ -34,7 +34,11 @@ def _cortex() -> CortexResult:
         executive_summary="Banking trojan impersonating SBI.",
         technical_findings=["overlay captures credentials", "SMS OTP intercepted"],
         attck_techniques=["T1417.002", "T1582"],
-        iocs={"domains": ["evil-c2.com"], "ips": ["185.220.101.47"], "urls": ["http://evil-c2.com/g"]},
+        iocs={
+            "domains": ["evil-c2.com"],
+            "ips": ["185.220.101.47"],
+            "urls": ["http://evil-c2.com/g"],
+        },
         code_interpreter=CodeInterpreterOutput(
             intent_classification="banking_trojan",
             risk_level="CRITICAL",
@@ -47,7 +51,9 @@ def _cortex() -> CortexResult:
         visual=VisualIntelOutput(
             phishing_detected=True, brand_impersonation="SBI YONO", brand_impersonation_score=0.95
         ),
-        intel_correlator=IntelCorrelatorOutput(family_attribution="SharkBot", family_confidence=0.8),
+        intel_correlator=IntelCorrelatorOutput(
+            family_attribution="SharkBot", family_confidence=0.8
+        ),
     )
 
 
@@ -83,7 +89,9 @@ def test_fraud_rules_generated():
     assert len(rules["dsl"]) >= 1
     assert len(rules["suricata"]) >= 1
     # C2 block rule must be present.
-    assert any("evil-c2.com" in r.get("id", "") or "evil-c2.com" in json.dumps(r) for r in rules["dsl"])
+    assert any(
+        "evil-c2.com" in r.get("id", "") or "evil-c2.com" in json.dumps(r) for r in rules["dsl"]
+    )
 
 
 def test_report_renders_html_and_pdf():

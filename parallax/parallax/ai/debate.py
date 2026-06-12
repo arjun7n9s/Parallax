@@ -57,8 +57,12 @@ def run_debate(
         notes.append("evasion suspected (clean static, malicious dynamic)")
 
     # 2. Reverse: malicious code, but the dynamic run saw nothing (dormant).
-    if code and behavior and code_level >= 2 and behavior_level == 0 and not (
-        behavior.observed_behaviors
+    if (
+        code
+        and behavior
+        and code_level >= 2
+        and behavior_level == 0
+        and not (behavior.observed_behaviors)
     ):
         contradictions.append(
             Contradiction(
@@ -75,13 +79,17 @@ def run_debate(
         notes.append("possible dormant/evasive payload")
 
     # 3. Visual confirms code's brand-impersonation claim → reinforce.
-    if code and visual and visual.phishing_detected and code.intent_classification in (
-        "banking_trojan",
-        "spyware",
-    ):
-        notes.append(
-            f"visual phishing of '{visual.brand_impersonation}' corroborates code intent"
+    if (
+        code
+        and visual
+        and visual.phishing_detected
+        and code.intent_classification
+        in (
+            "banking_trojan",
+            "spyware",
         )
+    ):
+        notes.append(f"visual phishing of '{visual.brand_impersonation}' corroborates code intent")
         modifier += 0.05
 
     # 4. Intel family attribution corroborates a malicious code verdict.

@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager
 import asyncpg
 import httpx
 import redis as redis_lib
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from minio import Minio
@@ -52,6 +52,7 @@ from parallax.api.routes import (
     results_router,
     status_router,
 )
+from parallax.api.security import require_api_key, warn_if_auth_disabled
 from parallax.core.config import settings
 from parallax.core.logging import setup_logging
 from parallax.core.storage import init_buckets
@@ -109,6 +110,7 @@ async def lifespan(app: FastAPI):
         "PARALLAX starting",
         extra={"environment": settings.ENVIRONMENT, "version": "0.1.0"},
     )
+    warn_if_auth_disabled()
 
     # Initialize OpenTelemetry
     try:
@@ -152,13 +154,16 @@ app = FastAPI(
 if OTEL_AVAILABLE:
     FastAPIInstrumentor.instrument_app(app)
 
-app.include_router(analyze_router, prefix=settings.API_V1_STR)
-app.include_router(status_router, prefix=settings.API_V1_STR)
-app.include_router(history_router, prefix=settings.API_V1_STR)
-app.include_router(dynamic_router, prefix=settings.API_V1_STR)
-app.include_router(graph_router, prefix=settings.API_V1_STR)
-app.include_router(hunt_router, prefix=settings.API_V1_STR)
-app.include_router(results_router, prefix=settings.API_V1_STR)
+# All business routes require the API key (no-op when API_KEY is unset);
+# only /health and /ready below stay open for probes.
+_auth = [Depends(require_api_key)]
+app.include_router(analyze_router, prefix=settings.API_V1_STR, dependencies=_auth)
+app.include_router(status_router, prefix=settings.API_V1_STR, dependencies=_auth)
+app.include_router(history_router, prefix=settings.API_V1_STR, dependencies=_auth)
+app.include_router(dynamic_router, prefix=settings.API_V1_STR, dependencies=_auth)
+app.include_router(graph_router, prefix=settings.API_V1_STR, dependencies=_auth)
+app.include_router(hunt_router, prefix=settings.API_V1_STR, dependencies=_auth)
+app.include_router(results_router, prefix=settings.API_V1_STR, dependencies=_auth)
 
 # Correlation ID middleware (must be added before CORS so it runs on every request)
 app.add_middleware(CorrelationIDMiddleware)

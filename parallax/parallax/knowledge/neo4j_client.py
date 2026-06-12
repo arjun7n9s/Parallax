@@ -16,9 +16,11 @@ from parallax.core.config import settings
 logger = logging.getLogger(__name__)
 
 # Mutating / admin Cypher clauses forbidden in user-supplied hunt queries.
+# ALL procedure calls are blocked (not just CALL db.*): APOC is enabled on the
+# Neo4j container, and procedures like apoc.load.json / apoc.trigger.* can read
+# files or cause side effects even from a "read" session.
 _FORBIDDEN = re.compile(
-    r"\b(CREATE|MERGE|DELETE|DETACH|SET|REMOVE|DROP|CALL\s+db\.|LOAD\s+CSV|"
-    r"FOREACH|CREATE\s+INDEX|CREATE\s+CONSTRAINT)\b",
+    r"\b(CREATE|MERGE|DELETE|DETACH|SET|REMOVE|DROP|CALL|LOAD\s+CSV|FOREACH)\b",
     re.IGNORECASE,
 )
 

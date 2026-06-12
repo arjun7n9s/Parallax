@@ -96,6 +96,9 @@ async def _async_run_delivery(submission_id_str: str):
         fraud_chain = build_fraud_chain(cortex, permissions)
         client = get_minio_client()
         artifacts: dict[str, str] = {}
+        # Per-artifact outcome so a missing artifact is diagnosable from the
+        # API ("failed: <reason>" / "skipped: <reason>"), not a silent 404.
+        artifact_status: dict[str, str] = {}
 
         # HTML report
         try:
@@ -103,8 +106,10 @@ async def _async_run_delivery(submission_id_str: str):
             artifacts["report_html"] = _put(
                 client, f"{submission_id_str}/report.html", html.encode(), "text/html"
             )
+            artifact_status["report_html"] = "success"
         except Exception as exc:
             logger.warning("HTML report failed: %s", exc)
+            artifact_status["report_html"] = f"failed: {exc}"
 
         # PDF report
         try:
@@ -113,8 +118,12 @@ async def _async_run_delivery(submission_id_str: str):
                 artifacts["report_pdf"] = _put(
                     client, f"{submission_id_str}/report.pdf", pdf, "application/pdf"
                 )
+                artifact_status["report_pdf"] = "success"
+            else:
+                artifact_status["report_pdf"] = "skipped: PDF renderer unavailable"
         except Exception as exc:
             logger.warning("PDF report failed: %s", exc)
+            artifact_status["report_pdf"] = f"failed: {exc}"
 
         # STIX bundle
         try:
@@ -122,8 +131,10 @@ async def _async_run_delivery(submission_id_str: str):
             artifacts["stix"] = _put(
                 client, f"{submission_id_str}/bundle.stix.json", stix.encode(), "application/json"
             )
+            artifact_status["stix"] = "success"
         except Exception as exc:
             logger.warning("STIX export failed: %s", exc)
+            artifact_status["stix"] = f"failed: {exc}"
 
         # YARA rule
         try:
@@ -132,8 +143,12 @@ async def _async_run_delivery(submission_id_str: str):
                 artifacts["yara"] = _put(
                     client, f"{submission_id_str}/rule.yar", rule.encode(), "text/plain"
                 )
+                artifact_status["yara"] = "success"
+            else:
+                artifact_status["yara"] = "skipped: not enough distinctive strings"
         except Exception as exc:
             logger.warning("YARA generation failed: %s", exc)
+            artifact_status["yara"] = f"failed: {exc}"
 
         # Fraud rules
         try:
@@ -146,16 +161,19 @@ async def _async_run_delivery(submission_id_str: str):
                 json.dumps(rules, indent=2).encode(),
                 "application/json",
             )
+            artifact_status["fraud_rules"] = "success"
         except Exception as exc:
             logger.warning("Fraud rule generation failed: %s", exc)
+            artifact_status["fraud_rules"] = f"failed: {exc}"
 
         # Persist artifact index + fraud chain back onto the submission.
         meta = submission.metadata_json
         meta["delivery_artifacts"] = artifacts
+        meta["delivery_artifacts_status"] = artifact_status
         meta["fraud_chain"] = fraud_chain
         submission.metadata_json = meta
         await db.commit()
-        logger.info("Delivery complete for %s: %s", sha256, list(artifacts.keys()))
+        logger.info("Delivery complete for %s: %s", sha256, artifact_status)
 
     # Webhooks (outside the DB session).
     try:

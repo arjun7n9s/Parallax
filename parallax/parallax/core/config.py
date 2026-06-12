@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     # Security
     ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8000"]
     MAX_UPLOAD_SIZE_MB: int = 500  # Max APK upload size in megabytes
+    # API key required (X-API-Key header) on all endpoints except /health and
+    # /ready. Empty = auth disabled (development only — never run open in prod).
+    API_KEY: str = ""
 
     # PostgreSQL
     POSTGRES_SERVER: str = "localhost"
@@ -59,6 +62,10 @@ class Settings(BaseSettings):
     # External analysis tool paths. Empty = resolve from PATH.
     JADX_BIN: str = ""
     FLOWDROID_JAR: str = ""
+    # Android platform jars required by FlowDroid (e.g. $ANDROID_HOME/platforms).
+    # Empty = derived from ANDROID_HOME / ANDROID_SDK_ROOT at runtime.
+    ANDROID_PLATFORMS_DIR: str = ""
+    FLOWDROID_TIMEOUT_SECONDS: int = 300
     # Android SDK / adb. Empty = auto-discover (PATH, ANDROID_HOME, defaults).
     ADB_BIN: str = ""
     # When true, the dynamic worker installs the APK on a live emulator/device,
@@ -78,6 +85,9 @@ class Settings(BaseSettings):
     MALWAREBAZAAR_API_KEY: str = ""
     MISP_URL: str = ""
     MISP_KEY: str = ""
+    # Verify the MISP server's TLS certificate. Only set false for a
+    # self-hosted instance with a self-signed cert on a trusted network.
+    MISP_VERIFY_TLS: bool = True
 
     # OpenTelemetry
     OTEL_EXPORTER_OTLP_ENDPOINT: str = "http://localhost:4317"

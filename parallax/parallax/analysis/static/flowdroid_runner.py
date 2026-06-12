@@ -5,6 +5,7 @@ Runs FlowDroid on an APK and parses the output into structured
 TaintFlow records for downstream consumption by the Cortex.
 """
 
+import os
 import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
@@ -46,14 +47,44 @@ class FlowDroidError(Exception):
     pass
 
 
+def _find_android_platforms(explicit: str | Path | None = None) -> Path:
+    """Locate the Android platform jars FlowDroid requires (-p)."""
+    candidates = [explicit] if explicit else []
+    for env_var in ("ANDROID_HOME", "ANDROID_SDK_ROOT"):
+        val = os.getenv(env_var)
+        if val:
+            candidates.append(Path(val) / "platforms")
+    if os.name == "nt":
+        user_profile = os.getenv("USERPROFILE")
+        if user_profile:
+            candidates.append(
+                Path(user_profile) / "AppData" / "Local" / "Android" / "Sdk" / "platforms"
+            )
+    for cand in candidates:
+        if cand and Path(cand).is_dir():
+            return Path(cand)
+    raise FlowDroidError(
+        "Android platforms directory not found. Set ANDROID_PLATFORMS_DIR or "
+        "ANDROID_HOME so FlowDroid can resolve framework classes."
+    )
+
+
 class FlowDroidRunner:
     """Wrapper around the FlowDroid JAR for taint analysis."""
 
-    def __init__(self, jar_path: str | Path, java_path: str = "java"):
+    def __init__(
+        self,
+        jar_path: str | Path,
+        java_path: str = "java",
+        platforms_dir: str | Path | None = None,
+    ):
         self.jar_path = Path(jar_path)
         if not self.jar_path.exists():
             raise FileNotFoundError(f"FlowDroid JAR not found: {jar_path}")
         self.java_path = java_path
+        # Resolved lazily in run() so construction (and unit tests) work on
+        # machines without an Android SDK.
+        self._platforms_dir_arg = platforms_dir
 
     def run(
         self,
@@ -83,6 +114,7 @@ class FlowDroidRunner:
 
         sources = sources or TAINT_SOURCES
         sinks = sinks or TAINT_SINKS
+        platforms_dir = _find_android_platforms(self._platforms_dir_arg)
 
         # Build FlowDroid command
         # --apkfile: input APK
@@ -102,7 +134,7 @@ class FlowDroidRunner:
                 "-a",
                 str(apk_path),
                 "-p",
-                str(Path(tmpdir) / "platforms"),  # Android platform jars
+                str(platforms_dir),  # Android platform jars
                 "-s",
                 str(sources_sinks_file),
                 "-o",
