@@ -1,0 +1,54 @@
+{
+  "title": "PARALLAX — Analysis Overview",
+  "uid": "parallax-analysis-overview",
+  "tags": ["parallax"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Submissions per day",
+      "type": "timeseries",
+      "datasource": "PostgreSQL",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [
+        {
+          "rawSql": "SELECT date_trunc('day', created_at) AS time, count(*) AS submissions FROM submissions GROUP BY 1 ORDER BY 1",
+          "format": "time_series"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Verdict distribution",
+      "type": "piechart",
+      "datasource": "PostgreSQL",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [
+        {"rawSql": "SELECT verdict AS metric, count(*) AS value FROM submissions WHERE verdict IS NOT NULL GROUP BY verdict", "format": "table"}
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Average final risk score",
+      "type": "gauge",
+      "datasource": "PostgreSQL",
+      "gridPos": {"h": 8, "w": 6, "x": 0, "y": 8},
+      "targets": [
+        {"rawSql": "SELECT avg(final_score) AS value FROM submissions WHERE final_score IS NOT NULL", "format": "table"}
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Status breakdown",
+      "type": "bargauge",
+      "datasource": "PostgreSQL",
+      "gridPos": {"h": 8, "w": 18, "x": 6, "y": 8},
+      "targets": [
+        {"rawSql": "SELECT status AS metric, count(*) AS value FROM submissions GROUP BY status", "format": "table"}
+      ]
+    }
+  ]
+}

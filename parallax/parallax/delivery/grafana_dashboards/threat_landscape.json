@@ -1,0 +1,41 @@
+{
+  "title": "PARALLAX — Threat Landscape",
+  "uid": "parallax-threat-landscape",
+  "tags": ["parallax", "threat-intel"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Top C2 domains (by APK count)",
+      "type": "table",
+      "datasource": "PostgreSQL",
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 0},
+      "targets": [
+        {"rawSql": "SELECT value AS domain, count(*) AS apks FROM iocs WHERE ioc_type='domain' GROUP BY value ORDER BY apks DESC LIMIT 25", "format": "table"}
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Top C2 IPs (by APK count)",
+      "type": "table",
+      "datasource": "PostgreSQL",
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 0},
+      "targets": [
+        {"rawSql": "SELECT value AS ip, count(*) AS apks FROM iocs WHERE ioc_type='ip' GROUP BY value ORDER BY apks DESC LIMIT 25", "format": "table"}
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Critical verdicts over time",
+      "type": "timeseries",
+      "datasource": "PostgreSQL",
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 9},
+      "targets": [
+        {"rawSql": "SELECT date_trunc('day', created_at) AS time, count(*) AS critical FROM submissions WHERE verdict='CRITICAL' GROUP BY 1 ORDER BY 1", "format": "time_series"}
+      ]
+    }
+  ]
+}
