@@ -17,7 +17,7 @@ def upgrade() -> None:
     op.create_table(
         "taint_flows",
         sa.Column("id", sa.dialects.postgresql.UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
-        sa.Column("submission_id", sa.dialects.postgresql.UUID(as_uuid=True), sa.ForeignKey("submissions.id", ondelete="CASCADE"), nullable=False, index=True),
+        sa.Column("submission_id", sa.dialects.postgresql.UUID(as_uuid=True), sa.ForeignKey("submissions.id", ondelete="CASCADE"), nullable=False),
         sa.Column("source_class", sa.String(length=512), nullable=False),
         sa.Column("source_method", sa.String(length=256), nullable=False),
         sa.Column("sink_class", sa.String(length=512), nullable=False),

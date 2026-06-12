@@ -15,8 +15,9 @@ from parallax.core.config import settings
 APK_BUCKET = "parallax-apks"
 DECOMPILED_BUCKET = "parallax-decompiled"
 SCREENSHOTS_BUCKET = "parallax-screenshots"
+REPORTS_BUCKET = "parallax-reports"
 
-_ALL_BUCKETS = [APK_BUCKET, DECOMPILED_BUCKET, SCREENSHOTS_BUCKET]
+_ALL_BUCKETS = [APK_BUCKET, DECOMPILED_BUCKET, SCREENSHOTS_BUCKET, REPORTS_BUCKET]
 
 
 @lru_cache(maxsize=1)

@@ -46,6 +46,39 @@ class Settings(BaseSettings):
     # Ollama (Local LLM)
     OLLAMA_HOST: str = "http://localhost:11434"
 
+    # LLM provider selection. "local" routes every agent to Ollama; "cloud"
+    # routes cloud-capable agents to the configured cloud provider; "auto"
+    # uses cloud when a key is present and falls back to local otherwise.
+    LLM_MODE: str = "local"  # local | cloud | auto
+    CLOUD_PROVIDER: str = "anthropic"  # anthropic | openai
+    ANTHROPIC_API_KEY: str = ""
+    ANTHROPIC_MODEL: str = "claude-opus-4-8"
+    OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-4o"
+
+    # External analysis tool paths. Empty = resolve from PATH.
+    JADX_BIN: str = ""
+    FLOWDROID_JAR: str = ""
+    # Android SDK / adb. Empty = auto-discover (PATH, ANDROID_HOME, defaults).
+    ADB_BIN: str = ""
+    # When true, the dynamic worker installs the APK on a live emulator/device,
+    # sets up frida-server + mitmproxy CA + proxy, and drives the UI with
+    # DroidBot-GPT. When false (default, e.g. in CI), the sandbox runs against a
+    # device that is already provisioned, and UI exploration is skipped.
+    DYNAMIC_LIVE_DEVICE: bool = False
+    DYNAMIC_TIMEOUT_SECONDS: int = 120
+    DROIDBOT_MAX_TURNS: int = 20
+
+    # Delivery: outbound webhooks (comma-separated URLs) + HMAC secret. Optional.
+    WEBHOOK_URLS: str = ""
+    WEBHOOK_SECRET: str = ""
+
+    # Threat-intel API keys (Phase 5 IoC matching / MISP sync). Optional.
+    VIRUSTOTAL_API_KEY: str = ""
+    MALWAREBAZAAR_API_KEY: str = ""
+    MISP_URL: str = ""
+    MISP_KEY: str = ""
+
     # OpenTelemetry
     OTEL_EXPORTER_OTLP_ENDPOINT: str = "http://localhost:4317"
 
