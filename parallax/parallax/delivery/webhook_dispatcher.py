@@ -67,7 +67,10 @@ async def dispatch(event_type: str, payload: dict, max_retries: int = 4) -> dict
                     backoff = 2**attempt
                     logger.warning(
                         "Webhook %s attempt %d failed: %s (retry in %ds)",
-                        url, attempt + 1, exc, backoff,
+                        url,
+                        attempt + 1,
+                        exc,
+                        backoff,
                     )
                     if attempt < max_retries - 1:
                         await asyncio.sleep(backoff)

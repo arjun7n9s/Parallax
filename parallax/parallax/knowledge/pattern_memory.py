@@ -45,7 +45,9 @@ def _pid(category: str, signature: str) -> str:
     return f"PAT-{category}-{digest}"
 
 
-def extract_patterns(cortex: CortexResult, permissions: list[str], apkid: dict | None) -> list[dict]:
+def extract_patterns(
+    cortex: CortexResult, permissions: list[str], apkid: dict | None
+) -> list[dict]:
     """Derive patterns from a completed analysis."""
     patterns: list[dict] = []
 
@@ -67,7 +69,9 @@ def extract_patterns(cortex: CortexResult, permissions: list[str], apkid: dict |
         add("fraud_flow", " -> ".join(code.attack_flow), "sequence", code.confidence)
 
     # Permission/API chain: the high-risk permission set.
-    risky = sorted(p for p in permissions if "SMS" in p or "ACCESSIBILITY" in p or "ALERT_WINDOW" in p)
+    risky = sorted(
+        p for p in permissions if "SMS" in p or "ACCESSIBILITY" in p or "ALERT_WINDOW" in p
+    )
     if len(risky) >= 2:
         add("permission_api_chain", "+".join(risky), "permission_set", 0.8)
 

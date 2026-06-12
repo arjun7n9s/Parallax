@@ -87,7 +87,5 @@ async def run_intel_correlator(
     if valid_ids:
         out.attck_techniques = [t for t in out.attck_techniques if t in valid_ids]
     if related_samples:
-        out.related_submissions = [
-            s.get("sha256", "") for s in related_samples if s.get("sha256")
-        ]
+        out.related_submissions = [s.get("sha256", "") for s in related_samples if s.get("sha256")]
     return out

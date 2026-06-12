@@ -21,34 +21,94 @@ logger = logging.getLogger(__name__)
 
 # (technique_id, name, description) — real ATT&CK Mobile techniques.
 ATTCK_MOBILE: list[tuple[str, str, str]] = [
-    ("T1417.001", "Input Capture: Keylogging", "Log keystrokes to capture credentials and sensitive input."),
-    ("T1417.002", "Input Capture: GUI Input Capture", "Mimic or overlay UI to capture user-entered credentials."),
+    (
+        "T1417.001",
+        "Input Capture: Keylogging",
+        "Log keystrokes to capture credentials and sensitive input.",
+    ),
+    (
+        "T1417.002",
+        "Input Capture: GUI Input Capture",
+        "Mimic or overlay UI to capture user-entered credentials.",
+    ),
     ("T1516", "Input Injection", "Inject input events to interact with the UI without the user."),
-    ("T1437.001", "Application Layer Protocol: Web Protocols", "Use HTTP/HTTPS for command and control or exfiltration."),
-    ("T1521.001", "Encrypted Channel: Symmetric Cryptography", "Encrypt C2 traffic with symmetric keys."),
+    (
+        "T1437.001",
+        "Application Layer Protocol: Web Protocols",
+        "Use HTTP/HTTPS for command and control or exfiltration.",
+    ),
+    (
+        "T1521.001",
+        "Encrypted Channel: Symmetric Cryptography",
+        "Encrypt C2 traffic with symmetric keys.",
+    ),
     ("T1582", "SMS Control", "Send, intercept, or delete SMS messages, e.g. to capture OTPs."),
     ("T1636.003", "Protected User Data: SMS Messages", "Collect SMS messages from the device."),
     ("T1636.004", "Protected User Data: Contacts", "Collect the device contact list."),
-    ("T1626.001", "Abuse Elevation Control: Device Administrator", "Request device admin to gain elevated control and resist removal."),
-    ("T1407", "Download New Code at Runtime", "Fetch and execute additional code (DexClassLoader) after install."),
-    ("T1623.001", "Command and Scripting Interpreter: Unix Shell", "Execute shell commands via Runtime.exec/ProcessBuilder."),
-    ("T1646", "Exfiltration Over C2 Channel", "Exfiltrate collected data over the existing C2 channel."),
+    (
+        "T1626.001",
+        "Abuse Elevation Control: Device Administrator",
+        "Request device admin to gain elevated control and resist removal.",
+    ),
+    (
+        "T1407",
+        "Download New Code at Runtime",
+        "Fetch and execute additional code (DexClassLoader) after install.",
+    ),
+    (
+        "T1623.001",
+        "Command and Scripting Interpreter: Unix Shell",
+        "Execute shell commands via Runtime.exec/ProcessBuilder.",
+    ),
+    (
+        "T1646",
+        "Exfiltration Over C2 Channel",
+        "Exfiltrate collected data over the existing C2 channel.",
+    ),
     ("T1513", "Screen Capture", "Capture the device screen content."),
     ("T1430", "Location Tracking", "Track the device's geographic location."),
-    ("T1426", "System Information Discovery", "Collect device identifiers (IMEI, IMSI, model, OS)."),
-    ("T1418", "Software Discovery", "Enumerate installed applications, e.g. to find target bank apps."),
-    ("T1624.001", "Event Triggered Execution: Broadcast Receivers", "Register receivers (e.g. BOOT_COMPLETED, SMS_RECEIVED) to trigger code."),
-    ("T1406", "Obfuscated Files or Information", "Obfuscate/pack code and encrypt strings to evade analysis."),
+    (
+        "T1426",
+        "System Information Discovery",
+        "Collect device identifiers (IMEI, IMSI, model, OS).",
+    ),
+    (
+        "T1418",
+        "Software Discovery",
+        "Enumerate installed applications, e.g. to find target bank apps.",
+    ),
+    (
+        "T1624.001",
+        "Event Triggered Execution: Broadcast Receivers",
+        "Register receivers (e.g. BOOT_COMPLETED, SMS_RECEIVED) to trigger code.",
+    ),
+    (
+        "T1406",
+        "Obfuscated Files or Information",
+        "Obfuscate/pack code and encrypt strings to evade analysis.",
+    ),
     ("T1541", "Foreground Persistence", "Run a persistent foreground service to stay alive."),
-    ("T1655.001", "Masquerading: Match Legitimate Name or Location", "Impersonate a legitimate (bank) app's name, icon, or UI."),
-    ("T1632.001", "Subvert Trust Controls: Code Signing Policy Modification", "Modify trust controls, e.g. install attacker CA certificates."),
+    (
+        "T1655.001",
+        "Masquerading: Match Legitimate Name or Location",
+        "Impersonate a legitimate (bank) app's name, icon, or UI.",
+    ),
+    (
+        "T1632.001",
+        "Subvert Trust Controls: Code Signing Policy Modification",
+        "Modify trust controls, e.g. install attacker CA certificates.",
+    ),
     ("T1640", "Account Access Removal", "Lock the user out or remove account access."),
     ("T1429", "Audio Capture", "Record audio via the microphone."),
     ("T1512", "Video Capture", "Capture video/photos via the camera."),
     ("T1644", "Out of Band Data", "Use an out-of-band channel (SMS) for C2."),
     ("T1623", "Command and Scripting Interpreter", "Execute commands received from C2."),
     ("T1409", "Stored Application Data", "Access data stored by other applications."),
-    ("T1422", "System Network Configuration Discovery", "Discover network configuration and connectivity."),
+    (
+        "T1422",
+        "System Network Configuration Discovery",
+        "Discover network configuration and connectivity.",
+    ),
 ]
 
 _catalog_vectors: list[list[float]] | None = None

@@ -67,15 +67,11 @@ def build_stix_bundle(sha256: str, package: str, cortex: CortexResult) -> dict:
     for tid in cortex.attck_techniques:
         ap = stix2.AttackPattern(
             name=tid,
-            external_references=[
-                {"source_name": "mitre-attack", "external_id": tid}
-            ],
+            external_references=[{"source_name": "mitre-attack", "external_id": tid}],
         )
         objects.append(ap)
         objects.append(
-            stix2.Relationship(
-                relationship_type="uses", source_ref=malware.id, target_ref=ap.id
-            )
+            stix2.Relationship(relationship_type="uses", source_ref=malware.id, target_ref=ap.id)
         )
 
     bundle = stix2.Bundle(objects=objects, allow_custom=True)

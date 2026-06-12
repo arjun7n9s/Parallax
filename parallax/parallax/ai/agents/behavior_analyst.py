@@ -40,7 +40,9 @@ def _build_prompt(observations: list[dict[str, Any]]) -> str:
     if len(observations) > _MAX_EVENTS:
         note = f"\n(showing first {_MAX_EVENTS} of {len(observations)} events)"
     return (
-        "RUNTIME OBSERVATION TIMELINE (sandbox run)" + note + "\n"
+        "RUNTIME OBSERVATION TIMELINE (sandbox run)"
+        + note
+        + "\n"
         + "\n".join(lines)
         + "\n\nNarrate what the app did as a kill chain, grounded in these events."
     )

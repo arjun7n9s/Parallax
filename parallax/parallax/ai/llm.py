@@ -115,8 +115,7 @@ class LLMProvider:
             return settings.CLOUD_PROVIDER
         if wants_cloud and mode == "cloud":
             logger.warning(
-                "LLM_MODE=cloud but no %s key configured; role %r falling back "
-                "to local Ollama.",
+                "LLM_MODE=cloud but no %s key configured; role %r falling back to local Ollama.",
                 settings.CLOUD_PROVIDER,
                 role,
             )
@@ -136,8 +135,12 @@ class LLMProvider:
         provider = self.provider_for(role)
         if provider == "ollama":
             return await self._ollama_generate(
-                self.spec_for(role).local_model, prompt, system, images,
-                temperature, json_mode=False,
+                self.spec_for(role).local_model,
+                prompt,
+                system,
+                images,
+                temperature,
+                json_mode=False,
             )
         return await self._cloud_generate(
             provider, prompt, system, images, temperature, json_mode=False
@@ -154,8 +157,12 @@ class LLMProvider:
         provider = self.provider_for(role)
         if provider == "ollama":
             raw = await self._ollama_generate(
-                self.spec_for(role).local_model, prompt, system, images,
-                temperature, json_mode=True,
+                self.spec_for(role).local_model,
+                prompt,
+                system,
+                images,
+                temperature,
+                json_mode=True,
             )
         else:
             raw = await self._cloud_generate(
@@ -173,9 +180,7 @@ class LLMProvider:
         model = self.spec_for("embedding").local_model
         vectors: list[list[float]] = []
         for text in texts:
-            resp = await self._ollama.post(
-                "/api/embeddings", json={"model": model, "prompt": text}
-            )
+            resp = await self._ollama.post("/api/embeddings", json={"model": model, "prompt": text})
             resp.raise_for_status()
             vectors.append(resp.json()["embedding"])
         return vectors
@@ -218,12 +223,8 @@ class LLMProvider:
         json_mode: bool,
     ) -> str:
         if provider == "anthropic":
-            return await self._anthropic_generate(
-                prompt, system, images, temperature, json_mode
-            )
-        return await self._openai_generate(
-            prompt, system, images, temperature, json_mode
-        )
+            return await self._anthropic_generate(prompt, system, images, temperature, json_mode)
+        return await self._openai_generate(prompt, system, images, temperature, json_mode)
 
     async def _anthropic_generate(
         self,
@@ -262,9 +263,7 @@ class LLMProvider:
             system=system or "You are a precise malware-analysis agent.",
             messages=[{"role": "user", "content": content}],
         )
-        return "".join(
-            block.text for block in resp.content if block.type == "text"
-        )
+        return "".join(block.text for block in resp.content if block.type == "text")
 
     async def _openai_generate(
         self,

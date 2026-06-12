@@ -32,12 +32,21 @@ class TestTaintRisk:
 
     def test_taint_flows_increase_score(self):
         base = compute_risk(
-            permissions=[], code=None, behavior=None, intel=None,
-            visual=None, debate=None,
+            permissions=[],
+            code=None,
+            behavior=None,
+            intel=None,
+            visual=None,
+            debate=None,
         )
         with_taint = compute_risk(
-            permissions=[], code=None, behavior=None, intel=None,
-            visual=None, debate=None, taint_flows=TAINT_CRITICAL,
+            permissions=[],
+            code=None,
+            behavior=None,
+            intel=None,
+            visual=None,
+            debate=None,
+            taint_flows=TAINT_CRITICAL,
         )
         assert with_taint.evidence_score > base.evidence_score
 
@@ -59,9 +68,7 @@ class TestTaintPrompts:
     def test_orchestration_merges_taint_attck(self):
         # The merge is deterministic set union; verify the expression directly.
         code = CodeInterpreterOutput(attck_techniques=["T1409"])
-        taint_attck = {
-            t["attck_technique"] for t in TAINT_CRITICAL if t.get("attck_technique")
-        }
+        taint_attck = {t["attck_technique"] for t in TAINT_CRITICAL if t.get("attck_technique")}
         merged = sorted(set(code.attck_techniques) | taint_attck)
         assert merged == ["T1409", "T1417.002"]
 

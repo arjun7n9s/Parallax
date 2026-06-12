@@ -56,11 +56,26 @@ _HOST_RE = re.compile(r"https?://[A-Za-z0-9.\-:/_%?=&]+")
 # the scan (a real APK decompiles to thousands of these). Skipping them makes
 # selection both faster and more focused on the app's own code.
 _SKIP_DIR_PARTS = (
-    "/android/", "/androidx/", "/kotlin/", "/kotlinx/", "/java/", "/javax/",
-    "/com/google/android/gms/", "/com/google/android/material/",
-    "/com/google/common/", "/com/google/protobuf/", "/com/google/firebase/",
-    "/org/apache/", "/org/json/", "/okhttp3/internal/", "/okio/", "/retrofit2/",
-    "/dagger/", "/io/reactivex/", "/com/squareup/", "/com/bumptech/glide/",
+    "/android/",
+    "/androidx/",
+    "/kotlin/",
+    "/kotlinx/",
+    "/java/",
+    "/javax/",
+    "/com/google/android/gms/",
+    "/com/google/android/material/",
+    "/com/google/common/",
+    "/com/google/protobuf/",
+    "/com/google/firebase/",
+    "/org/apache/",
+    "/org/json/",
+    "/okhttp3/internal/",
+    "/okio/",
+    "/retrofit2/",
+    "/dagger/",
+    "/io/reactivex/",
+    "/com/squareup/",
+    "/com/bumptech/glide/",
 )
 _MAX_FILES_SCANNED = 4000
 

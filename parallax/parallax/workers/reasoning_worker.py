@@ -110,9 +110,7 @@ async def _async_run_reasoning_pipeline(submission_id_str: str):
     temp_dir = None
     try:
         async with async_session() as db:
-            result = await db.execute(
-                select(Submission).where(Submission.id == submission_id)
-            )
+            result = await db.execute(select(Submission).where(Submission.id == submission_id))
             submission = result.scalar_one_or_none()
             if not submission:
                 logger.error("Submission %s not found.", submission_id_str)
@@ -141,8 +139,7 @@ async def _async_run_reasoning_pipeline(submission_id_str: str):
             taint_flows = [t.to_dict() for t in taint_result.scalars().all()]
 
             logger.info(
-                "Cortex inputs for %s: %d observations, %d taint flows, "
-                "%d screenshots, sources=%s",
+                "Cortex inputs for %s: %d observations, %d taint flows, %d screenshots, sources=%s",
                 sha256,
                 len(observations),
                 len(taint_flows),
@@ -199,9 +196,7 @@ async def _async_run_reasoning_pipeline(submission_id_str: str):
         logger.exception("Error during reasoning pipeline for %s", submission_id_str)
         try:
             async with async_session() as db:
-                result = await db.execute(
-                    select(Submission).where(Submission.id == submission_id)
-                )
+                result = await db.execute(select(Submission).where(Submission.id == submission_id))
                 sub = result.scalar_one_or_none()
                 if sub:
                     sub.status = "failed"
@@ -259,9 +254,7 @@ async def _enrich_knowledge(sha256, submission_id_str, artifact, cortex) -> None
     try:
         from parallax.knowledge.pattern_memory import enrich_pattern_memory
 
-        await enrich_pattern_memory(
-            sha256, cortex, features.get("permissions", []), None
-        )
+        await enrich_pattern_memory(sha256, cortex, features.get("permissions", []), None)
     except Exception as exc:
         logger.warning("Pattern memory enrichment skipped: %s", exc)
 

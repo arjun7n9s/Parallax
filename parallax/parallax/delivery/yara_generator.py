@@ -18,8 +18,16 @@ logger = logging.getLogger(__name__)
 
 # Strings too generic to anchor a rule on.
 _COMMON = {
-    "android", "com.google", "androidx", "kotlin", "java.lang", "http://schemas.android.com",
-    "google.com", "gstatic.com", "googleapis.com", "play.google.com",
+    "android",
+    "com.google",
+    "androidx",
+    "kotlin",
+    "java.lang",
+    "http://schemas.android.com",
+    "google.com",
+    "gstatic.com",
+    "googleapis.com",
+    "play.google.com",
 }
 
 _CLEAN_RE = re.compile(r"^[\w./:\-]+$")

@@ -60,9 +60,7 @@ async def _query_virustotal(sha256: str) -> dict | None:
                 return None
             attrs = resp.json().get("data", {}).get("attributes", {})
             stats = attrs.get("last_analysis_stats", {})
-            label = attrs.get("popular_threat_classification", {}).get(
-                "suggested_threat_label", ""
-            )
+            label = attrs.get("popular_threat_classification", {}).get("suggested_threat_label", "")
             return {
                 "source": "virustotal",
                 "family": label,
@@ -89,9 +87,7 @@ async def _query_internal_corpus(
     ORDER BY shared DESC LIMIT 10
     """
     try:
-        rows = await neo4j_client.run_read(
-            cypher, domains=domains, ips=ips, exclude=exclude_sha
-        )
+        rows = await neo4j_client.run_read(cypher, domains=domains, ips=ips, exclude=exclude_sha)
         if not rows:
             return None
         return {
@@ -104,9 +100,7 @@ async def _query_internal_corpus(
         return None
 
 
-async def match_iocs(
-    sha256: str, domains: list[str], ips: list[str]
-) -> dict:
+async def match_iocs(sha256: str, domains: list[str], ips: list[str]) -> dict:
     """Aggregate family attribution from all available sources."""
     results: list[dict] = []
     for source in (
