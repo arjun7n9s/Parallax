@@ -1,8 +1,29 @@
 import logging
+import os
+import shutil
 import subprocess
 from typing import Dict
 
+from parallax.core.config import settings
+
 logger = logging.getLogger(__name__)
+
+
+def _resolve_jadx() -> str:
+    """Resolve the jadx executable.
+
+    Prefers the explicitly configured ``JADX_BIN``; otherwise falls back to
+    whatever ``jadx`` (or ``jadx.bat`` on Windows) is on PATH.
+    """
+    configured = settings.JADX_BIN
+    if configured and os.path.exists(configured):
+        return configured
+    for candidate in ("jadx", "jadx.bat"):
+        found = shutil.which(candidate)
+        if found:
+            return found
+    # Last resort: return the bare name so the subprocess raises a clear error.
+    return configured or "jadx"
 
 
 def run_jadx(apk_path: str, output_dir: str) -> Dict[str, str]:
@@ -21,7 +42,7 @@ def run_jadx(apk_path: str, output_dir: str) -> Dict[str, str]:
     # Using --no-res to speed up decompilation by skipping resource decoding
     # Using --show-bad-code to ensure we get as much code as possible even if flawed
     cmd = [
-        "jadx",
+        _resolve_jadx(),
         "-d",
         output_dir,
         "--no-res",
