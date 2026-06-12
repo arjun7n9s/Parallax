@@ -25,7 +25,7 @@ async def _get_submission(submission_id: str, db: AsyncSession) -> Submission:
     except ValueError:
         raise HTTPException(status_code=400, detail="Invalid submission id")
     result = await db.execute(select(Submission).where(Submission.id == sid))
-    sub = result.scalar_one_or_none()
+    sub: Submission | None = result.scalar_one_or_none()
     if not sub:
         raise HTTPException(status_code=404, detail="Submission not found")
     return sub
@@ -66,7 +66,7 @@ def _fetch_artifact(submission_id: str, filename: str) -> bytes:
     resp = None
     try:
         resp = client.get_object(REPORTS_BUCKET, f"{submission_id}/{filename}")
-        return resp.read()
+        return bytes(resp.read())
     except Exception:
         raise HTTPException(status_code=404, detail=f"Artifact {filename} not found")
     finally:
