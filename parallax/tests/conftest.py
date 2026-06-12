@@ -28,7 +28,14 @@ _OPTIONAL_PACKAGES = {
         "frida.ServerNotRunningError",
         "frida.ExecutableNotFoundError",
     ],
-    "androguard": ["androguard.misc", "androguard.misc.AnalyzeAPK"],
+    "androguard": [
+        "androguard.core",
+        "androguard.core.apk",
+        "androguard.core.dex",
+        "androguard.core.analysis",
+        "androguard.misc",
+        "androguard.misc.AnalyzeAPK",
+    ],
     "mitmproxy": [
         "mitmproxy.options",
         "mitmproxy.tools.dump",
