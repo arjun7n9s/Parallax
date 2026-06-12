@@ -39,6 +39,13 @@ class TrafficInterceptorAddon:
             ts = flow.request.timestamp_start
             captured_at_ms = int(ts * 1000) if ts else int(time.time() * 1000)
 
+            args_payload: dict = {
+                "method": req.method,
+                "url": req.url,
+                "host": req.host,
+                "headers": dict(req.headers),
+                "request_body_size": len(req.content) if req.content else 0,
+            }
             payload = {
                 "type": "observation",
                 "schema_version": "1.0",
@@ -48,13 +55,7 @@ class TrafficInterceptorAddon:
                 "thread_id": None,
                 "thread_name": None,
                 "caller_package": None,  # Cannot easily determine package from raw IP traffic
-                "args": {
-                    "method": req.method,
-                    "url": req.url,
-                    "host": req.host,
-                    "headers": dict(req.headers),
-                    "request_body_size": len(req.content) if req.content else 0,
-                },
+                "args": args_payload,
                 "return_value": {
                     "status_code": res.status_code if res else 0,
                     "response_size": len(res.content) if res and res.content else 0,
@@ -73,7 +74,7 @@ class TrafficInterceptorAddon:
                 body = res.content if res else b""
                 decoded = decode_payload(content_type, body or b"")
                 if decoded:
-                    payload["args"]["decoded_protocol"] = decoded
+                    args_payload["decoded_protocol"] = decoded
             except Exception:
                 pass
 
