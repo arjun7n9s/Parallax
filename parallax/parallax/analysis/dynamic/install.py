@@ -109,8 +109,9 @@ def get_default_frida_server_path(avd_manager: AVDManager) -> Path:
     if not abi:
         abi = "x86_64"  # Default fallback
 
-    import frida
     from importlib import metadata as importlib_metadata
+
+    import frida
 
     # Prefer the package metadata (always present); fall back to module attribute
     # for older installs and stubbed imports (e.g. .venv-fast conftest mocks).
