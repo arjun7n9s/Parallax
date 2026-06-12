@@ -46,6 +46,12 @@ async def dispatch(event_type: str, payload: dict, max_retries: int = 4) -> dict
     sig = _sign(body)
     if sig:
         headers["X-Parallax-Signature"] = f"sha256={sig}"
+    else:
+        logger.warning(
+            "WEBHOOK_SECRET is not set — dispatching UNSIGNED webhooks. "
+            "Receivers cannot verify authenticity; set WEBHOOK_SECRET and "
+            "verify X-Parallax-Signature (hmac.compare_digest over the raw body)."
+        )
 
     delivered = 0
     async with httpx.AsyncClient(timeout=15.0) as client:
