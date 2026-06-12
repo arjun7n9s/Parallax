@@ -34,11 +34,14 @@ async def run_intel_correlator(
     behavior: BehaviorAnalystOutput,
     iocs: dict[str, list[str]],
     related_samples: list[dict] | None = None,
+    taint_flows: list[dict] | None = None,
 ) -> IntelCorrelatorOutput:
     """Correlate behaviors to ATT&CK techniques and known families.
 
     ``related_samples`` are prior analyses retrieved from the TAIG/Qdrant store
     (Phase 5). When empty, the agent relies on ATT&CK retrieval alone.
+    ``taint_flows`` are FlowDroid source->sink facts used as additional
+    correlation signal (e.g. SMS body -> network is a strong family marker).
     """
     query = _build_query(code, behavior)
     candidates = await retrieve_techniques(query, top_k=10)
@@ -53,6 +56,17 @@ async def run_intel_correlator(
         "CODE INTENT: " + (code.intent_classification if code else "unknown"),
         "BEHAVIOR NARRATIVE: " + (behavior.overall_narrative if behavior else ""),
     ]
+    if taint_flows:
+        prompt_parts += [
+            "",
+            "STATIC TAINT FLOWS (proven source->sink data paths):",
+            json.dumps(
+                [
+                    {"source": t.get("source"), "sink": t.get("sink"), "risk": t.get("risk")}
+                    for t in taint_flows[:15]
+                ]
+            ),
+        ]
     if related_samples:
         prompt_parts += [
             "",

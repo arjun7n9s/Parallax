@@ -98,15 +98,21 @@ async def run_cortex(
     screenshot_keys: list[str],
     apkid: dict | None = None,
     related_samples: list[dict] | None = None,
+    taint_flows: list[dict] | None = None,
 ) -> CortexResult:
     errors: dict[str, str] = {}
     features = artifact.get("static_features", {}) if artifact else {}
     permissions = features.get("permissions", [])
     yara_matches = artifact.get("yara_matches", []) if artifact else []
+    taint_flows = taint_flows or []
 
     # Stage 1: independent agents in parallel.
     code, behavior, visual = await asyncio.gather(
-        _safe(run_code_interpreter(artifact, sources_dir), "code_interpreter", errors),
+        _safe(
+            run_code_interpreter(artifact, sources_dir, taint_flows),
+            "code_interpreter",
+            errors,
+        ),
         _safe(run_behavior_analyst(observations), "behavior_analyst", errors),
         _safe(run_visual_intelligence(screenshot_keys), "visual", errors),
     )
@@ -118,7 +124,7 @@ async def run_cortex(
 
     # Stage 2: intel correlation depends on code + behavior.
     intel = await _safe(
-        run_intel_correlator(code, behavior, iocs, related_samples),
+        run_intel_correlator(code, behavior, iocs, related_samples, taint_flows),
         "intel_correlator",
         errors,
     )
@@ -135,6 +141,7 @@ async def run_cortex(
         debate=debate,
         apkid=apkid,
         yara_matches=yara_matches,
+        taint_flows=taint_flows,
     )
 
     # Stage 4: synthesis narrative.
@@ -158,8 +165,10 @@ async def run_cortex(
         "recommendations": [],
     }
 
-    # Merge ATT&CK from code + intel.
-    attck = sorted(set(code.attck_techniques) | set(intel.attck_techniques))
+    # Merge ATT&CK from code + intel + taint (taint mappings are curated
+    # source/sink->technique facts, not LLM output — always trustworthy).
+    taint_attck = {t["attck_technique"] for t in taint_flows if t.get("attck_technique")}
+    attck = sorted(set(code.attck_techniques) | set(intel.attck_techniques) | taint_attck)
 
     return CortexResult(
         submission_id=submission_id,

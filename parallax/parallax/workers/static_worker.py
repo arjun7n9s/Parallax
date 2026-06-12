@@ -25,12 +25,45 @@ from parallax.ai.re_workbench.artifact_model import (
 from parallax.analysis.static.androguard_runner import run_androguard
 from parallax.analysis.static.jadx_runner import run_jadx
 from parallax.analysis.static.yara_runner import run_yara
+from parallax.core.config import settings
 from parallax.core.database import async_session
-from parallax.core.models import Submission
+from parallax.core.models import Submission, TaintFlow
 from parallax.core.storage import APK_BUCKET, DECOMPILED_BUCKET, get_minio_client
 from parallax.workers.celery_app import celery_app
 
 logger = logging.getLogger(__name__)
+
+
+def _run_flowdroid_taint(local_apk_path: str) -> list[dict]:
+    """Run FlowDroid taint analysis (Phase 2.5). Returns flow dicts, [] on any
+    failure — taint is additive evidence and must never block the pipeline."""
+    if not settings.FLOWDROID_JAR:
+        logger.info("FLOWDROID_JAR not configured; skipping taint analysis.")
+        return []
+    try:
+        from parallax.analysis.static.flowdroid_runner import FlowDroidRunner
+
+        runner = FlowDroidRunner(
+            jar_path=settings.FLOWDROID_JAR,
+            platforms_dir=settings.ANDROID_PLATFORMS_DIR or None,
+        )
+        flows = runner.run(local_apk_path, timeout=settings.FLOWDROID_TIMEOUT_SECONDS)
+        logger.info(f"FlowDroid extracted {len(flows)} taint flows")
+        return [
+            {
+                "source_class": f.source_class,
+                "source_method": f.source_method,
+                "sink_class": f.sink_class,
+                "sink_method": f.sink_method,
+                "path": f.path,
+                "risk": f.risk,
+                "attck_technique": f.attck_technique,
+            }
+            for f in flows
+        ]
+    except Exception as exc:
+        logger.warning(f"FlowDroid taint analysis skipped: {exc}")
+        return []
 
 
 def async_to_sync(awaitable):
@@ -140,7 +173,23 @@ async def _async_run_static_pipeline(submission_id_str: str):
                 decompiled_s3_path = f"s3://{DECOMPILED_BUCKET}/{decompiled_obj_name}"
                 logger.info(f"Uploaded decompiled code to {decompiled_s3_path}")
 
-            # 4. Build REArtifactModel
+            # 4. FlowDroid taint analysis (Phase 2.5) — persisted for the Cortex
+            taint_dicts = _run_flowdroid_taint(local_apk_path)
+            for flow in taint_dicts:
+                db.add(
+                    TaintFlow(
+                        submission_id=submission.id,
+                        source_class=flow["source_class"],
+                        source_method=flow["source_method"],
+                        sink_class=flow["sink_class"],
+                        sink_method=flow["sink_method"],
+                        path=flow["path"],
+                        risk=flow["risk"],
+                        attck_technique=flow["attck_technique"],
+                    )
+                )
+
+            # 5. Build REArtifactModel
             artifact_model = REArtifactModel(
                 sha256=sha256,
                 static_features=static_features,
@@ -149,7 +198,7 @@ async def _async_run_static_pipeline(submission_id_str: str):
                 decompiled_s3_path=decompiled_s3_path,
             )
 
-            # 5. Save to submission metadata
+            # 6. Save to submission metadata
             metadata_json = submission.metadata_json or {}
             metadata_json["re_workbench_artifact"] = artifact_model.to_dict()
             submission.metadata_json = metadata_json
@@ -158,11 +207,11 @@ async def _async_run_static_pipeline(submission_id_str: str):
             if not submission.package_name and static_features.package_name != "unknown":
                 submission.package_name = static_features.package_name
 
-            # 6. Close the loop with Hypothesis Engine
+            # 7. Close the loop with Hypothesis Engine
             engine = HypothesisEngine(db)
             await engine.process_static_results(submission.id, artifact_model.to_dict())
 
-            # 7. Transition to dynamic
+            # 8. Transition to dynamic
             submission.status = "dynamic"
             await db.commit()
             logger.info(f"Static pipeline complete for {sha256}. Status set to 'dynamic'.")
