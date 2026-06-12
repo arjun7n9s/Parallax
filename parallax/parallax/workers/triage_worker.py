@@ -19,6 +19,7 @@ from parallax.ai.agents.triage import run_llm_triage
 from parallax.ai.hypothesis.engine import HypothesisEngine
 from parallax.analysis.ingestion.apkid_runner import run_apkid
 from parallax.analysis.ingestion.ssdeep_runner import run_ssdeep
+from parallax.analysis.static.androguard_runner import run_androguard
 from parallax.core.database import async_session
 from parallax.core.models import Submission
 from parallax.core.storage import APK_BUCKET, get_minio_client
@@ -107,24 +108,26 @@ async def _async_run_triage_pipeline(submission_id_str: str):
             apkid_results = run_apkid(local_apk_path)
             ssdeep_results = run_ssdeep(local_apk_path)
 
-            # We would extract permissions using androguard here, but for now we'll mock it
-            # since full androguard integration is Phase 2.
-            mock_metadata = {
-                "package_name": submission.package_name or "com.example.malware",
-                "app_name": "SampleApp",
+            # Extract real manifest metadata (lightweight, manifest-only).
+            manifest = run_androguard(local_apk_path)
+            real_package = manifest.get("package_name")
+            if real_package and real_package != "unknown":
+                submission.package_name = real_package
+
+            triage_metadata = {
+                "package_name": real_package or submission.package_name,
+                "app_name": manifest.get("app_name"),
                 "file_size": submission.file_size,
                 "apkid_matches": apkid_results.get("matches", {}),
                 "ssdeep_match": ssdeep_results.get("hash", "Unknown"),
-                "permissions": [
-                    "android.permission.INTERNET",
-                    "android.permission.BIND_ACCESSIBILITY_SERVICE",
-                    "android.permission.RECEIVE_SMS",
-                ],
+                "permissions": manifest.get("permissions", []),
+                "services": manifest.get("services", []),
+                "receivers": manifest.get("receivers", []),
             }
 
             # 3. Run LLM Triage Agent
             logger.info(f"Running LLM Triage Agent for {sha256}")
-            triage_result = await run_llm_triage(mock_metadata)
+            triage_result = await run_llm_triage(triage_metadata)
 
             # Update submission with triage results
             submission.triage_score = float(triage_result.get("pre_score", 0.0))

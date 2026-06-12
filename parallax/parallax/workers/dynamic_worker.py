@@ -12,6 +12,7 @@ from sqlalchemy.future import select
 from parallax.ai.hook_planner.generator import HookPlannerGenerator
 from parallax.ai.hook_planner.parser import HookPlannerParser
 from parallax.ai.ollama_client import ollama_client
+from parallax.core.config import settings
 from parallax.core.database import async_session
 from parallax.core.models import ExperimentObservationLink, Hypothesis, Observation, Submission
 from parallax.core.storage import APK_BUCKET, get_minio_client
@@ -130,6 +131,9 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
                 logger.info("No active hypotheses for dynamic analysis. Moving to reasoning.")
                 submission.status = "reasoning"
                 await db.commit()
+                from parallax.workers.reasoning_worker import run_reasoning_pipeline
+
+                run_reasoning_pipeline.delay(submission_id_str)
                 return
 
             # 3. Generate Hooks
@@ -211,14 +215,21 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
             submission.status = "dynamic"
             await db.commit()
 
+            avd_manager = None
+            if settings.DYNAMIC_LIVE_DEVICE:
+                avd_manager = _provision_device(local_apk_path)
+
             sandbox = SandboxRunner(
                 submission_id=submission_id_str,
                 package_name=submission.package_name or "com.example.malware",
                 apk_path=local_apk_path,
+                avd_manager=avd_manager,
+                drive_ui=avd_manager is not None,
             )
 
             observations_data = await sandbox.run_analysis(
-                frida_script=combined_script, timeout_seconds=120
+                frida_script=combined_script,
+                timeout_seconds=settings.DYNAMIC_TIMEOUT_SECONDS,
             )
 
             # 5. Save Observations
@@ -260,9 +271,10 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
             await db.commit()
             logger.info(f"Dynamic complete for {sha256}. Status set to 'reasoning'.")
 
-            # Trigger reasoning pipeline
-            # from parallax.workers.reasoning_worker import run_reasoning_pipeline
-            # run_reasoning_pipeline.delay(submission_id_str)
+            # Trigger reasoning pipeline (AI Cortex).
+            from parallax.workers.reasoning_worker import run_reasoning_pipeline
+
+            run_reasoning_pipeline.delay(submission_id_str)
 
     except Exception:
         logger.exception(f"Error during dynamic pipeline for {submission_id_str}")
@@ -278,6 +290,43 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
     finally:
         if temp_dir and os.path.exists(temp_dir):
             shutil.rmtree(temp_dir, ignore_errors=True)
+
+
+def _provision_device(local_apk_path: str):
+    """Provision a live emulator/device for dynamic analysis.
+
+    Installs the APK, ensures frida-server and the mitmproxy CA are present, and
+    routes traffic through the proxy. Returns the AVDManager, or ``None`` if the
+    device could not be provisioned (the run then falls back to frida+mitm only).
+    """
+    try:
+        from parallax.analysis.dynamic.avd_manager import AVDManager
+        from parallax.analysis.dynamic.install import (
+            get_default_frida_server_path,
+            install_frida_server,
+        )
+
+        avd = AVDManager()
+        if not avd.is_running():
+            avd.boot()
+        avd.install_apk(local_apk_path)
+
+        if not avd.is_frida_running():
+            try:
+                install_frida_server(avd, get_default_frida_server_path(avd))
+            except Exception as exc:
+                logger.warning("frida-server setup skipped: %s", exc)
+
+        # Route device HTTP(S) through the in-process mitmproxy.
+        try:
+            avd.shell(f"settings put global http_proxy 127.0.0.1:{8080}")
+        except Exception as exc:
+            logger.warning("proxy configuration skipped: %s", exc)
+
+        return avd
+    except Exception as exc:
+        logger.warning("Device provisioning failed; running without live UI: %s", exc)
+        return None
 
 
 def _build_script_prelude(session_id: str) -> str:
