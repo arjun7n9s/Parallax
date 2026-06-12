@@ -85,6 +85,9 @@ class Settings(BaseSettings):
     MALWAREBAZAAR_API_KEY: str = ""
     MISP_URL: str = ""
     MISP_KEY: str = ""
+    # Verify the MISP server's TLS certificate. Only set false for a
+    # self-hosted instance with a self-signed cert on a trusted network.
+    MISP_VERIFY_TLS: bool = True
 
     # OpenTelemetry
     OTEL_EXPORTER_OTLP_ENDPOINT: str = "http://localhost:4317"
