@@ -274,9 +274,7 @@ class LLMProvider:
         if self._aiml is None:
             from openai import AsyncOpenAI
 
-            self._aiml = AsyncOpenAI(
-                base_url=settings.AIML_BASE_URL, api_key=settings.AIML_API
-            )
+            self._aiml = AsyncOpenAI(base_url=settings.AIML_BASE_URL, api_key=settings.AIML_API)
 
         text_prompt = prompt
         if json_mode:
