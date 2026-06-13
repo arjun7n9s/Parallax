@@ -67,6 +67,8 @@ class Settings(BaseSettings):
     # External analysis tool paths. Empty = resolve from PATH.
     JADX_BIN: str = ""
     FLOWDROID_JAR: str = ""
+    # YARA rules directory. Empty = auto-resolve (repo-root or package rules/yara).
+    YARA_RULES_DIR: str = ""
     # Android platform jars required by FlowDroid (e.g. $ANDROID_HOME/platforms).
     # Empty = derived from ANDROID_HOME / ANDROID_SDK_ROOT at runtime.
     ANDROID_PLATFORMS_DIR: str = ""

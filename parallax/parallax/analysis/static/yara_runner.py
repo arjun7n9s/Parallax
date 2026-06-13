@@ -6,7 +6,28 @@ from typing import Any, Dict, List
 
 import yara
 
+from parallax.core.config import settings
+
 logger = logging.getLogger(__name__)
+
+
+def _resolve_rules_dir() -> str:
+    """Find the rules/yara directory.
+
+    Honors ``YARA_RULES_DIR`` when set, otherwise searches the known layouts:
+    the rules live at the repository root (``rules/yara``) but a deployment may
+    also ship them inside the package (``parallax/rules/yara``).
+    """
+    if settings.YARA_RULES_DIR and os.path.isdir(settings.YARA_RULES_DIR):
+        return settings.YARA_RULES_DIR
+    # static -> analysis -> parallax(pkg) -> parallax(repo subdir) -> repo root
+    pkg_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    repo_root = os.path.dirname(pkg_root)
+    for base in (pkg_root, repo_root):
+        candidate = os.path.join(base, "rules", "yara")
+        if os.path.isdir(candidate):
+            return candidate
+    return os.path.join(pkg_root, "rules", "yara")  # default for the warning path
 
 
 @functools.lru_cache(maxsize=1)
@@ -14,8 +35,7 @@ def load_yara_rules() -> yara.Rules | None:
     """
     Load and compile all YARA rules from the rules/yara/baseline and rules/yara/custom directories.
     """
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-    rules_dir = os.path.join(project_root, "rules", "yara")
+    rules_dir = _resolve_rules_dir()
 
     # We compile all .yar files we can find in baseline and custom
     filepaths = {}
