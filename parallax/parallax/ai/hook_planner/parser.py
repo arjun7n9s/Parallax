@@ -18,10 +18,12 @@ class HookPlannerParser:
 
     def __init__(self, dictionary_path: Optional[str] = None):
         if dictionary_path is None:
-            # Default to the known location in the repo
-            project_root = Path(__file__).resolve().parents[3]
+            # api_signatures.json lives at <package root>/analysis/dynamic/.
+            # parser.py is at <package root>/ai/hook_planner/parser.py, so the
+            # package root is parents[2].
+            package_root = Path(__file__).resolve().parents[2]
             dictionary_path = os.path.join(
-                project_root, "parallax", "parallax", "analysis", "dynamic", "api_signatures.json"
+                package_root, "analysis", "dynamic", "api_signatures.json"
             )
 
         if not os.path.exists(dictionary_path):
