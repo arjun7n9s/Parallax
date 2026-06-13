@@ -26,9 +26,11 @@ networkx>=3.3
 yara-python>=4.5.1
 
 # Layer 2B: Dynamic Analysis
-frida==17.11.0
-# frida-tools is versioned independently of frida core; 14.x pairs with frida 17.x
-frida-tools>=14.9.0
+# frida 16.x: 17.x removed the bundled Java/ObjC bridges, so every Java.perform
+# hook fails with "Java is not defined". 16.x keeps the classic Java global.
+frida==16.7.19
+# frida-tools 14.x needs frida 17.x; cap below 14 to stay paired with frida 16.x.
+frida-tools>=12.0.0,<14
 mitmproxy>=11.0.0
 scapy>=2.5.0
 adb-shell>=0.4.4
