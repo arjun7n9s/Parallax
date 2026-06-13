@@ -1,7 +1,7 @@
 import logging
 from typing import Any
 
-from parallax.ai.ollama_client import ollama_client
+from parallax.ai.llm import llm
 
 logger = logging.getLogger(__name__)
 
@@ -83,9 +83,9 @@ APKiD findings: {apk_metadata.get("apkid_matches", {})}
 """
 
     try:
-        result = await ollama_client.generate_json(
-            model="phi3:mini", prompt=prompt, system_prompt=SYSTEM_PROMPT
-        )
+        # Role "triage" routes to the economy cloud model (gpt-4o-mini) when a
+        # gateway key is configured, else the local phi3:mini — see ai.llm.ROSTER.
+        result = await llm.complete_json("triage", prompt, system=SYSTEM_PROMPT)
         return result
     except Exception as e:
         logger.error(f"Error running triage agent: {e}")

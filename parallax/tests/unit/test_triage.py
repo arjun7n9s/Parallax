@@ -6,7 +6,7 @@ from parallax.ai.agents.triage import run_llm_triage
 
 
 @pytest.mark.asyncio
-@patch("parallax.ai.agents.triage.ollama_client.generate_json", new_callable=AsyncMock)
+@patch("parallax.ai.agents.triage.llm.complete_json", new_callable=AsyncMock)
 async def test_run_triage_success(mock_generate_json):
     """Test successful triage run."""
     mock_generate_json.return_value = {
