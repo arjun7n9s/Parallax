@@ -15,6 +15,7 @@ try:
 except ImportError:
     Task = object  # type: ignore[assignment,misc]
 from sqlalchemy.future import select
+from sqlalchemy.orm.attributes import flag_modified
 
 from parallax.ai.hypothesis.engine import HypothesisEngine
 from parallax.ai.re_workbench.artifact_model import (
@@ -202,6 +203,9 @@ async def _async_run_static_pipeline(submission_id_str: str):
             metadata_json = submission.metadata_json or {}
             metadata_json["re_workbench_artifact"] = artifact_model.to_dict()
             submission.metadata_json = metadata_json
+            # JSONB columns are not change-tracked on in-place mutation; without
+            # this the artifact is silently dropped and the cortex sees no code.
+            flag_modified(submission, "metadata_json")
 
             # Update package name in submission if it was unknown
             if not submission.package_name and static_features.package_name != "unknown":

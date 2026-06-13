@@ -18,6 +18,7 @@ except ImportError:
     Task = object  # type: ignore[assignment,misc]
 
 from sqlalchemy.future import select
+from sqlalchemy.orm.attributes import flag_modified
 
 from parallax.ai.schemas import CortexResult
 from parallax.core.database import async_session
@@ -172,6 +173,7 @@ async def _async_run_delivery(submission_id_str: str):
         meta["delivery_artifacts_status"] = artifact_status
         meta["fraud_chain"] = fraud_chain
         submission.metadata_json = meta
+        flag_modified(submission, "metadata_json")  # JSONB in-place mutation not tracked
         await db.commit()
         logger.info("Delivery complete for %s: %s", sha256, artifact_status)
 

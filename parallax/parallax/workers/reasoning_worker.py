@@ -21,6 +21,7 @@ except ImportError:
     Task = object  # type: ignore[assignment,misc]
 
 from sqlalchemy.future import select
+from sqlalchemy.orm.attributes import flag_modified
 
 from parallax.ai.orchestration import run_cortex
 from parallax.core.database import async_session
@@ -168,6 +169,9 @@ async def _async_run_reasoning_pipeline(submission_id_str: str):
             submission.verdict = cortex.verdict
             metadata["cortex_result"] = cortex.to_dict()
             submission.metadata_json = metadata
+            # JSON columns are not change-tracked on in-place mutation; flag it
+            # explicitly so the cortex_result actually persists for delivery.
+            flag_modified(submission, "metadata_json")
 
             # Persist extracted IOCs (deduped per submission).
             await _persist_iocs(db, submission_id, cortex, observations)
