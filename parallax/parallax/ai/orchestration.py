@@ -130,6 +130,21 @@ async def run_cortex(
     )
     intel = intel or IntelCorrelatorOutput()
 
+    # Hash + infrastructure family attribution from external threat intel
+    # (MalwareBazaar/VT) and our own TAIG corpus. This is ground-truth evidence
+    # the LLM cannot derive from code alone, so it overrides an empty LLM guess.
+    from parallax.knowledge.ioc_matcher import match_iocs
+
+    family_match = await _safe(
+        match_iocs(sha256, iocs.get("domains", []), iocs.get("ips", [])),
+        "ioc_matcher",
+        errors,
+    )
+    if family_match and family_match.get("family"):
+        if not intel.family_attribution:
+            intel.family_attribution = family_match["family"]
+        intel.family_confidence = max(intel.family_confidence, family_match.get("confidence", 0.0))
+
     # Stage 3: deterministic debate + risk.
     debate = run_debate(code, behavior, intel, visual)
     risk = compute_risk(
@@ -142,6 +157,7 @@ async def run_cortex(
         apkid=apkid,
         yara_matches=yara_matches,
         taint_flows=taint_flows,
+        known_family=family_match,
     )
 
     # Stage 4: synthesis narrative.

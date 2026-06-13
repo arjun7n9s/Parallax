@@ -165,6 +165,9 @@ class RiskScore(BaseModel):
     calibrated_score: float = 0.0  # 0-100
     confidence_interval: float = 0.0  # +/- points
     verdict: Verdict = "LOW"
+    # Auditable adjustments applied beyond the weighted sum (evasion bump,
+    # known-family floor). Each entry explains one modification to the score.
+    notes: list[str] = Field(default_factory=list)
 
 
 class Recommendation(BaseModel):

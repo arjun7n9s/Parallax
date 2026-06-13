@@ -30,6 +30,26 @@ class TestTaintRisk:
     def test_no_taint_no_behavior_is_zero(self):
         assert _network_exfil(None, []) == 0.0
 
+    def test_known_family_floors_verdict_to_high(self):
+        """A confirmed known-malware family must lift a static-only LOW to HIGH."""
+        fam = {"family": "Cerberus", "confidence": 0.9, "sources": [{"source": "malwarebazaar"}]}
+        floored = compute_risk(
+            permissions=["android.permission.READ_SMS"],
+            code=None, behavior=None, intel=None, visual=None, debate=None,
+            known_family=fam,
+        )
+        assert floored.evidence_score >= 65.0
+        assert floored.verdict == "HIGH"
+        assert any("Cerberus" in n for n in floored.notes)
+
+    def test_low_confidence_family_does_not_floor(self):
+        fam = {"family": "Maybe", "confidence": 0.4, "sources": []}
+        r = compute_risk(
+            permissions=[], code=None, behavior=None, intel=None, visual=None,
+            debate=None, known_family=fam,
+        )
+        assert r.evidence_score < 65.0
+
     def test_taint_flows_increase_score(self):
         base = compute_risk(
             permissions=[],

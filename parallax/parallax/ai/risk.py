@@ -109,6 +109,7 @@ def compute_risk(
     apkid: dict | None = None,
     yara_matches: list[dict] | None = None,
     taint_flows: list[dict] | None = None,
+    known_family: dict | None = None,
 ) -> RiskScore:
     comp = RiskComponents(
         permission_abuse=_permission_abuse(permissions),
@@ -134,9 +135,28 @@ def compute_risk(
         + comp.attribution_confidence * WEIGHTS["attribution_confidence"]
     ) * 100.0
 
+    notes: list[str] = []
+
     # Debate layer: contradictions (clean static, dirty dynamic) signal evasion.
     if debate and debate.evasion_suspected:
         evidence = min(100.0, evidence + 10.0)
+        notes.append("Evasion contradiction (clean static / dirty dynamic): +10")
+
+    # External threat-intel ground truth. A confirmed known-malware family from a
+    # reputable feed (e.g. a MalwareBazaar signature) is dispositive that the
+    # sample is malicious. It sets a verdict floor that the absence of a live
+    # dynamic run cannot pull below — otherwise a known trojan analysed
+    # statically would score LOW purely because 60% of the weight is dynamic.
+    if known_family and known_family.get("family") and known_family.get("confidence", 0.0) >= 0.8:
+        floor = 65.0  # solidly HIGH; dynamic confirmation can push it higher
+        if evidence < floor:
+            srcs = ", ".join(s.get("source", "?") for s in known_family.get("sources", []))
+            notes.append(
+                f"Known-malware family '{known_family['family']}' confirmed by "
+                f"{srcs or 'threat intel'} (conf {known_family['confidence']}): "
+                f"evidence floored {round(evidence, 1)} -> {floor}"
+            )
+            evidence = floor
 
     calibrated = _calibrate(evidence)
     return RiskScore(
@@ -146,6 +166,7 @@ def compute_risk(
         calibrated_score=round(calibrated, 1),
         confidence_interval=5.0,
         verdict=_verdict(calibrated),
+        notes=notes,
     )
 
 
