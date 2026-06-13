@@ -35,7 +35,11 @@ class TestTaintRisk:
         fam = {"family": "Cerberus", "confidence": 0.9, "sources": [{"source": "malwarebazaar"}]}
         floored = compute_risk(
             permissions=["android.permission.READ_SMS"],
-            code=None, behavior=None, intel=None, visual=None, debate=None,
+            code=None,
+            behavior=None,
+            intel=None,
+            visual=None,
+            debate=None,
             known_family=fam,
         )
         assert floored.evidence_score >= 65.0
@@ -45,8 +49,13 @@ class TestTaintRisk:
     def test_low_confidence_family_does_not_floor(self):
         fam = {"family": "Maybe", "confidence": 0.4, "sources": []}
         r = compute_risk(
-            permissions=[], code=None, behavior=None, intel=None, visual=None,
-            debate=None, known_family=fam,
+            permissions=[],
+            code=None,
+            behavior=None,
+            intel=None,
+            visual=None,
+            debate=None,
+            known_family=fam,
         )
         assert r.evidence_score < 65.0
 
