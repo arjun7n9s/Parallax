@@ -42,7 +42,7 @@ except ImportError:
     TracerProvider = None  # type: ignore[assignment,misc]
     BatchSpanProcessor = None  # type: ignore[assignment,misc]
 
-from parallax.ai.ollama_client import ollama_client
+from parallax.ai.llm import llm
 from parallax.api.routes import (
     analyze_router,
     dynamic_router,
@@ -135,7 +135,7 @@ async def lifespan(app: FastAPI):
         logger.warning(f"Failed to eagerly initialize dynamic generator: {e}")
 
     yield
-    await ollama_client.close()
+    await llm.close()
     logger.info("PARALLAX shutting down")
 
 
