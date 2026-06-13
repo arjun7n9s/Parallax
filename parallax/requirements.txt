@@ -84,3 +84,6 @@ pytest-asyncio>=0.24.0
 pytest-cov>=5.0.0
 mypy>=1.11.0
 ruff>=0.6.0
+
+# Pin <4.1: bcrypt 4.1+ removed __about__, breaking passlib (mitmproxy proxyauth import).
+bcrypt==4.0.1
