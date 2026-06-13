@@ -96,16 +96,16 @@ def test_execute_action_text(mock_avd):
 
 
 @pytest.mark.asyncio
-@patch("parallax.analysis.dynamic.droidbot_gpt.ollama_client")
+@patch("parallax.analysis.dynamic.droidbot_gpt.llm")
 @patch("parallax.analysis.dynamic.droidbot_gpt.get_minio_client")
-async def test_run_exploration(mock_get_minio, mock_ollama, mock_avd):
-    # Mock minio and ollama
+async def test_run_exploration(mock_get_minio, mock_llm, mock_avd):
+    # Mock minio and the LLM provider
     mock_minio_client = MagicMock()
     mock_get_minio.return_value = mock_minio_client
 
     # We want select_action to return "done" on the second turn
-    mock_ollama.generate_json = AsyncMock()
-    mock_ollama.generate_json.side_effect = [
+    mock_llm.complete_json = AsyncMock()
+    mock_llm.complete_json.side_effect = [
         {"action_type": "tap", "element_id": 1, "reason": "Explore search"},
         {"action_type": "done", "reason": "Completed testing"},
     ]

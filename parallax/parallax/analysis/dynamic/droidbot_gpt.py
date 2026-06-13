@@ -15,9 +15,8 @@ import time
 import xml.etree.ElementTree as ET  # type: ignore # nosec B314
 from typing import Any, Dict, List
 
-from parallax.ai.ollama_client import ollama_client
+from parallax.ai.llm import llm
 from parallax.analysis.dynamic.avd_manager import AVDManager
-from parallax.core.config import settings
 from parallax.core.storage import SCREENSHOTS_BUCKET, get_minio_client
 
 logger = logging.getLogger(__name__)
@@ -245,17 +244,14 @@ Choose the next action. You must respond with a JSON object following this forma
 """
         system_prompt = "You are an automated malware analysis assistant. You analyze UI states and choose the next action to trigger potentially hidden malware components."
 
-        # Determine model
-        model = getattr(settings, "OLLAMA_MODEL", "llava")
-        if not model:
-            model = "llava"
-
         try:
-            logger.info(f"Querying LLM ({model}) for next UI action...")
-            response = await ollama_client.generate_json(
-                model=model,
-                prompt=prompt,
-                system_prompt=system_prompt,
+            logger.info("Querying LLM (dynamic_explorer role) for next UI action...")
+            # Role "dynamic_explorer" → vision model (gemini-flash on the gateway,
+            # llava locally) selected by the unified provider.
+            response = await llm.complete_json(
+                "dynamic_explorer",
+                prompt,
+                system=system_prompt,
                 images=[screenshot_b64],
             )
             return response
