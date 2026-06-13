@@ -160,6 +160,50 @@ artifacts(5): report.pdf(~4pp), html, STIX, YARA, fraud_rules
 
 **Net:** full pipeline including the live emulator now runs end-to-end on real malware and yields a correct, auditable HIGH/Cerberus verdict with visual dynamic signal. Two dynamic-capture paths (frida events, mitm traffic) need a follow-up debugging pass to enrich behavioral/network evidence. 126 unit tests pass, ruff + mypy clean.
 
+---
+
+## Session 2026-06-14 — Dynamic-capture root cause (the "0 frida observations")
+
+Treated dynamic capture as the #1 blocker. Fixed the *plumbing* before theorizing
+about dormancy, and converted each bug into a regression test.
+
+**Root cause was FOUR stacked bugs, not dormancy:**
+1. **Wrong frida connection API.** `frida.get_device("localhost:27042")` raises
+   `InvalidArgumentError` — it searches existing devices, it does not open a TCP
+   connection. The reliable path is the adb-tunnelled device (`localhost:5555`).
+   Fixed `frida_runner` to connect via the adb serial (config `FRIDA_DEVICE_ID`),
+   plumbed from the AVD manager.
+2. **Swallowed errors.** `SandboxRunner` used `asyncio.gather(return_exceptions=True)`
+   and never inspected the result, so any frida failure vanished and read as
+   "0 observations / dormant." Now surfaced on `sandbox.frida_error` + logged loudly.
+3. **frida 17 dropped the bundled Java bridge.** Every `Java.perform` hook failed
+   with `ReferenceError: 'Java' is not defined`. Pinned **frida==16.7.19** (client)
+   and pushed a matching 16.x frida-server to the emulator. **Verified live: a
+   `Java.perform` hook on com.android.settings produced 2 real observations.**
+4. **Cerberus hides its launcher icon** (no `LAUNCHER` activity), so frida's
+   spawn-by-launch fails with `unable to find a front-door activity`. Its
+   components are an AccessibilityService + NotificationListenerService; its
+   manifest MAIN activity name (`OzGUhRlf`) doesn't resolve via `am start`
+   (obfuscated/aliased). **Open: launching icon-hiding, obfuscated malware needs
+   an `am start`/attach (or component-trigger) strategy — task #16 continues.**
+
+**Status:** frida plumbing PROVEN working (real observations on a real app);
+3 of 4 bugs fixed with regression tests. The 4th (launching icon-hiding malware)
+is a distinct dynamic-analysis problem, not a plumbing bug. The mitmproxy
+`Master.run` coroutine warning (network capture) also remains.
+
+**Regression tests added (the "would-have-caught-the-bug" set):**
+`tests/unit/test_dynamic_capture.py` — frida default device is the adb serial not
+`:27042`; `run_sync` calls `get_device` with the serial; sandbox records (not
+swallows) a frida failure on `frida_error`; device_id flows from the AVD manager.
+`test_static_worker.py` — asserts `flag_modified(submission, "metadata_json")` is
+called (guards the JSONB-persistence fix; the old in-memory assertion passed while
+the bug was live). **133 unit tests pass, mypy + ruff + format clean.**
+
+Note: the emulator's container ships frida-server 17.x; a 16.x server must be
+provisioned (pushed manually this session). `start-emulator.sh` should be extended
+to push/start the 16.x server, or `install.py` updated to do so.
+
 ### Next after this session
 
 1. Pull a real labeled banking trojan from MalwareBazaar into `samples/`
