@@ -53,11 +53,16 @@ class Settings(BaseSettings):
     # routes cloud-capable agents to the configured cloud provider; "auto"
     # uses cloud when a key is present and falls back to local otherwise.
     LLM_MODE: str = "local"  # local | cloud | auto
-    CLOUD_PROVIDER: str = "anthropic"  # anthropic | openai
+    CLOUD_PROVIDER: str = "aiml"  # aiml | anthropic | openai
     ANTHROPIC_API_KEY: str = ""
-    ANTHROPIC_MODEL: str = "claude-opus-4-8"
+    ANTHROPIC_MODEL: str = "claude-sonnet-4-6"
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o"
+
+    # aimlapi.com unified gateway: one key, 400+ models, OpenAI-compatible.
+    # Per-role model IDs live in parallax.ai.llm.ROSTER.
+    AIML_API: str = ""
+    AIML_BASE_URL: str = "https://api.aimlapi.com/v1"
 
     # External analysis tool paths. Empty = resolve from PATH.
     JADX_BIN: str = ""
