@@ -49,9 +49,7 @@ def mock_db_session():
 @patch("parallax.workers.dynamic_worker.async_session")
 @patch("parallax.workers.dynamic_worker.get_generator")
 @patch("parallax.workers.dynamic_worker.SandboxRunner")
-@patch("parallax.workers.dynamic_worker.ollama_client")
 async def test_worker_transitions_to_dynamic_on_start(
-    mock_ollama,
     MockSandboxRunner,
     mock_get_generator,
     mock_async_session,
@@ -83,32 +81,7 @@ async def test_worker_transitions_to_dynamic_on_start(
 @patch("parallax.workers.dynamic_worker.async_session")
 @patch("parallax.workers.dynamic_worker.get_generator")
 @patch("parallax.workers.dynamic_worker.SandboxRunner")
-@patch("parallax.workers.dynamic_worker.ollama_client")
-async def test_worker_does_not_close_ollama_client(
-    mock_ollama,
-    MockSandboxRunner,
-    mock_get_generator,
-    mock_async_session,
-    mock_minio,
-    mock_db_session,
-):
-    ctx, session = mock_db_session
-    mock_async_session.return_value = ctx
-
-    await _async_run_dynamic_pipeline(str(uuid.uuid4()))
-
-    # We explicitly check that close was NOT called
-    mock_ollama.close.assert_not_called()
-
-
-@pytest.mark.asyncio
-@patch("parallax.workers.dynamic_worker.get_minio_client")
-@patch("parallax.workers.dynamic_worker.async_session")
-@patch("parallax.workers.dynamic_worker.get_generator")
-@patch("parallax.workers.dynamic_worker.SandboxRunner")
-@patch("parallax.workers.dynamic_worker.ollama_client")
 async def test_worker_skips_unresolved_hypotheses(
-    mock_ollama,
     MockSandboxRunner,
     mock_get_generator,
     mock_async_session,
@@ -139,9 +112,7 @@ async def test_worker_skips_unresolved_hypotheses(
 @patch("parallax.workers.dynamic_worker.async_session")
 @patch("parallax.workers.dynamic_worker.get_generator")
 @patch("parallax.workers.dynamic_worker.SandboxRunner")
-@patch("parallax.workers.dynamic_worker.ollama_client")
 async def test_worker_batch_commits_observations(
-    mock_ollama,
     MockSandboxRunner,
     mock_get_generator,
     mock_async_session,
@@ -186,9 +157,7 @@ async def test_worker_batch_commits_observations(
 @patch("parallax.workers.dynamic_worker.async_session")
 @patch("parallax.workers.dynamic_worker.get_generator")
 @patch("parallax.workers.dynamic_worker.SandboxRunner")
-@patch("parallax.workers.dynamic_worker.ollama_client")
 async def test_worker_transitions_to_failed_on_exception(
-    mock_ollama,
     MockSandboxRunner,
     mock_get_generator,
     mock_async_session,
@@ -215,9 +184,7 @@ async def test_worker_transitions_to_failed_on_exception(
 @patch("parallax.workers.dynamic_worker.async_session")
 @patch("parallax.workers.dynamic_worker.get_generator")
 @patch("parallax.workers.dynamic_worker.SandboxRunner")
-@patch("parallax.workers.dynamic_worker.ollama_client")
 async def test_worker_fallback_to_static_hooks(
-    mock_ollama,
     MockSandboxRunner,
     mock_get_generator,
     mock_async_session,

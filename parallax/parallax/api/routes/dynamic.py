@@ -6,7 +6,6 @@ from pydantic import BaseModel, ConfigDict
 
 from parallax.ai.hook_planner.generator import HookPlannerGenerator
 from parallax.ai.hook_planner.parser import HookPlannerParser, HookPlannerParserError
-from parallax.ai.ollama_client import ollama_client
 
 logger = logging.getLogger(__name__)
 
@@ -42,9 +41,7 @@ def get_generator() -> HookPlannerGenerator:
     global _parser, _generator
     if _generator is None:
         _parser = HookPlannerParser()
-        _generator = HookPlannerGenerator(
-            ollama_client=ollama_client, parser=_parser, max_retries=3
-        )
+        _generator = HookPlannerGenerator(parser=_parser, max_retries=3)
     return _generator
 
 

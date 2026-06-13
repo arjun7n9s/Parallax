@@ -11,7 +11,6 @@ from sqlalchemy.future import select
 
 from parallax.ai.hook_planner.generator import HookPlannerGenerator
 from parallax.ai.hook_planner.parser import HookPlannerParser
-from parallax.ai.ollama_client import ollama_client
 from parallax.core.config import settings
 from parallax.core.database import async_session
 from parallax.core.models import ExperimentObservationLink, Hypothesis, Observation, Submission
@@ -52,7 +51,7 @@ def get_generator() -> HookPlannerGenerator:
     global _parser, _generator
     if _generator is None:
         _parser = HookPlannerParser()
-        _generator = HookPlannerGenerator(ollama_client, _parser)
+        _generator = HookPlannerGenerator(_parser)
     return _generator
 
 

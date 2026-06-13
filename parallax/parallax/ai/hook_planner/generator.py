@@ -4,25 +4,23 @@ from typing import Dict, List, Optional, Tuple
 
 from parallax.ai.hook_planner.parser import HookPlannerParser, HookPlannerParserError
 from parallax.ai.hook_planner.prompt import HOOK_PLANNER_PROMPT
+from parallax.ai.llm import llm
 
 logger = logging.getLogger(__name__)
 
 
 class HookPlannerGenerator:
-    def __init__(
-        self, ollama_client, parser: HookPlannerParser, max_retries: int = 3, model: str = "llama3"
-    ):
+    def __init__(self, parser: HookPlannerParser, max_retries: int = 3):
         """
         Args:
-            ollama_client: The OllamaClient instance (must have .generate(model, prompt))
             parser: HookPlannerParser instance to validate the output
             max_retries: How many times to retry on grammar failure
-            model: The name of the Ollama model to use
+
+        The model is selected by the unified provider via the "hook_planner"
+        role (economy tier on the gateway, phi3:mini locally).
         """
-        self.ollama_client = ollama_client
         self.parser = parser
         self.max_retries = max_retries
-        self.model = model
 
     @property
     def api_dictionary(self) -> Dict:
@@ -49,7 +47,7 @@ class HookPlannerGenerator:
         prompt = prompt.replace("{api_dictionary_json}", json.dumps(api_dictionary, indent=2))
 
         for attempt in range(self.max_retries):
-            raw = await self.ollama_client.generate(model=self.model, prompt=prompt)
+            raw = await llm.complete_text("hook_planner", prompt=prompt)
             try:
                 # parser.parse returns (script, is_unresolved, reason)
                 return self.parser.parse(raw)
