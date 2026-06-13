@@ -42,6 +42,10 @@ class SandboxRunner:
         self.frida_runner: Optional[FridaRunner] = None
 
         self.observations: List[dict] = []
+        # Surfaced (not swallowed) instrumentation failure, if any. The worker
+        # logs/persists this so broken frida instrumentation is never mistaken
+        # for "the app did nothing" (dormancy).
+        self.frida_error: Optional[str] = None
 
     def _on_frida_message(self, payload: dict, data: bytes):
         """Callback for Frida observations"""
@@ -76,6 +80,7 @@ class SandboxRunner:
             package_name=self.package_name,
             script_content=frida_script,
             on_message_callback=self._on_frida_message,
+            device_id=getattr(self.avd_manager, "device_id", None),
         )
 
         try:
@@ -96,12 +101,24 @@ class SandboxRunner:
                 tasks.append(asyncio.ensure_future(self._drive_ui()))
 
             try:
-                await asyncio.wait_for(
+                results = await asyncio.wait_for(
                     asyncio.gather(*tasks, return_exceptions=True),
                     timeout=timeout_seconds + 60,
                 )
             except asyncio.TimeoutError:
                 raise SandboxRunnerError("Frida execution exceeded timeout")
+
+            # results[0] is the frida task. gather(return_exceptions=True) would
+            # otherwise swallow a frida failure and make 0 observations look like
+            # the app was dormant — surface it loudly instead.
+            frida_result = results[0]
+            if isinstance(frida_result, BaseException):
+                self.frida_error = f"{type(frida_result).__name__}: {frida_result}"
+                logger.error(
+                    "Frida instrumentation FAILED for %s (not dormancy): %s",
+                    self.package_name,
+                    self.frida_error,
+                )
 
         except FridaRunnerError as e:
             logger.error(f"Frida error during sandbox run: {e}")
@@ -118,7 +135,10 @@ class SandboxRunner:
                 await self.mitm_runner.stop()
 
         logger.info(
-            f"Completed Sandbox run for {self.package_name}. Collected {len(self.observations)} observations."
+            "Completed Sandbox run for %s. Collected %d observations.%s",
+            self.package_name,
+            len(self.observations),
+            f" FRIDA ERROR: {self.frida_error}" if self.frida_error else "",
         )
         return self.observations
 

@@ -6,6 +6,8 @@ from typing import Any, Callable, Optional
 
 import frida
 
+from parallax.core.config import settings
+
 logger = logging.getLogger(__name__)
 
 
@@ -24,10 +26,14 @@ class FridaRunner:
         package_name: str,
         script_content: str,
         on_message_callback: Callable[[dict, Any], None],
+        device_id: Optional[str] = None,
     ):
         self.package_name = package_name
         self.script_content = script_content
         self.on_message_callback = on_message_callback
+        # Frida device id. Defaults to the configured adb serial; frida tunnels
+        # to frida-server through adb for adb-connected emulators/devices.
+        self.device_id = device_id or os.getenv("FRIDA_DEVICE_ID") or settings.FRIDA_DEVICE_ID
 
         self.device: Optional[frida.core.Device] = None
         self.session: Optional[frida.core.Session] = None
@@ -52,15 +58,16 @@ class FridaRunner:
         Runs the hook script synchronously for a given duration.
         """
         try:
-            # Either hardcode a device ID passed via env var
-            device_id = os.getenv("FRIDA_DEVICE_ID", "localhost:27042")
-
-            # Try to get the device by ID first (Docker/TCP)
+            # Connect to the device frida exposes for the adb serial; frida
+            # tunnels to frida-server over adb. (A plain get_device() on a
+            # "host:27042" string raises InvalidArgumentError — it does not open
+            # a TCP connection; add_remote_device would, but the adb tunnel is
+            # the reliable path for an emulator.)
             try:
-                self.device = frida.get_device(device_id, timeout=5)
-            except frida.TimedOutError:
-                # Fall back to USB if no device_id or TCP connection fails
-                self.device = frida.get_usb_device(timeout=5)
+                self.device = frida.get_device(self.device_id, timeout=10)
+            except (frida.InvalidArgumentError, frida.TimedOutError):
+                # Fall back to whatever USB/adb device is present.
+                self.device = frida.get_usb_device(timeout=10)
 
             logger.info(f"Connected to Frida device: {self.device.id}")
 
