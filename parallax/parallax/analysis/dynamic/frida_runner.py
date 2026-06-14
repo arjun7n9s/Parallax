@@ -83,7 +83,9 @@ class FridaRunner:
             # icon-hiding malware) and obtain its pid.
             result = launch_for_instrumentation(
                 self.package_name,
-                shell=self.shell,  # type: ignore[arg-type]
+                # bandit B604 false positive: this is an adb-shell callable, not
+                # a subprocess shell=True invocation.
+                shell=self.shell,  # type: ignore[arg-type]  # nosec B604
                 frida_device=self.device,
                 timeout=settings.DYNAMIC_TIMEOUT_SECONDS,
             )

@@ -82,7 +82,8 @@ class SandboxRunner:
             on_message_callback=self._on_frida_message,
             device_id=getattr(self.avd_manager, "device_id", None),
             # adb shell for the launch fallback chain (icon-hiding malware).
-            shell=getattr(self.avd_manager, "shell", None),
+            # bandit B604 false positive: an adb-shell callable, not subprocess shell=True.
+            shell=getattr(self.avd_manager, "shell", None),  # nosec B604
         )
 
         try:

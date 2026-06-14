@@ -4,7 +4,11 @@
 # ============================================================
 
 # Layer 1: Ingestion & Triage
-fastapi>=0.115.0
+# Pin fastapi + starlette together: an unpinned starlette resolved a combo on CI
+# where FastAPI routing hit '_IncludedRouter' has no attribute 'path'. These are
+# the versions the suite passes on.
+fastapi==0.136.3
+starlette==1.2.1
 uvicorn[standard]>=0.30.0
 celery[redis]>=5.4.0
 redis>=5.0.0
