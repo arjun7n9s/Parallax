@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 from sqlalchemy.future import select
+from sqlalchemy.orm.attributes import flag_modified
 
 from parallax.ai.hook_planner.generator import HookPlannerGenerator
 from parallax.ai.hook_planner.parser import HookPlannerParser
@@ -138,7 +139,9 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
             # 3. Generate Hooks
             generator = get_generator()
 
-            combined_script = _build_script_prelude(submission_id_str)
+            combined_script = _build_script_prelude(
+                submission_id_str, submission.package_name or "com.example.malware"
+            )
             active_hypothesis_ids = []
 
             for hyp in hypotheses:
@@ -230,6 +233,16 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
                 frida_script=combined_script,
                 timeout_seconds=settings.DYNAMIC_TIMEOUT_SECONDS,
             )
+
+            # Record how the app was launched + any instrumentation failure, so a
+            # broken frida run is visibly broken (not mistaken for app dormancy).
+            meta = submission.metadata_json or {}
+            meta["launch_strategy"] = getattr(sandbox.frida_runner, "launch_strategy", None)
+            if sandbox.frida_error:
+                logger.error("Frida instrumentation failed for %s: %s", sha256, sandbox.frida_error)
+                meta["frida_error"] = sandbox.frida_error
+            submission.metadata_json = meta
+            flag_modified(submission, "metadata_json")
 
             # 5. Save Observations
             for i, obs_payload in enumerate(observations_data):
@@ -328,9 +341,13 @@ def _provision_device(local_apk_path: str):
         return None
 
 
-def _build_script_prelude(session_id: str) -> str:
+def _build_script_prelude(session_id: str, package_name: str = "") -> str:
     """
-    Builds the JS prelude to define the HookRegistry and Session ID.
+    Builds the JS prelude: HookRegistry, Session ID, and an instrumentation
+    beacon. The beacon emits exactly one observation as soon as frida attaches,
+    so a run is always provably instrumented — "instrumented but the app stayed
+    dormant" is then distinguishable from "instrumentation never ran" (a real
+    malware sample with 0 observations and no beacon means the latter, a bug).
     """
     return f"""
 // === PARALLAX PRELUDE ===
@@ -341,6 +358,20 @@ setImmediate(() => {{
         isHooked: function(hookId) {{ return !!this._hooks[hookId]; }},
         markHooked: function(hookId) {{ this._hooks[hookId] = true; }}
     }};
+}});
+setImmediate(() => {{
+    try {{
+        Java.perform(function() {{
+            send({{
+                hook: "parallax.instrumentation_loaded",
+                session_id: "{session_id}",
+                args: {{ package: "{package_name}" }},
+                captured_at_ms: Date.now()
+            }});
+        }});
+    }} catch (e) {{
+        send({{ hook: "parallax.instrumentation_error", args: {{ error: e.toString() }} }});
+    }}
 }});
 // ========================
 """
