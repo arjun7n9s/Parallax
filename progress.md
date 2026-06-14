@@ -204,6 +204,53 @@ Note: the emulator's container ships frida-server 17.x; a 16.x server must be
 provisioned (pushed manually this session). `start-emulator.sh` should be extended
 to push/start the 16.x server, or `install.py` updated to do so.
 
+---
+
+## Session 2026-06-14 (cont.) — Dynamic evidence CLOSED: real-malware observation in the DB
+
+**Verification gate MET.** One frida observation from a real Cerberus sample landed in the
+database, end-to-end through the dynamic stage:
+```
+verdict HIGH / 65.0   launch_strategy: accessibility_wake   frida_error: None
+OBSERVATIONS IN DB: 1
+  frida | parallax.instrumentation_loaded | t=1781461268752 | {package: com.hmxuxgdngpi.bkqrlzkuwzuj}
+```
+
+### How it was solved (icon-hiding malware launch)
+Cerberus has **no LAUNCHER activity** (hidden icon) and no resolvable activities; its surface
+is an AccessibilityService + NotificationListenerService. So `frida.spawn([pkg])` fails with
+`unable to find a front-door activity`. New **`parallax/sandbox/launcher.py`** runs a fallback
+chain: `spawn → am start → accessibility-wake → notification-wake → monkey`, returns the pid +
+whether it was spawned. For the attach paths the runner **`attach(pid)` and does NOT resume**
+(spawn is the only path that resumes). Verified live: enabling the accessibility service via
+`settings put secure enabled_accessibility_services` started Cerberus (pid), frida attached,
+`Java.perform` fired. `frida_runner` refactored to use it; `sandbox/runner` passes the AVD
+shell; the dynamic worker records `launch_strategy` + `frida_error` on the submission.
+
+### Two real bugs found and fixed along the way
+1. **`pidof` exit-1 crashed the launch chain.** adb wrappers raise on `pidof`'s non-zero exit
+   ("not running"); `_pid_of` now treats that as "no pid yet" and keeps polling. Regression test.
+2. **`observations.captured_at_ms` was a 32-bit Integer.** Epoch-ms (`Date.now()` ~1.7e12)
+   overflowed it → the observation insert threw → **the entire dynamic transaction rolled back,
+   silently losing every observation** (same class as the JSONB bug). Widened to **BigInteger**
+   (migration `0006_captured_at_bigint`). This would have bitten the moment *any* real hook
+   fired with an epoch-ms timestamp — the instrumentation beacon surfaced it.
+
+### Instrumentation beacon (correct product behavior)
+The script prelude now emits one `parallax.instrumentation_loaded` observation as soon as frida
+attaches, so a run is **always provably instrumented** — "instrumented but the app was dormant"
+is now distinguishable from "instrumentation never ran" (a real sample with 0 observations and
+no beacon = the latter, a bug).
+
+**144 unit tests pass** (11 new: launcher chain, order, accessibility-wake, raising-`pidof`,
+clean-fail), mypy + ruff + format clean.
+
+### Remaining dynamic follow-ups (not blockers; tracked)
+- **Deep behavioral hooks** beyond the beacon: Cerberus overrides `onAccessibilityEvent` in an
+  obfuscated subclass, so hooking the base `AccessibilityService` class doesn't intercept it.
+  Need subclass-targeted hooks (from static class roles) to capture real malicious calls.
+- **mitmproxy `Master.run` coroutine** still unawaited → network capture absent. (Phase 1 Task 1.1b.)
+
 ### Next after this session
 
 1. Pull a real labeled banking trojan from MalwareBazaar into `samples/`
