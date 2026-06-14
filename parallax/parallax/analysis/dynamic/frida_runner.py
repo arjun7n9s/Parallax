@@ -7,6 +7,7 @@ from typing import Any, Callable, Optional
 import frida
 
 from parallax.core.config import settings
+from parallax.sandbox.launcher import launch_for_instrumentation
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,7 @@ class FridaRunner:
         script_content: str,
         on_message_callback: Callable[[dict, Any], None],
         device_id: Optional[str] = None,
+        shell: Optional[Callable[[str], str]] = None,
     ):
         self.package_name = package_name
         self.script_content = script_content
@@ -34,10 +36,15 @@ class FridaRunner:
         # Frida device id. Defaults to the configured adb serial; frida tunnels
         # to frida-server through adb for adb-connected emulators/devices.
         self.device_id = device_id or os.getenv("FRIDA_DEVICE_ID") or settings.FRIDA_DEVICE_ID
+        # adb shell callable used by the launch fallback chain (icon-hiding
+        # malware). Without it, only frida spawn (launcher apps) is possible.
+        self.shell = shell
 
         self.device: Optional[frida.core.Device] = None
         self.session: Optional[frida.core.Session] = None
         self.script: Optional[frida.core.Script] = None
+        # Which launch strategy actually started the app (audit signal).
+        self.launch_strategy: Optional[str] = None
 
     def _on_message(self, message: dict, data: Any) -> None:
         """
@@ -71,19 +78,37 @@ class FridaRunner:
 
             logger.info(f"Connected to Frida device: {self.device.id}")
 
-            # Spawn the application to hook it early
-            pid = self.device.spawn([self.package_name])
-            logger.info(f"Spawned {self.package_name} with PID {pid}")
+            # Get the app running by whatever means works (spawn for launcher
+            # apps; am-start / accessibility-wake / notification-wake for
+            # icon-hiding malware) and obtain its pid.
+            result = launch_for_instrumentation(
+                self.package_name,
+                shell=self.shell,  # type: ignore[arg-type]
+                frida_device=self.device,
+                timeout=settings.DYNAMIC_TIMEOUT_SECONDS,
+            )
+            self.launch_strategy = result.strategy.value
+            logger.info(
+                "Instrumenting %s via %s (pid %s)",
+                self.package_name,
+                result.strategy.value,
+                result.pid,
+            )
 
-            # Attach and load script
-            self.session = self.device.attach(pid)
+            # Attach works regardless of how the process started.
+            self.session = self.device.attach(result.pid)
             self.script = self.session.create_script(self.script_content)
             self.script.on("message", self._on_message)  # type: ignore[call-overload]
             self.script.load()
 
-            # Resume execution
-            self.device.resume(pid)
-            logger.info(f"Resumed {self.package_name}. Listening for {timeout_seconds} seconds...")
+            # Only a spawned (suspended) process needs resuming. Attach paths are
+            # already running, so resuming would be wrong (and there's nothing to
+            # resume). We then miss the very earliest init for attach paths but
+            # capture all ongoing behavior — the right trade-off for malware that
+            # only runs once its service is enabled.
+            if result.spawned:
+                self.device.resume(result.pid)
+            logger.info(f"Listening on {self.package_name} for {timeout_seconds} seconds...")
 
             # Wait for the specified duration to capture events
             time.sleep(timeout_seconds)
