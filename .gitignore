@@ -8,6 +8,9 @@ parallax/.venv-fast/
 samples/
 tools/
 
+# Private internal build plan - keep out of the public repo until shipped
+Claude/
+
 # Caches
 __pycache__/
 .mypy_cache/
