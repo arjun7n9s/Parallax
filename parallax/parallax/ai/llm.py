@@ -28,7 +28,9 @@ from typing import Any, cast
 
 import httpx
 
+from parallax.core.circuit_breaker import CircuitBreaker, CircuitOpenError
 from parallax.core.config import settings
+from parallax.core.errors import LLMBadOutputError, LLMError
 
 logger = logging.getLogger(__name__)
 
@@ -117,6 +119,27 @@ class LLMProvider:
         self._anthropic: Any = None  # lazily constructed
         self._openai: Any = None  # lazily constructed
         self._aiml: Any = None  # lazily constructed (OpenAI SDK against the gateway)
+        # One breaker per backend, so a down provider fails fast instead of
+        # burning the full timeout on every analysis.
+        self._breakers: dict[str, CircuitBreaker] = {}
+
+    def _guarded(self, backend: str, factory):
+        """Run a backend network call under a per-backend circuit breaker,
+        normalizing any failure to LLMError (CircuitOpenError passes through)."""
+
+        async def run():
+            cb = self._breakers.get(backend)
+            if cb is None:
+                cb = CircuitBreaker(backend, failure_threshold=5, recovery_timeout=300.0)
+                self._breakers[backend] = cb
+            try:
+                return await cb.call(factory)
+            except (CircuitOpenError, LLMError):
+                raise
+            except Exception as exc:  # noqa: BLE001 — normalize to a typed transient error
+                raise LLMError(f"{backend} call failed: {type(exc).__name__}: {exc}") from exc
+
+        return run()
 
     # ------------------------------------------------------------------ #
     # Routing
@@ -194,7 +217,10 @@ class LLMProvider:
             raw = await self._cloud_generate(
                 provider, role, prompt, system, images, temperature, json_mode=True
             )
-        return _extract_json(raw)
+        try:
+            return _extract_json(raw)
+        except (json.JSONDecodeError, ValueError) as exc:
+            raise LLMBadOutputError(f"role {role!r} returned unparseable JSON: {exc}") from exc
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
         """Embed a batch of texts using the local embedding model.
@@ -206,8 +232,13 @@ class LLMProvider:
         model = self.spec_for("embedding").local_model
         vectors: list[list[float]] = []
         for text in texts:
-            resp = await self._ollama.post("/api/embeddings", json={"model": model, "prompt": text})
-            resp.raise_for_status()
+
+            async def _do(t: str = text):
+                r = await self._ollama.post("/api/embeddings", json={"model": model, "prompt": t})
+                r.raise_for_status()
+                return r
+
+            resp = await self._guarded("ollama", _do)
             vectors.append(resp.json()["embedding"])
         return vectors
 
@@ -235,8 +266,13 @@ class LLMProvider:
             payload["system"] = system
         if images:
             payload["images"] = images
-        resp = await self._ollama.post("/api/generate", json=payload)
-        resp.raise_for_status()
+
+        async def _do():
+            r = await self._ollama.post("/api/generate", json=payload)
+            r.raise_for_status()
+            return r
+
+        resp = await self._guarded("ollama", _do)
         return str(resp.json().get("response", ""))
 
     async def _cloud_generate(
@@ -292,14 +328,17 @@ class LLMProvider:
             messages.append({"role": "system", "content": system})
         messages.append({"role": "user", "content": user_content})
 
-        resp = await self._aiml.chat.completions.create(
-            model=self.spec_for(role).cloud_model or _DEFAULT_SPEC.cloud_model,
-            temperature=temperature,
-            # Synthesis emits large structured JSON (full IRT + findings +
-            # recommendations); 4096 truncated it mid-object. 8192 is safe
-            # across the gateway's Claude/GPT/Gemini models.
-            max_tokens=8192,
-            messages=messages,
+        resp = await self._guarded(
+            "aiml",
+            lambda: self._aiml.chat.completions.create(
+                model=self.spec_for(role).cloud_model or _DEFAULT_SPEC.cloud_model,
+                temperature=temperature,
+                # Synthesis emits large structured JSON (full IRT + findings +
+                # recommendations); 4096 truncated it mid-object. 8192 is safe
+                # across the gateway's Claude/GPT/Gemini models.
+                max_tokens=8192,
+                messages=messages,
+            ),
         )
         return resp.choices[0].message.content or ""
 
