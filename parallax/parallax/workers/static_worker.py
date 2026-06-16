@@ -6,14 +6,6 @@ import tempfile
 import uuid
 import zipfile
 
-# Celery is optional in lightweight dev venvs (e.g. .venv-fast).
-# When missing, fall back to a stub class so module import succeeds.
-# Tests that mock at the function level will still work; only the
-# @shared_task decorator will fail at runtime if celery is absent.
-try:
-    from celery import Task
-except ImportError:
-    Task = object  # type: ignore[assignment,misc]
 from sqlalchemy.future import select
 from sqlalchemy.orm.attributes import flag_modified
 
@@ -28,9 +20,16 @@ from parallax.analysis.static.jadx_runner import run_jadx
 from parallax.analysis.static.yara_runner import run_yara
 from parallax.core.config import settings
 from parallax.core.database import async_session
+
+# Celery is optional in lightweight dev venvs (e.g. .venv-fast).
+# When missing, fall back to a stub class so module import succeeds.
+# Tests that mock at the function level will still work; only the
+# @shared_task decorator will fail at runtime if celery is absent.
+from parallax.core.errors import TransientError
 from parallax.core.models import Submission, TaintFlow
 from parallax.core.storage import APK_BUCKET, DECOMPILED_BUCKET, get_minio_client
 from parallax.workers.celery_app import celery_app
+from parallax.workers.mixins import RetryableTask
 
 logger = logging.getLogger(__name__)
 
@@ -78,7 +77,7 @@ def async_to_sync(awaitable):
     return asyncio.run(awaitable)
 
 
-class AsyncSQLAlchemyTask(Task):
+class AsyncSQLAlchemyTask(RetryableTask):
     abstract = True
 
     def __call__(self, *args, **kwargs):
@@ -220,6 +219,8 @@ async def _async_run_static_pipeline(submission_id_str: str):
             await db.commit()
             logger.info(f"Static pipeline complete for {sha256}. Status set to 'dynamic'.")
 
+        except TransientError:
+            raise  # transient (infra/LLM/circuit-open): let Celery retry the task
         except Exception:
             logger.exception(f"Error during static pipeline for {sha256}")
             try:

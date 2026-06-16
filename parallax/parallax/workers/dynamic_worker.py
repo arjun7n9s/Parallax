@@ -14,16 +14,13 @@ from parallax.ai.hook_planner.generator import HookPlannerGenerator
 from parallax.ai.hook_planner.parser import HookPlannerParser
 from parallax.core.config import settings
 from parallax.core.database import async_session
+from parallax.core.errors import TransientError
 from parallax.core.models import ExperimentObservationLink, Hypothesis, Observation, Submission
 from parallax.core.storage import APK_BUCKET, get_minio_client
 from parallax.sandbox.runner import SandboxRunner
 from parallax.workers.celery_app import celery_app
 from parallax.workers.idempotency import stage_already_done
-
-try:
-    from celery import Task
-except ImportError:
-    Task = object  # type: ignore[assignment,misc]
+from parallax.workers.mixins import RetryableTask
 
 STATIC_HOOK_MAP = {
     "sms": "sms_interception.js",
@@ -69,7 +66,7 @@ def async_to_sync(awaitable):
     return asyncio.run(awaitable)
 
 
-class AsyncSQLAlchemyTask(Task):
+class AsyncSQLAlchemyTask(RetryableTask):
     abstract = True
 
     def __call__(self, *args, **kwargs):
@@ -300,6 +297,8 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
 
             run_reasoning_pipeline.delay(submission_id_str)
 
+    except TransientError:
+        raise  # transient (infra/LLM/circuit-open): let Celery retry the task
     except Exception:
         logger.exception(f"Error during dynamic pipeline for {submission_id_str}")
         try:

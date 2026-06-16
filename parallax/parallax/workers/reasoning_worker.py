@@ -15,20 +15,17 @@ import tempfile
 import uuid
 import zipfile
 
-try:
-    from celery import Task
-except ImportError:
-    Task = object  # type: ignore[assignment,misc]
-
 from sqlalchemy.future import select
 from sqlalchemy.orm.attributes import flag_modified
 
 from parallax.ai.orchestration import run_cortex
 from parallax.core.database import async_session
+from parallax.core.errors import TransientError
 from parallax.core.models import IOC, Observation, Submission, TaintFlow
 from parallax.core.storage import DECOMPILED_BUCKET, SCREENSHOTS_BUCKET, get_minio_client
 from parallax.workers.celery_app import celery_app
 from parallax.workers.idempotency import stage_already_done
+from parallax.workers.mixins import RetryableTask
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +40,7 @@ def async_to_sync(awaitable):
     return asyncio.run(awaitable)
 
 
-class AsyncSQLAlchemyTask(Task):
+class AsyncSQLAlchemyTask(RetryableTask):
     abstract = True
 
     def __call__(self, *args, **kwargs):
@@ -207,6 +204,8 @@ async def _async_run_reasoning_pipeline(submission_id_str: str):
             except ImportError:
                 logger.debug("Delivery worker not available; skipping report generation.")
 
+    except TransientError:
+        raise  # transient (infra/LLM/circuit-open): let Celery retry the task
     except Exception:
         logger.exception("Error during reasoning pipeline for %s", submission_id_str)
         try:

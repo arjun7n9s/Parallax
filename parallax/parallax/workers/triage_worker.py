@@ -5,14 +5,6 @@ import shutil
 import tempfile
 import uuid
 
-# Celery is optional in lightweight dev venvs (e.g. .venv-fast).
-# When missing, fall back to a stub class so module import succeeds.
-# Tests that mock at the function level will still work; only the
-# @shared_task decorator will fail at runtime if celery is absent.
-try:
-    from celery import Task
-except ImportError:
-    Task = object  # type: ignore[assignment,misc]
 from sqlalchemy.future import select
 
 from parallax.ai.agents.triage import run_llm_triage
@@ -21,9 +13,16 @@ from parallax.analysis.ingestion.apkid_runner import run_apkid
 from parallax.analysis.ingestion.ssdeep_runner import run_ssdeep
 from parallax.analysis.static.androguard_runner import run_androguard
 from parallax.core.database import async_session
+
+# Celery is optional in lightweight dev venvs (e.g. .venv-fast).
+# When missing, fall back to a stub class so module import succeeds.
+# Tests that mock at the function level will still work; only the
+# @shared_task decorator will fail at runtime if celery is absent.
+from parallax.core.errors import TransientError
 from parallax.core.models import Submission
 from parallax.core.storage import APK_BUCKET, get_minio_client
 from parallax.workers.celery_app import celery_app
+from parallax.workers.mixins import RetryableTask
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +41,7 @@ def async_to_sync(awaitable):
     return asyncio.run(awaitable)
 
 
-class AsyncSQLAlchemyTask(Task):
+class AsyncSQLAlchemyTask(RetryableTask):
     """A Celery Task base class that provides an async SQLAlchemy session."""
 
     abstract = True
@@ -155,6 +154,8 @@ async def _async_run_triage_pipeline(submission_id_str: str):
 
             run_static_pipeline.delay(submission_id_str)
 
+        except TransientError:
+            raise  # transient (infra/LLM/circuit-open): let Celery retry the task
         except Exception:
             logger.exception(f"Error during triage pipeline for {sha256}")
             try:

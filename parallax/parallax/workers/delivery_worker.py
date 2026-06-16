@@ -12,11 +12,6 @@ import io
 import logging
 import uuid
 
-try:
-    from celery import Task
-except ImportError:
-    Task = object  # type: ignore[assignment,misc]
-
 from sqlalchemy.future import select
 from sqlalchemy.orm.attributes import flag_modified
 
@@ -25,6 +20,7 @@ from parallax.core.database import async_session
 from parallax.core.models import Submission
 from parallax.core.storage import REPORTS_BUCKET, get_minio_client
 from parallax.workers.celery_app import celery_app
+from parallax.workers.mixins import RetryableTask
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +35,7 @@ def async_to_sync(awaitable):
     return asyncio.run(awaitable)
 
 
-class AsyncSQLAlchemyTask(Task):
+class AsyncSQLAlchemyTask(RetryableTask):
     abstract = True
 
     def __call__(self, *args, **kwargs):
