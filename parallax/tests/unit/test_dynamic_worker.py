@@ -7,6 +7,23 @@ from parallax.core.models import Hypothesis, Submission
 from parallax.workers.dynamic_worker import _async_run_dynamic_pipeline
 
 
+@pytest.fixture(autouse=True)
+def _hermetic_worker(monkeypatch):
+    """Keep these unit tests off real infrastructure regardless of the ambient
+    .env or running services:
+
+    * DYNAMIC_LIVE_DEVICE=true (set for live runs) would make the worker call
+      _provision_device -> AVDManager.boot() and hang on a real device wait.
+    * The worker enqueues the reasoning stage with a real Celery .delay(), which
+      blocks connecting to the Redis result backend. Stub it to a no-op.
+    """
+    import parallax.workers.reasoning_worker as rw
+    from parallax.core.config import settings
+
+    monkeypatch.setattr(settings, "DYNAMIC_LIVE_DEVICE", False)
+    monkeypatch.setattr(rw.run_reasoning_pipeline, "delay", lambda *a, **k: None, raising=False)
+
+
 @pytest.fixture
 def mock_db_session():
     session = AsyncMock()
