@@ -18,6 +18,7 @@ from parallax.core.models import ExperimentObservationLink, Hypothesis, Observat
 from parallax.core.storage import APK_BUCKET, get_minio_client
 from parallax.sandbox.runner import SandboxRunner
 from parallax.workers.celery_app import celery_app
+from parallax.workers.idempotency import stage_already_done
 
 try:
     from celery import Task
@@ -106,6 +107,17 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
 
             if not submission:
                 logger.error(f"Submission {submission_id_str} not found.")
+                return
+
+            # Idempotency: Celery delivers at least once. If this submission has
+            # already moved past the dynamic stage, a redelivered task must not
+            # re-instrument the sample and duplicate observations.
+            if stage_already_done(submission.status, "dynamic"):
+                logger.info(
+                    "Dynamic stage already done for %s (status=%s); skipping redelivery.",
+                    submission_id_str,
+                    submission.status,
+                )
                 return
 
             # We will set status to dynamic later when the sandbox is actually starting.

@@ -28,6 +28,7 @@ from parallax.core.database import async_session
 from parallax.core.models import IOC, Observation, Submission, TaintFlow
 from parallax.core.storage import DECOMPILED_BUCKET, SCREENSHOTS_BUCKET, get_minio_client
 from parallax.workers.celery_app import celery_app
+from parallax.workers.idempotency import stage_already_done
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +116,16 @@ async def _async_run_reasoning_pipeline(submission_id_str: str):
             submission = result.scalar_one_or_none()
             if not submission:
                 logger.error("Submission %s not found.", submission_id_str)
+                return
+
+            # Idempotency: a redelivered reasoning task must not re-run the
+            # (expensive) cortex and duplicate IOCs / graph writes once complete.
+            if stage_already_done(submission.status, "reasoning"):
+                logger.info(
+                    "Reasoning already done for %s (status=%s); skipping redelivery.",
+                    submission_id_str,
+                    submission.status,
+                )
                 return
 
             submission.status = "reasoning"
