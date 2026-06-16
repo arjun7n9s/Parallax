@@ -242,3 +242,21 @@ async def test_worker_fallback_to_static_hooks(
     script = kwargs.get("frida_script", "")
     assert "android.telephony.SmsManager.sendTextMessage" in script
     assert "HYP-SMS" in script
+
+
+@pytest.mark.asyncio
+@patch("parallax.workers.dynamic_worker.get_minio_client")
+@patch("parallax.workers.dynamic_worker.async_session")
+async def test_transient_error_propagates_for_retry(
+    mock_async_session, mock_minio, mock_db_session
+):
+    """A transient failure (e.g. MinIO down) must propagate out of the worker so
+    Celery's autoretry can retry it, rather than being swallowed as 'failed'."""
+    from parallax.core.errors import InfraError
+
+    ctx, session = mock_db_session
+    mock_async_session.return_value = ctx
+    mock_minio.side_effect = InfraError("minio unreachable")
+
+    with pytest.raises(InfraError):
+        await _async_run_dynamic_pipeline(str(uuid.uuid4()))

@@ -127,6 +127,31 @@ def _aiml_provider(monkeypatch, create_fn):
     return p
 
 
+class TestRetryableTask:
+    def test_retry_config(self):
+        from parallax.workers.mixins import RetryableTask
+
+        assert RetryableTask.autoretry_for == (TransientError,)
+        assert RetryableTask.max_retries == 3
+        assert RetryableTask.retry_backoff is True
+        assert RetryableTask.acks_late is True
+
+    def test_pipeline_workers_inherit_retryable(self):
+        # Each worker's task base must be a RetryableTask so transient failures
+        # auto-retry with backoff.
+        from parallax.workers.mixins import RetryableTask
+
+        for mod in (
+            "parallax.workers.triage_worker",
+            "parallax.workers.static_worker",
+            "parallax.workers.dynamic_worker",
+            "parallax.workers.reasoning_worker",
+            "parallax.workers.delivery_worker",
+        ):
+            m = __import__(mod, fromlist=["AsyncSQLAlchemyTask"])
+            assert issubclass(m.AsyncSQLAlchemyTask, RetryableTask), mod
+
+
 class TestLLMBoundary:
     @pytest.mark.asyncio
     async def test_backend_failure_becomes_llmerror(self, monkeypatch):
