@@ -251,6 +251,39 @@ clean-fail), mypy + ruff + format clean.
   Need subclass-targeted hooks (from static class roles) to capture real malicious calls.
 - **mitmproxy `Master.run` coroutine** still unawaited → network capture absent. (Phase 1 Task 1.1b.)
 
+---
+
+## Session 2026-06-16 — Phase 1 reliability core (Claude/ plan)
+
+Continued the Claude/ build plan. Shipped the foundational, fully-unit-tested
+reliability pieces (no live-emulator dependency), each CI-green on `main`:
+
+- **Task 1.5 — typed error hierarchy** (`core/errors.py`): `ParallaxError` tree
+  (Transient/Permanent/Stage; Infra/LLM and Data/LLMBadOutput leaves) + `is_retryable`,
+  so workers decide retry vs fail vs continue-degraded from the exception type.
+- **Task 1.6 — circuit breaker** (`core/circuit_breaker.py`): CLOSED/OPEN/HALF_OPEN,
+  injectable clock. Wired into the LLM provider: each backend (ollama, aiml gateway)
+  runs under a per-backend breaker; failures normalize to `LLMError`, an open circuit
+  fails fast with `CircuitOpenError`, and `complete_json` raises `LLMBadOutputError`
+  on unparseable output.
+- **Task 1.4 — stage idempotency** (`workers/idempotency.py`): dynamic and reasoning
+  workers skip when the submission already advanced past their stage, so Celery
+  at-least-once redelivery never re-instruments or re-runs the cortex. Submit-time
+  sha256 dedup already collapses repeated submissions.
+
+New tests: `test_reliability.py` (errors + breaker + LLM boundary), `test_idempotency.py`
+(stage-guard truth table + redelivery skips). Also made the dynamic-worker unit tests
+**hermetic**: an autouse fixture forces `DYNAMIC_LIVE_DEVICE` off and stubs the reasoning
+`.delay()`, so they never touch a real emulator or Redis regardless of the ambient `.env`
+(this was a real local hang once services + the live-run flag were present; CI was always
+green because it has neither). Full unit suite green, mypy + ruff + format clean.
+
+Commits on `main` (authored as arjun7n9s): `feat(core)`, `feat(llm)`, `test(reliability)`,
+`feat(workers)` idempotency.
+
+### Remaining Phase 1 (next): 1.1b mitmproxy network capture, 1.2 emulator pool,
+### 1.3 worker resilience (retries/DLQ/heartbeat), 1.7 degradation matrix, 1.8 observability.
+
 ### Next after this session
 
 1. Pull a real labeled banking trojan from MalwareBazaar into `samples/`
