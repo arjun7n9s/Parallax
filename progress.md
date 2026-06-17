@@ -334,3 +334,37 @@ Commits on `productize-audit-fixes` (authored as arjun7n9s, no co-author trailer
 
 ### Remaining on 1.8 (needs live infra): OTel tracing across Celery, Grafana dashboards
 ### populating, and an Alertmanager rule firing. Tracked as 🟡 in the master tracker.
+
+---
+
+## Session 2026-06-17 (cont.) — Task 1.3 recovery half: heartbeat + orphan reaper
+
+Closed the code half of worker self-healing (the `kill -9 → resume` story).
+
+- **Heartbeat** (`workers/heartbeat.py`): a running stage refreshes `hb:{submission_id}`
+  in Redis on a daemon thread (interval/TTL from settings); best-effort, so Redis being
+  down degrades to a no-op and never breaks a stage. A `stage_context` decorator now unifies
+  log-context binding **and** the heartbeat across all four pipeline workers, replacing the
+  inline `bind_log_context`/`clear_log_context` added earlier — the worker bodies are cleaner
+  and the teardown is guaranteed in one place.
+- **Orphan reaper** (`workers/reaper.py`): a Celery-beat task (every 30s, configurable) that
+  finds submissions still in a non-terminal status whose heartbeat expired **and** which
+  haven't been touched within a grace window, then re-dispatches the worker for their current
+  stage via a status→task `RESUME_DISPATCH` map. The stage idempotency guard makes restart
+  safe, so resume never re-runs completed stages or duplicates LLM cost. If Redis is
+  unreachable the whole run is skipped — a missed reap self-heals next tick, but a false reap
+  would double-dispatch live work, so uncertainty always means "don't reap". Wired into the
+  beat schedule + `include` list; new `parallax_orphan_reaped_total{stage}` metric.
+
+Tests: `test_heartbeat.py` (helpers, refresher-thread refresh+clear, disabled no-op,
+decorator binds/clears even on error) and `test_reaper.py` (resume map covers every
+non-terminal status and excludes terminal; orphan selection truth table incl. live-heartbeat,
+grace window, null/naive timestamps, and Redis-error propagation). Added an autouse conftest
+fixture that disables the heartbeat in unit tests so none can touch real Redis. Full unit
+suite green; mypy + ruff + bandit clean.
+
+Commit on `main` (authored as arjun7n9s): `feat(workers)` heartbeat + orphan reaper.
+
+### Remaining on 1.3: the live `kill -9 a worker mid-dynamic → re-queued and completes from
+### the dynamic stage within ~60s` proof — needs live Redis + a running beat, deferred to a
+### live session.
