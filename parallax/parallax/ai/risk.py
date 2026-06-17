@@ -10,6 +10,7 @@ plumbing is in place to swap in a trained calibrator without touching callers.
 
 from __future__ import annotations
 
+from parallax.ai.calibration import calibrate_score
 from parallax.ai.schemas import (
     BehaviorAnalystOutput,
     CodeInterpreterOutput,
@@ -184,8 +185,8 @@ def compute_risk(
 
 
 def _calibrate(evidence_score: float) -> float:
-    """Layer B. Identity calibration until a trained model is available."""
-    return evidence_score
+    """Layer B. Uses a trained model when present, otherwise identity."""
+    return calibrate_score(evidence_score)
 
 
 def _verdict(score: float) -> Verdict:
