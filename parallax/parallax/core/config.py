@@ -95,6 +95,11 @@ class Settings(BaseSettings):
     DYNAMIC_LIVE_DEVICE: bool = False
     DYNAMIC_TIMEOUT_SECONDS: int = 120
     DROIDBOT_MAX_TURNS: int = 20
+    # Android global proxy target for the in-process mitmproxy. 127.0.0.1
+    # preserves the single-host/default emulator behavior; Docker Desktop/WSL
+    # live runs can set this to the host gateway reachable from the emulator.
+    MITM_PROXY_HOST: str = "127.0.0.1"
+    MITM_PROXY_PORT: int = 8080
     # Frida device id. For an adb-connected emulator/device this is the adb
     # serial (e.g. "localhost:5555"); frida tunnels to frida-server through adb.
     # NOT the TCP "host:27042" form — plain get_device() cannot open that.

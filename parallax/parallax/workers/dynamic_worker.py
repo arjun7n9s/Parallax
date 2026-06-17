@@ -237,6 +237,7 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
                 submission_id=submission_id_str,
                 package_name=submission.package_name or "com.example.malware",
                 apk_path=local_apk_path,
+                proxy_port=settings.MITM_PROXY_PORT,
                 avd_manager=avd_manager,
                 drive_ui=avd_manager is not None,
             )
@@ -346,7 +347,10 @@ def _provision_device(local_apk_path: str):
 
         # Route device HTTP(S) through the in-process mitmproxy.
         try:
-            avd.shell(f"settings put global http_proxy 127.0.0.1:{8080}")
+            avd.shell(
+                f"settings put global http_proxy "
+                f"{settings.MITM_PROXY_HOST}:{settings.MITM_PROXY_PORT}"
+            )
         except Exception as exc:
             logger.warning("proxy configuration skipped: %s", exc)
 

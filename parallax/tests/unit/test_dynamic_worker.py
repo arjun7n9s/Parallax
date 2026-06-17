@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from parallax.core.models import Hypothesis, Submission
-from parallax.workers.dynamic_worker import _async_run_dynamic_pipeline
+from parallax.workers.dynamic_worker import _async_run_dynamic_pipeline, _provision_device
 
 
 @pytest.fixture(autouse=True)
@@ -91,6 +91,7 @@ async def test_worker_transitions_to_dynamic_on_start(
     # Check if submission status was updated to dynamic at some point
     # We can inspect the calls to commit
     assert session.commit.called
+    assert MockSandboxRunner.call_args.kwargs["proxy_port"] == 8080
 
 
 @pytest.mark.asyncio
@@ -260,3 +261,41 @@ async def test_transient_error_propagates_for_retry(
 
     with pytest.raises(InfraError):
         await _async_run_dynamic_pipeline(str(uuid.uuid4()))
+
+
+def test_live_device_proxy_uses_configured_host_and_port(monkeypatch):
+    from parallax.analysis.dynamic import avd_manager as avd_mod
+    from parallax.analysis.dynamic import install as install_mod
+    from parallax.core.config import settings
+
+    class FakeAVD:
+        def __init__(self):
+            self.commands = []
+            self.installed = []
+
+        def is_running(self):
+            return True
+
+        def boot(self):
+            raise AssertionError("already running")
+
+        def install_apk(self, path):
+            self.installed.append(path)
+
+        def is_frida_running(self):
+            return True
+
+        def shell(self, command):
+            self.commands.append(command)
+            return ""
+
+    fake = FakeAVD()
+    monkeypatch.setattr(settings, "MITM_PROXY_HOST", "host.docker.internal", raising=False)
+    monkeypatch.setattr(settings, "MITM_PROXY_PORT", 18080, raising=False)
+    monkeypatch.setattr(avd_mod, "AVDManager", lambda: fake)
+    monkeypatch.setattr(install_mod, "get_default_frida_server_path", lambda _avd: "unused")
+    monkeypatch.setattr(install_mod, "install_frida_server", lambda *_a, **_k: None)
+
+    assert _provision_device("sample.apk") is fake
+    assert fake.installed == ["sample.apk"]
+    assert "settings put global http_proxy host.docker.internal:18080" in fake.commands
