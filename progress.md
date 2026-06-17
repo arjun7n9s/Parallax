@@ -300,3 +300,37 @@ Commits on `main` (authored as arjun7n9s): `feat(core)`, `feat(llm)`, `test(reli
 1. Pull a real labeled banking trojan from MalwareBazaar into `samples/`
 2. Full end-to-end run (submit → triage → static → dynamic → cortex → delivery) with cloud routing — the final unproven milestone
 3. Then: frontend UI → calibration Layer B (per agreed scope; DSPy deferred)
+
+---
+
+## Session 2026-06-17 — Observability core (Task 1.8, the code half)
+
+Built the parts of 1.8 that don't need live infra, in three clean checkpoints.
+
+- **Prometheus metrics** (`core/metrics.py`): decision-driving series, not vanity counters —
+  `parallax_llm_call_duration_seconds{role,provider}`, `parallax_llm_tokens_total{role,direction}`,
+  `parallax_analysis_verdict_total{verdict}`, and `parallax_stage_failure_total{stage,error_class}`
+  (the last keyed off the typed error hierarchy from 1.5). All recording goes through no-op-safe
+  helpers so call sites never guard. Added an unauthenticated `/metrics` endpoint on the API —
+  the bundled `prometheus.yml` already scrapes `:8000/metrics`, so the target now exists.
+- **Wiring**: every LLM call now flows through one timed `_generate()` entry point in `llm.py`
+  that records per-role latency and **real** token usage threaded out of each backend (Ollama
+  `prompt_eval_count`/`eval_count`; OpenAI/Anthropic/gateway `usage` blocks). The reasoning worker
+  records the final verdict; all four pipeline workers record stage failures by error class on
+  their failure branch.
+- **Structured logging** (`core/logging.py`): renders colored console for an interactive TTY and
+  JSON everywhere else (`LOG_FORMAT=auto|json|console`), so the same build ships to Loki/ELK with
+  no change. Added `bind_log_context`/`clear_log_context` (structlog contextvars + a
+  `merge_contextvars` processor): each worker binds `submission_id` + `stage` at entry and clears
+  on exit, so every log line for one analysis is correlated without threading ids through call
+  signatures.
+
+New tests: `test_metrics.py` (helpers move the right series via `REGISTRY.get_sample_value`;
+`/metrics` served through `TestClient`) and `test_logging.py` (format selection + bound context
+renders into the JSON event). Full unit suite green; mypy + ruff + format clean.
+
+Commits on `productize-audit-fixes` (authored as arjun7n9s, no co-author trailer):
+`feat(obs)` metrics core + endpoint, `feat(obs)` metric wiring, `feat(obs)` JSON logs + correlation.
+
+### Remaining on 1.8 (needs live infra): OTel tracing across Celery, Grafana dashboards
+### populating, and an Alertmanager rule firing. Tracked as 🟡 in the master tracker.
