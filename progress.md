@@ -278,11 +278,22 @@ New tests: `test_reliability.py` (errors + breaker + LLM boundary), `test_idempo
 (this was a real local hang once services + the live-run flag were present; CI was always
 green because it has neither). Full unit suite green, mypy + ruff + format clean.
 
-Commits on `main` (authored as arjun7n9s): `feat(core)`, `feat(llm)`, `test(reliability)`,
-`feat(workers)` idempotency.
+- **Task 1.3 (core) — worker resilience** (`workers/mixins.py`): a `RetryableTask` base
+  (autoretry_for=(TransientError,), exponential backoff + jitter, max_retries=3, acks_late,
+  dead-letter logging on exhaustion). All five pipeline workers inherit it; the four pipeline
+  workers now re-raise `TransientError` so Celery retries infra/LLM/circuit-open failures,
+  while permanent and unknown failures still mark the submission failed. Combined with the
+  stage idempotency guard, acks_late re-delivery is safe.
 
-### Remaining Phase 1 (next): 1.1b mitmproxy network capture, 1.2 emulator pool,
-### 1.3 worker resilience (retries/DLQ/heartbeat), 1.7 degradation matrix, 1.8 observability.
+This completes the failure-recovery loop: typed errors (1.5) -> circuit breaker (1.6) ->
+retry-transient / fail-permanent (1.3) -> idempotent re-delivery (1.4). All CI-green on `main`.
+
+Commits on `main` (authored as arjun7n9s): `feat(core)`, `feat(llm)`, `test(reliability)`,
+`feat(workers)` idempotency, `feat(workers)` RetryableTask, `test(workers)`.
+
+### Remaining Phase 1: 1.3 heartbeat + orphan-reaper (needs live Redis + beat), 1.7 degradation
+### matrix breadth, 1.8 observability (pure code); 1.1b mitmproxy capture + 1.2 emulator pool
+### (need the live emulator up to verify).
 
 ### Next after this session
 
