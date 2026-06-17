@@ -19,11 +19,11 @@ from parallax.core.database import async_session
 # Tests that mock at the function level will still work; only the
 # @shared_task decorator will fail at runtime if celery is absent.
 from parallax.core.errors import TransientError
-from parallax.core.logging import bind_log_context, clear_log_context
 from parallax.core.metrics import record_stage_failure
 from parallax.core.models import Submission
 from parallax.core.storage import APK_BUCKET, get_minio_client
 from parallax.workers.celery_app import celery_app
+from parallax.workers.heartbeat import stage_context
 from parallax.workers.mixins import RetryableTask
 
 logger = logging.getLogger(__name__)
@@ -70,8 +70,8 @@ def run_triage_pipeline(self, submission_id_str: str):
     async_to_sync(_async_run_triage_pipeline(submission_id_str))
 
 
+@stage_context("triage")
 async def _async_run_triage_pipeline(submission_id_str: str):
-    bind_log_context(submission_id=submission_id_str, stage="triage")
     try:
         submission_id = uuid.UUID(submission_id_str)
     except ValueError:
@@ -171,4 +171,3 @@ async def _async_run_triage_pipeline(submission_id_str: str):
             # Cleanup temp directory
             if temp_dir and os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir, ignore_errors=True)
-            clear_log_context()

@@ -82,3 +82,12 @@ from parallax.api.main import app  # noqa: E402
 def client() -> TestClient:
     """Returns a TestClient for the FastAPI app."""
     return TestClient(app)
+
+
+@pytest.fixture(autouse=True)
+def _disable_heartbeat(monkeypatch):
+    """Unit tests must never start the Redis heartbeat thread, regardless of the
+    ambient .env. Tests that exercise the heartbeat re-enable it explicitly."""
+    from parallax.core.config import settings
+
+    monkeypatch.setattr(settings, "HEARTBEAT_ENABLED", False, raising=False)

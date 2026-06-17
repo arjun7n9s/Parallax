@@ -15,12 +15,12 @@ from parallax.ai.hook_planner.parser import HookPlannerParser
 from parallax.core.config import settings
 from parallax.core.database import async_session
 from parallax.core.errors import TransientError
-from parallax.core.logging import bind_log_context, clear_log_context
 from parallax.core.metrics import record_stage_failure
 from parallax.core.models import ExperimentObservationLink, Hypothesis, Observation, Submission
 from parallax.core.storage import APK_BUCKET, get_minio_client
 from parallax.sandbox.runner import SandboxRunner
 from parallax.workers.celery_app import celery_app
+from parallax.workers.heartbeat import stage_context
 from parallax.workers.idempotency import stage_already_done
 from parallax.workers.mixins import RetryableTask
 
@@ -91,8 +91,8 @@ def run_dynamic_pipeline(self, submission_id_str: str):
     async_to_sync(_async_run_dynamic_pipeline(submission_id_str))
 
 
+@stage_context("dynamic")
 async def _async_run_dynamic_pipeline(submission_id_str: str):
-    bind_log_context(submission_id=submission_id_str, stage="dynamic")
     try:
         submission_id = uuid.UUID(submission_id_str)
     except ValueError:
@@ -317,7 +317,6 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
     finally:
         if temp_dir and os.path.exists(temp_dir):
             shutil.rmtree(temp_dir, ignore_errors=True)
-        clear_log_context()
 
 
 def _provision_device(local_apk_path: str):

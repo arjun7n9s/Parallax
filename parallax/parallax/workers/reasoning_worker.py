@@ -21,11 +21,11 @@ from sqlalchemy.orm.attributes import flag_modified
 from parallax.ai.orchestration import run_cortex
 from parallax.core.database import async_session
 from parallax.core.errors import TransientError
-from parallax.core.logging import bind_log_context, clear_log_context
 from parallax.core.metrics import record_stage_failure, record_verdict
 from parallax.core.models import IOC, Observation, Submission, TaintFlow
 from parallax.core.storage import DECOMPILED_BUCKET, SCREENSHOTS_BUCKET, get_minio_client
 from parallax.workers.celery_app import celery_app
+from parallax.workers.heartbeat import stage_context
 from parallax.workers.idempotency import stage_already_done
 from parallax.workers.mixins import RetryableTask
 
@@ -101,8 +101,8 @@ def _observation_to_dict(obs: Observation) -> dict:
     }
 
 
+@stage_context("reasoning")
 async def _async_run_reasoning_pipeline(submission_id_str: str):
-    bind_log_context(submission_id=submission_id_str, stage="reasoning")
     try:
         submission_id = uuid.UUID(submission_id_str)
     except ValueError:
@@ -225,7 +225,6 @@ async def _async_run_reasoning_pipeline(submission_id_str: str):
     finally:
         if temp_dir and os.path.exists(temp_dir):
             shutil.rmtree(temp_dir, ignore_errors=True)
-        clear_log_context()
 
 
 async def _retrieve_related(artifact: dict, submission_id_str: str) -> list[dict]:

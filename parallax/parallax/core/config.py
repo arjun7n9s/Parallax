@@ -34,6 +34,16 @@ class Settings(BaseSettings):
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
 
+    # Liveness heartbeat + orphan reaping. A running stage refreshes a Redis key
+    # every HEARTBEAT_INTERVAL seconds with a HEARTBEAT_TTL expiry; the orphan
+    # reaper re-queues non-terminal analyses whose heartbeat has expired and that
+    # have been untouched for at least ORPHAN_GRACE_SECONDS (guards against
+    # re-dispatching a just-queued or just-restarted analysis).
+    HEARTBEAT_ENABLED: bool = True
+    HEARTBEAT_INTERVAL: float = 10.0
+    HEARTBEAT_TTL: int = 30
+    ORPHAN_GRACE_SECONDS: int = 90
+
     # MinIO
     MINIO_SERVER: str = "localhost:9000"
     MINIO_ROOT_USER: str = "admin"

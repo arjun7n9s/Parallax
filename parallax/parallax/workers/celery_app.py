@@ -17,8 +17,13 @@ celery_app = Celery(
         "parallax.workers.dynamic_worker",
         "parallax.workers.reasoning_worker",
         "parallax.workers.delivery_worker",
+        "parallax.workers.reaper",
     ],
 )
+
+# Orphan reaper runs on Celery beat: re-queue analyses whose worker died
+# mid-stage (heartbeat expired). Interval is configurable; default 30s.
+_REAP_INTERVAL = float(os.environ.get("ORPHAN_REAP_INTERVAL", "30"))
 
 # Optional configuration
 celery_app.conf.update(
@@ -30,6 +35,12 @@ celery_app.conf.update(
     # Triage gets its own queue so it can scale independently. Workers must
     # listen on both: celery -A parallax.workers.celery_app worker -Q celery,triage
     task_routes={"parallax.workers.triage_worker.*": {"queue": "triage"}},
+    beat_schedule={
+        "reap-orphans": {
+            "task": "parallax.workers.reaper.reap_orphans",
+            "schedule": _REAP_INTERVAL,
+        }
+    },
 )
 
 if __name__ == "__main__":

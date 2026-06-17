@@ -48,6 +48,11 @@ if _ENABLED:
         "Pipeline stage failures by error class",
         ["stage", "error_class"],
     )
+    ORPHAN_REAPED = Counter(
+        "parallax_orphan_reaped_total",
+        "Orphaned analyses re-queued by the reaper, by resumed stage",
+        ["stage"],
+    )
 
 
 def record_llm_call(
@@ -81,6 +86,15 @@ def record_stage_failure(stage: str, exc: BaseException) -> None:
         STAGE_FAILURE.labels(stage=stage, error_class=type(exc).__name__).inc()
     except Exception as e:  # noqa: BLE001
         logger.debug("record_stage_failure failed: %s", e)
+
+
+def record_orphan_reaped(stage: str) -> None:
+    if not _ENABLED:
+        return
+    try:
+        ORPHAN_REAPED.labels(stage=stage).inc()
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("record_orphan_reaped failed: %s", exc)
 
 
 def metrics_text() -> tuple[bytes, str]:
