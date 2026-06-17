@@ -26,6 +26,7 @@ from parallax.core.database import async_session
 # Tests that mock at the function level will still work; only the
 # @shared_task decorator will fail at runtime if celery is absent.
 from parallax.core.errors import TransientError
+from parallax.core.logging import bind_log_context, clear_log_context
 from parallax.core.metrics import record_stage_failure
 from parallax.core.models import Submission, TaintFlow
 from parallax.core.storage import APK_BUCKET, DECOMPILED_BUCKET, get_minio_client
@@ -94,6 +95,7 @@ def run_static_pipeline(self, submission_id_str: str):
 
 
 async def _async_run_static_pipeline(submission_id_str: str):
+    bind_log_context(submission_id=submission_id_str, stage="static")
     try:
         submission_id = uuid.UUID(submission_id_str)
     except ValueError:
@@ -233,3 +235,4 @@ async def _async_run_static_pipeline(submission_id_str: str):
         finally:
             if temp_dir and os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir, ignore_errors=True)
+            clear_log_context()

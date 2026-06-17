@@ -105,7 +105,7 @@ class CorrelationIDMiddleware(BaseHTTPMiddleware):
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler — runs on startup and shutdown."""
-    setup_logging(settings.LOG_LEVEL)
+    setup_logging(settings.LOG_LEVEL, settings.LOG_FORMAT)
     logger.info(
         "PARALLAX starting",
         extra={"environment": settings.ENVIRONMENT, "version": "0.1.0"},

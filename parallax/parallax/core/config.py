@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "PARALLAX"
     API_V1_STR: str = "/api/v1"
     LOG_LEVEL: str = "INFO"
+    # Log rendering: "json" for machine ingestion (Loki/ELK), "console" for
+    # human-readable colored output, "auto" to pick JSON unless stdout is a TTY.
+    LOG_FORMAT: str = "auto"
 
     # Security
     ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8000"]
