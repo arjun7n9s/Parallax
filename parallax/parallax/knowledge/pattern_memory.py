@@ -45,21 +45,30 @@ def _pid(category: str, signature: str) -> str:
     return f"PAT-{category}-{digest}"
 
 
+def _signature(text: str) -> str:
+    """Canonical signature used for both storage and stable pattern IDs."""
+    return " ".join(str(text or "").split())[:300]
+
+
 def extract_patterns(
     cortex: CortexResult, permissions: list[str], apkid: dict | None
 ) -> list[dict]:
     """Derive patterns from a completed analysis."""
     patterns: list[dict] = []
+    seen: set[str] = set()
 
     def add(category: str, signature: str, sig_type: str, confidence: float):
-        if signature:
+        signature = _signature(signature)
+        pattern_id = _pid(category, signature)
+        if signature and pattern_id not in seen:
+            seen.add(pattern_id)
             patterns.append(
                 {
-                    "pattern_id": _pid(category, signature),
+                    "pattern_id": pattern_id,
                     "category": category,
-                    "signature": signature[:300],
+                    "signature": signature,
                     "signature_type": sig_type,
-                    "confidence": round(confidence, 3),
+                    "confidence": round(max(0.0, min(1.0, confidence)), 3),
                 }
             )
 
@@ -67,6 +76,27 @@ def extract_patterns(
     code = cortex.code_interpreter
     if code and code.attack_flow:
         add("fraud_flow", " -> ".join(code.attack_flow), "sequence", code.confidence)
+
+    behavior = cortex.behavior_analyst
+    phases = cortex.kill_chain or (behavior.kill_chain if behavior else [])
+    if phases:
+        flow_steps = []
+        timing_steps = []
+        for phase in phases:
+            actions = ", ".join(dict.fromkeys(phase.actions[:4]))
+            if actions:
+                flow_steps.append(f"{phase.phase}:{actions}")
+            if phase.duration_ms > 0:
+                timing_steps.append(f"{phase.phase}:{_duration_bucket(phase.duration_ms)}")
+        if flow_steps:
+            add(
+                "fraud_flow",
+                " -> ".join(flow_steps),
+                "runtime_sequence",
+                behavior.confidence if behavior else 0.7,
+            )
+        if timing_steps:
+            add("behavioral_timing", " -> ".join(timing_steps), "duration_bucket", 0.6)
 
     # Permission/API chain: the high-risk permission set.
     risky = sorted(
@@ -98,13 +128,29 @@ def extract_patterns(
                 add("packer_fingerprint", marker, "apkid", 0.6)
                 break
 
-    # Code idiom: distinctive class roles.
+    # Code idiom: distinctive class roles and source->sink method behavior.
     if code:
-        for cr in code.class_roles[:3]:
-            if cr.role and cr.confidence >= 0.7:
-                add("code_idiom", f"{cr.role}", "role", cr.confidence)
+        for cr in code.class_roles[:5]:
+            if cr.role and cr.confidence >= 0.65:
+                evidence = " | ".join(sorted(cr.evidence[:3]))
+                add("code_idiom", f"{cr.role}:{evidence or 'role-only'}", "role", cr.confidence)
+        for mi in code.method_intents[:8]:
+            if mi.intent and (mi.sources or mi.sinks):
+                sources = ",".join(sorted(dict.fromkeys(mi.sources)))
+                sinks = ",".join(sorted(dict.fromkeys(mi.sinks)))
+                add("code_idiom", f"{mi.intent}|src:{sources}|sink:{sinks}", "source_sink", 0.75)
 
     return patterns
+
+
+def _duration_bucket(duration_ms: int) -> str:
+    if duration_ms < 1_000:
+        return "<1s"
+    if duration_ms < 10_000:
+        return "1-10s"
+    if duration_ms < 60_000:
+        return "10-60s"
+    return ">=60s"
 
 
 async def enrich_pattern_memory(
