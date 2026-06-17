@@ -1,5 +1,7 @@
 """Tests for Layer-B risk calibration plumbing."""
 
+import json
+
 from parallax.ai import calibration, risk
 from parallax.ai.schemas import (
     BehaviorAnalystOutput,
@@ -28,6 +30,16 @@ def test_calibration_identity_when_model_missing(tmp_path):
 def test_calibration_scales_probability_predictions(monkeypatch):
     monkeypatch.setattr(calibration, "_load_calibrator", lambda path: _ProbabilityModel())
     assert calibration.calibrate_score(60.0) == 73.0
+
+
+def test_calibration_loads_json_points(tmp_path):
+    model_path = tmp_path / "model.json"
+    model_path.write_text(
+        json.dumps({"points": [[0, 0], [50, 0.5], [100, 0.9]]}),
+        encoding="utf-8",
+    )
+    calibration.clear_calibration_cache()
+    assert calibration.calibrate_score(75.0, model_path) == 70.0
 
 
 def test_calibration_accepts_callable_model(monkeypatch):
