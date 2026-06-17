@@ -25,7 +25,7 @@ from parallax.ai.agents.intel_correlator import run_intel_correlator
 from parallax.ai.agents.synthesis import run_synthesis
 from parallax.ai.agents.visual import run_visual_intelligence
 from parallax.ai.confidence import compute_overall_confidence
-from parallax.ai.debate import run_debate
+from parallax.ai.debate import run_debate, run_debate_with_llm
 from parallax.ai.risk import compute_risk
 from parallax.ai.schemas import (
     BehaviorAnalystOutput,
@@ -147,8 +147,13 @@ async def run_cortex(
             intel.family_attribution = family_match["family"]
         intel.family_confidence = max(intel.family_confidence, family_match.get("confidence", 0.0))
 
-    # Stage 3: deterministic debate + risk.
-    debate = run_debate(code, behavior, intel, visual)
+    # Stage 3: deterministic debate + optional LLM trace for high-risk claims.
+    debate = await _safe(
+        run_debate_with_llm(code, behavior, intel, visual),
+        "debate",
+        errors,
+    )
+    debate = debate or run_debate(code, behavior, intel, visual)
     risk = compute_risk(
         permissions=permissions,
         code=code,

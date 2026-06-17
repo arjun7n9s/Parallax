@@ -130,6 +130,16 @@ class Contradiction(BaseModel):
     resolution: str = ""
 
 
+class DebateTurn(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    claim: str = ""
+    for_case: str = ""
+    against_case: str = ""
+    judge_verdict: Literal["MALICIOUS", "BENIGN", "UNCERTAIN"] = "UNCERTAIN"
+    judge_reasoning: str = ""
+    confidence: float = 0.0
+
+
 class DebateResult(BaseModel):
     """Output of the debate layer — contradictions surfaced and resolved."""
 
@@ -138,6 +148,7 @@ class DebateResult(BaseModel):
     evasion_suspected: bool = False
     confidence_modifier: float = 0.0  # added to the final confidence
     notes: str = ""
+    llm_trace: list[DebateTurn] = Field(default_factory=list)
 
 
 class RiskComponents(BaseModel):
