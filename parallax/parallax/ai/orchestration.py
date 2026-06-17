@@ -32,6 +32,7 @@ from parallax.ai.schemas import (
     CodeInterpreterOutput,
     CortexResult,
     IntelCorrelatorOutput,
+    SynthesisOutput,
     VisualIntelOutput,
 )
 
@@ -191,12 +192,7 @@ async def run_cortex(
         "synthesis",
         errors,
     )
-    synth = synth or {
-        "executive_summary": "",
-        "technical_findings": [],
-        "irt": [],
-        "recommendations": [],
-    }
+    synth = synth or SynthesisOutput()
 
     # Merge ATT&CK from code + intel + taint (taint mappings are curated
     # source/sink->technique facts, not LLM output — always trustworthy).
@@ -209,13 +205,14 @@ async def run_cortex(
         verdict=risk.verdict,
         risk=risk,
         confidence=overall_confidence,
-        executive_summary=synth["executive_summary"],
-        technical_findings=synth["technical_findings"],
+        executive_summary=synth.executive_summary,
+        technical_findings=synth.key_findings,
         attck_techniques=attck,
         kill_chain=behavior.kill_chain,
         iocs=iocs,
-        irt=synth["irt"],
-        recommendations=synth["recommendations"],
+        irt=synth.irt,
+        recommendations=synth.recommendations,
+        synthesis=synth,
         code_interpreter=code,
         behavior_analyst=behavior,
         intel_correlator=intel,

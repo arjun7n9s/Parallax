@@ -6,8 +6,11 @@ from parallax.ai.schemas import (
     BehaviorAnalystOutput,
     CodeInterpreterOutput,
     CortexResult,
+    EvidenceTableRow,
     IntelCorrelatorOutput,
+    IOCContextRow,
     RiskScore,
+    SynthesisOutput,
     VisualIntelOutput,
 )
 from parallax.delivery.fraud_chain import build_fraud_chain
@@ -34,6 +37,24 @@ def _cortex() -> CortexResult:
         executive_summary="Banking trojan impersonating SBI.",
         technical_findings=["overlay captures credentials", "SMS OTP intercepted"],
         attck_techniques=["T1417.002", "T1582"],
+        synthesis=SynthesisOutput(
+            executive_summary="Banking trojan impersonating SBI.",
+            key_findings=["overlay captures credentials", "SMS OTP intercepted"],
+            evidence_table=[
+                EvidenceTableRow(
+                    technique="overlay",
+                    evidence="AccessibilityService overlay",
+                    confidence=0.9,
+                )
+            ],
+            iocs=[
+                IOCContextRow(
+                    type="domain",
+                    value="evil-c2.com",
+                    context="Runtime command-and-control endpoint",
+                )
+            ],
+        ),
         iocs={
             "domains": ["evil-c2.com"],
             "ips": ["185.220.101.47"],
@@ -99,6 +120,8 @@ def test_report_renders_html_and_pdf():
     html = render_html(_SHA, "com.fake.sbi", _cortex(), fc)
     assert "PARALLAX Investigation Report" in html
     assert "CRITICAL" in html
+    assert "Evidence Table" in html
+    assert "Runtime command-and-control endpoint" in html
     pdf = render_pdf(_SHA, "com.fake.sbi", _cortex(), fc)
     assert pdf[:4] == b"%PDF"
 

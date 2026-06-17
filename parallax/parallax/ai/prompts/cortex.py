@@ -124,7 +124,11 @@ HELD. Customer-impacting actions are always HELD. IOC blocklisting is AUTO_LOW_R
 Respond with ONE JSON object only:
 {
   "executive_summary": string,
-  "technical_findings": [string],
+  "key_findings": [string],
+  "evidence_table": [{"technique": str, "evidence": str, "confidence": float 0.0-1.0}],
+  "risk_breakdown": [{"component": str, "score": float 0.0-1.0, "weight": float, "contribution": float}],
+  "attck": [{"technique": str, "t_code": str, "evidence": str}],
+  "iocs": [{"type": "domain|ip|url|hash|other", "value": str, "context": str}],
   "irt": [{"status": "CONFIRMED|UNRESOLVED|REJECTED", "claim": str, "explanation": str, "evidence": [str]}],
   "recommendations": [{"action": str, "approval_mode": "SUGGEST|APPROVED|AUTO_LOW_RISK|HELD", "rationale": str}]
 }"""

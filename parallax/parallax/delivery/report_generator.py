@@ -36,6 +36,7 @@ def _esc(text: str) -> str:
 def render_html(sha256: str, package: str, cortex: CortexResult, fraud_chain: list[dict]) -> str:
     color = _VERDICT_COLOR.get(cortex.verdict, "#616161")
     risk = cortex.risk
+    synthesis = cortex.synthesis
 
     def li(items):
         return "".join(f"<li>{_esc(i)}</li>" for i in items) or "<li><em>none</em></li>"
@@ -66,6 +67,39 @@ def render_html(sha256: str, package: str, cortex: CortexResult, fraud_chain: li
     comp_rows = "".join(
         f"<tr><td>{_esc(k)}</td><td>{v:.2f}</td><td>{cortex.risk.weights.get(k, 0):.2f}</td></tr>"
         for k, v in comp.model_dump().items()
+    )
+    evidence_rows = "".join(
+        "<tr>"
+        f"<td>{_esc(r.technique) or '<em>n/a</em>'}</td>"
+        f"<td>{_esc(r.evidence)}</td>"
+        f"<td>{r.confidence:.2f}</td>"
+        "</tr>"
+        for r in synthesis.evidence_table
+    )
+    risk_breakdown_rows = "".join(
+        "<tr>"
+        f"<td>{_esc(r.component)}</td>"
+        f"<td>{r.score:.2f}</td>"
+        f"<td>{r.weight:.2f}</td>"
+        f"<td>{r.contribution:.2f}</td>"
+        "</tr>"
+        for r in synthesis.risk_breakdown
+    )
+    attck_evidence_rows = "".join(
+        "<tr>"
+        f"<td>{_esc(r.t_code) or '<em>n/a</em>'}</td>"
+        f"<td>{_esc(r.technique) or '<em>n/a</em>'}</td>"
+        f"<td>{_esc(r.evidence)}</td>"
+        "</tr>"
+        for r in synthesis.attck
+    )
+    ioc_context_rows = "".join(
+        "<tr>"
+        f"<td>{_esc(r.type)}</td>"
+        f"<td><code>{_esc(r.value)}</code></td>"
+        f"<td>{_esc(r.context)}</td>"
+        "</tr>"
+        for r in synthesis.iocs
     )
 
     conf = cortex.confidence
@@ -114,11 +148,18 @@ ul{{margin:4px 0;}}
 <table><tr><th>Stage</th><th>Description</th><th>Evidence</th><th>Recommended Control</th></tr>{chain_rows or "<tr><td colspan=4><em>No fraud-chain stages evidenced.</em></td></tr>"}</table></div>
 <div class="section"><h2>Investigation Reasoning Trace</h2>{irt_rows or "<p><em>No reasoning trace produced.</em></p>"}</div>
 <div class="section"><h2>Technical Findings</h2><ul>{li(cortex.technical_findings)}</ul></div>
+<div class="section"><h2>Evidence Table</h2>
+<table><tr><th>Technique / Theme</th><th>Evidence</th><th>Confidence</th></tr>{evidence_rows or "<tr><td colspan=3><em>No structured evidence table produced.</em></td></tr>"}</table></div>
+<div class="section"><h2>Structured Risk Breakdown</h2>
+<table><tr><th>Component</th><th>Score</th><th>Weight</th><th>Contribution</th></tr>{risk_breakdown_rows or "<tr><td colspan=4><em>No structured risk breakdown produced.</em></td></tr>"}</table></div>
 <div class="section"><h2>MITRE ATT&CK</h2><p>{_esc(", ".join(cortex.attck_techniques)) or "<em>none</em>"}</p></div>
+<div class="section"><h2>ATT&CK Evidence</h2>
+<table><tr><th>ID</th><th>Technique</th><th>Evidence</th></tr>{attck_evidence_rows or "<tr><td colspan=3><em>No ATT&CK evidence rows produced.</em></td></tr>"}</table></div>
 <div class="section"><h2>Indicators of Compromise</h2>
 <b>Domains</b><ul>{li(cortex.iocs.get("domains", []))}</ul>
 <b>IPs</b><ul>{li(cortex.iocs.get("ips", []))}</ul>
-<b>URLs</b><ul>{li(cortex.iocs.get("urls", []))}</ul></div>
+<b>URLs</b><ul>{li(cortex.iocs.get("urls", []))}</ul>
+<table><tr><th>Type</th><th>Value</th><th>Context</th></tr>{ioc_context_rows or "<tr><td colspan=3><em>No IOC context rows produced.</em></td></tr>"}</table></div>
 <div class="section"><h2>Recommended Actions</h2>
 <table><tr><th>Approval</th><th>Action</th><th>Rationale</th></tr>{rec_rows or "<tr><td colspan=3><em>none</em></td></tr>"}</table></div>
 </body></html>"""
@@ -209,6 +250,32 @@ def render_pdf(sha256: str, package: str, cortex: CortexResult, fraud_chain: lis
                 bulletType="bullet",
             )
         )
+
+    if cortex.synthesis.evidence_table:
+        story.append(Spacer(1, 10))
+        story.append(Paragraph("Evidence Table", styles["Heading2"]))
+        data = [["Theme", "Evidence", "Confidence"]]
+        for row in cortex.synthesis.evidence_table:
+            data.append(
+                [
+                    Paragraph(_esc(row.technique or "n/a"), styles["Normal"]),
+                    Paragraph(_esc(row.evidence), styles["Normal"]),
+                    f"{row.confidence:.2f}",
+                ]
+            )
+        t = Table(data, colWidths=[110, 310, 70])
+        t.setStyle(
+            TableStyle(
+                [
+                    ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#37474f")),
+                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+                    ("GRID", (0, 0), (-1, -1), 0.5, colors.grey),
+                    ("FONTSIZE", (0, 0), (-1, -1), 7),
+                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                ]
+            )
+        )
+        story.append(t)
 
     story.append(Spacer(1, 10))
     story.append(

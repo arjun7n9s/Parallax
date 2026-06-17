@@ -8,13 +8,17 @@ import logging
 from parallax.ai.llm import llm
 from parallax.ai.prompts.cortex import SYNTHESIS_SYSTEM
 from parallax.ai.schemas import (
+    ATTCKEvidenceRow,
     BehaviorAnalystOutput,
     CodeInterpreterOutput,
     DebateResult,
+    EvidenceTableRow,
     IntelCorrelatorOutput,
+    IOCContextRow,
     IRTEntry,
-    Recommendation,
+    RiskBreakdownRow,
     RiskScore,
+    SynthesisOutput,
     VisualIntelOutput,
 )
 
@@ -46,9 +50,12 @@ async def run_synthesis(
     debate: DebateResult | None,
     risk: RiskScore,
     package_name: str,
-) -> dict:
-    """Return a dict with executive_summary, technical_findings, irt,
-    recommendations. The numeric verdict/score are fixed by the risk module."""
+) -> SynthesisOutput:
+    """Return structured synthesis output.
+
+    The numeric verdict/score are fixed by the deterministic risk module; the
+    synthesis agent organizes the evidence into report/UI sections.
+    """
     prompt = "\n".join(
         [
             f"PACKAGE: {package_name}",
@@ -61,7 +68,8 @@ async def run_synthesis(
             "AGENT OUTPUTS:",
             json.dumps(_agent_summary(code, behavior, intel, visual, debate), indent=2),
             "",
-            "Write the evidence-first report, IRT and recommendations.",
+            "Write the evidence-first report, evidence table, risk breakdown, "
+            "ATT&CK mapping, IOC context, IRT and recommendations.",
         ]
     )
 
@@ -71,19 +79,19 @@ async def run_synthesis(
         logger.warning("Synthesis LLM failed, using deterministic fallback: %s", exc)
         raw = {}
 
-    irt = [IRTEntry.model_validate(e) for e in raw.get("irt", [])]
-    recs = [Recommendation.model_validate(r) for r in raw.get("recommendations", [])]
-
     if not raw:
         # Deterministic fallback so a synthesis-LLM outage never drops the report.
         return _fallback(code, behavior, intel, visual, risk)
 
-    return {
-        "executive_summary": raw.get("executive_summary", ""),
-        "technical_findings": raw.get("technical_findings", []),
-        "irt": irt,
-        "recommendations": recs,
-    }
+    # Backward-compatible alias: older prompts/tests may still return
+    # technical_findings. The structured contract calls them key_findings.
+    if "key_findings" not in raw and "technical_findings" in raw:
+        raw["key_findings"] = raw.get("technical_findings", [])
+
+    out = SynthesisOutput.model_validate(raw)
+    if not out.risk_breakdown:
+        out.risk_breakdown = _risk_breakdown(risk)
+    return out
 
 
 def _fallback(
@@ -92,11 +100,22 @@ def _fallback(
     intel: IntelCorrelatorOutput | None,
     visual: VisualIntelOutput | None,
     risk: RiskScore,
-) -> dict:
+) -> SynthesisOutput:
     findings: list[str] = []
     irt: list[IRTEntry] = []
+    evidence: list[EvidenceTableRow] = []
+    attck: list[ATTCKEvidenceRow] = []
+    iocs: list[IOCContextRow] = []
     if code and code.intent_classification not in ("clean", "uncertain"):
         findings.append(f"Code intent: {code.intent_classification} ({code.risk_level}).")
+        evidence.extend(
+            EvidenceTableRow(technique="", evidence=e, confidence=code.confidence)
+            for e in code.evidence[:5]
+        )
+        attck.extend(
+            ATTCKEvidenceRow(technique="", t_code=t, evidence="Mapped from static code evidence")
+            for t in code.attck_techniques
+        )
         irt.append(
             IRTEntry(
                 status="CONFIRMED",
@@ -107,18 +126,50 @@ def _fallback(
         )
     if behavior and behavior.kill_chain:
         findings.append(behavior.overall_narrative[:300])
+        evidence.extend(
+            EvidenceTableRow(technique=p.phase, evidence=", ".join(p.actions), confidence=0.7)
+            for p in behavior.kill_chain
+        )
+        for value in behavior.network_iocs:
+            iocs.append(IOCContextRow(type="other", value=value, context="Runtime network IOC"))
     if visual and visual.phishing_detected:
         findings.append(
             f"Visual phishing of {visual.brand_impersonation} "
             f"(similarity {visual.brand_impersonation_score:.2f})."
         )
+        evidence.append(
+            EvidenceTableRow(
+                technique="brand_impersonation",
+                evidence=f"Visual phishing of {visual.brand_impersonation}",
+                confidence=visual.confidence or visual.brand_impersonation_score,
+            )
+        )
     summary = (
         f"Automated verdict {risk.verdict} (score {risk.calibrated_score}/100). "
         "Generated without the synthesis LLM (fallback path)."
     )
-    return {
-        "executive_summary": summary,
-        "technical_findings": findings,
-        "irt": irt,
-        "recommendations": [],
-    }
+    return SynthesisOutput(
+        executive_summary=summary,
+        key_findings=findings,
+        evidence_table=evidence,
+        risk_breakdown=_risk_breakdown(risk),
+        attck=attck,
+        iocs=iocs,
+        irt=irt,
+        recommendations=[],
+    )
+
+
+def _risk_breakdown(risk: RiskScore) -> list[RiskBreakdownRow]:
+    rows: list[RiskBreakdownRow] = []
+    for component, score in risk.components.model_dump().items():
+        weight = risk.weights.get(component, 0.0)
+        rows.append(
+            RiskBreakdownRow(
+                component=component,
+                score=float(score),
+                weight=weight,
+                contribution=round(float(score) * weight * 100.0, 2),
+            )
+        )
+    return rows

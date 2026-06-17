@@ -199,6 +199,49 @@ class IRTEntry(BaseModel):
     evidence: list[str] = Field(default_factory=list)
 
 
+class EvidenceTableRow(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    technique: str = ""
+    evidence: str = ""
+    confidence: float = 0.0
+
+
+class RiskBreakdownRow(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    component: str = ""
+    score: float = 0.0
+    weight: float = 0.0
+    contribution: float = 0.0
+
+
+class ATTCKEvidenceRow(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    technique: str = ""
+    t_code: str = ""
+    evidence: str = ""
+
+
+class IOCContextRow(BaseModel):
+    model_config = ConfigDict(extra="ignore")
+    type: Literal["domain", "ip", "url", "hash", "other"] = "other"
+    value: str = ""
+    context: str = ""
+
+
+class SynthesisOutput(BaseModel):
+    """Structured final analyst output rendered by reports and future UI tabs."""
+
+    model_config = ConfigDict(extra="ignore")
+    executive_summary: str = ""
+    key_findings: list[str] = Field(default_factory=list)
+    evidence_table: list[EvidenceTableRow] = Field(default_factory=list)
+    risk_breakdown: list[RiskBreakdownRow] = Field(default_factory=list)
+    attck: list[ATTCKEvidenceRow] = Field(default_factory=list)
+    iocs: list[IOCContextRow] = Field(default_factory=list)
+    irt: list[IRTEntry] = Field(default_factory=list)
+    recommendations: list[Recommendation] = Field(default_factory=list)
+
+
 class CortexResult(BaseModel):
     """The complete output of the reasoning cortex for one submission."""
 
@@ -216,6 +259,7 @@ class CortexResult(BaseModel):
     iocs: dict[str, list[str]] = Field(default_factory=dict)
     irt: list[IRTEntry] = Field(default_factory=list)
     recommendations: list[Recommendation] = Field(default_factory=list)
+    synthesis: SynthesisOutput = Field(default_factory=SynthesisOutput)
 
     # Per-agent outputs retained for audit and graph population.
     code_interpreter: CodeInterpreterOutput | None = None
