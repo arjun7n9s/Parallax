@@ -8,13 +8,17 @@ RUN echo "root:x:0:0:root:/root:/bin/bash" >> /etc/passwd
 # Install xz-utils and curl to decompress and fetch frida-server packages
 RUN apt-get update && apt-get install -y xz-utils ca-certificates curl && rm -rf /var/lib/apt/lists/*
 
-# Download and extract Frida-server for x86 and x86_64
-RUN curl -L -o /tmp/frida-server-x86.xz https://github.com/frida/frida/releases/download/17.11.0/frida-server-17.11.0-android-x86.xz \
+ARG FRIDA_VERSION=16.7.19
+
+# Download and extract Frida-server for x86 and x86_64. Keep this in lockstep
+# with requirements.txt; frida 17.x removed the Java bridge used by Android
+# hooks, so a 17.x server makes every Java.perform hook fail.
+RUN curl -L -o /tmp/frida-server-x86.xz https://github.com/frida/frida/releases/download/${FRIDA_VERSION}/frida-server-${FRIDA_VERSION}-android-x86.xz \
     && unxz /tmp/frida-server-x86.xz \
     && mv /tmp/frida-server-x86 /usr/local/bin/frida-server-x86 \
     && chmod +x /usr/local/bin/frida-server-x86
 
-RUN curl -L -o /tmp/frida-server-x86_64.xz https://github.com/frida/frida/releases/download/17.11.0/frida-server-17.11.0-android-x86_64.xz \
+RUN curl -L -o /tmp/frida-server-x86_64.xz https://github.com/frida/frida/releases/download/${FRIDA_VERSION}/frida-server-${FRIDA_VERSION}-android-x86_64.xz \
     && unxz /tmp/frida-server-x86_64.xz \
     && mv /tmp/frida-server-x86_64 /usr/local/bin/frida-server-x86_64 \
     && chmod +x /usr/local/bin/frida-server-x86_64

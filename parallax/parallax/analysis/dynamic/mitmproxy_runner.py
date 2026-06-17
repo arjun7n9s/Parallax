@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import threading
 import time
@@ -97,6 +98,27 @@ class MitmproxyRunner:
 
         self.master: Optional[DumpMaster] = None
         self.runner_thread: Optional[threading.Thread] = None
+        self.runner_error: Optional[str] = None
+
+    def _run_master(self) -> None:
+        """Drive mitmproxy's async master inside the runner thread.
+
+        mitmproxy 11 exposes ``DumpMaster.run`` as a coroutine. Passing it
+        directly to ``Thread(target=...)`` creates the coroutine but never
+        awaits it, which leaves capture dead while only emitting a runtime
+        warning. Each runner thread owns a short-lived event loop so the async
+        master can run until ``shutdown()`` is called from ``stop``.
+        """
+        loop = asyncio.new_event_loop()
+        try:
+            asyncio.set_event_loop(loop)
+            if self.master is not None:
+                loop.run_until_complete(self.master.run())
+        except Exception as exc:  # noqa: BLE001 - surface through runner_error/logs
+            self.runner_error = f"{type(exc).__name__}: {exc}"
+            logger.error("Mitmproxy runner failed: %s", self.runner_error, exc_info=True)
+        finally:
+            loop.close()
 
     async def start(self) -> None:
         """
@@ -113,7 +135,8 @@ class MitmproxyRunner:
             self.master.addons.add(addon)
 
             logger.info(f"Starting Mitmproxy on port {self.listen_port}")
-            self.runner_thread = threading.Thread(target=self.master.run, daemon=True)
+            self.runner_error = None
+            self.runner_thread = threading.Thread(target=self._run_master, daemon=True)
             self.runner_thread.start()
         except Exception as e:
             raise MitmproxyRunnerError(f"Failed to start mitmproxy: {e}")

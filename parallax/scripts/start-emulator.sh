@@ -28,6 +28,11 @@ for i in $(seq 1 60); do
     booted="$("$ADB" -s localhost:5555 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)"
     if [ "$booted" = "1" ]; then
         echo ">>> Emulator booted after ~$((i*5))s"
+        echo ">>> Verifying frida-server is running"
+        if ! "$ADB" -s localhost:5555 shell ps -A 2>/dev/null | tr -d '\r' | grep -q "frida-server"; then
+            echo "!!! frida-server is not running after boot — check: docker logs parallax_android_emulator"
+            exit 1
+        fi
         "$ADB" devices
         exit 0
     fi
