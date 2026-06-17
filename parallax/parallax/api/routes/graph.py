@@ -54,6 +54,14 @@ async def similar(req: SimilarRequest):
     return {"results": hits}
 
 
+@router.get("/health")
+async def graph_health():
+    """Return TAIG graph health counts and update Prometheus gauges."""
+    from parallax.knowledge.graph_health import collect_graph_health
+
+    return await collect_graph_health()
+
+
 @router.get("/patterns")
 async def list_patterns(category: str | None = None, limit: int = 50):
     """Query the Malware Pattern Memory subsystem."""

@@ -68,6 +68,24 @@ class TestRecordHelpers:
         metrics.record_stage_failure("x", RuntimeError("boom"))
         metrics.record_verdict("CLEAN")
         metrics.record_llm_call("economy", "ollama", 0.0)
+        metrics.record_graph_health({"node_counts": {}, "edge_counts": {}})
+
+    def test_record_graph_health_sets_gauges(self):
+        metrics.record_graph_health(
+            {
+                "node_counts": {"APK": 3},
+                "edge_counts": {"COMMUNICATES_WITH": 2},
+                "orphan_apks": 1,
+                "orphan_iocs": 0,
+                "missing_key_nodes": 0,
+                "broken_relationships": 0,
+            }
+        )
+        assert REGISTRY.get_sample_value("parallax_taig_nodes", {"label": "APK"}) == 3.0
+        assert (
+            REGISTRY.get_sample_value("parallax_taig_edges", {"type": "COMMUNICATES_WITH"}) == 2.0
+        )
+        assert REGISTRY.get_sample_value("parallax_taig_health", {"check": "orphan_apks"}) == 1.0
 
     def test_metrics_text_is_exposition_format(self):
         metrics.record_verdict("CRITICAL")

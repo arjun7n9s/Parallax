@@ -19,6 +19,7 @@ try:
     from prometheus_client import (
         CONTENT_TYPE_LATEST,
         Counter,
+        Gauge,
         Histogram,
         generate_latest,
     )
@@ -52,6 +53,21 @@ if _ENABLED:
         "parallax_orphan_reaped_total",
         "Orphaned analyses re-queued by the reaper, by resumed stage",
         ["stage"],
+    )
+    TAIG_NODES = Gauge(
+        "parallax_taig_nodes",
+        "TAIG graph node counts by label",
+        ["label"],
+    )
+    TAIG_EDGES = Gauge(
+        "parallax_taig_edges",
+        "TAIG graph relationship counts by type",
+        ["type"],
+    )
+    TAIG_HEALTH = Gauge(
+        "parallax_taig_health",
+        "TAIG graph health check counts",
+        ["check"],
     )
 
 
@@ -95,6 +111,20 @@ def record_orphan_reaped(stage: str) -> None:
         ORPHAN_REAPED.labels(stage=stage).inc()
     except Exception as exc:  # noqa: BLE001
         logger.debug("record_orphan_reaped failed: %s", exc)
+
+
+def record_graph_health(snapshot: dict) -> None:
+    if not _ENABLED:
+        return
+    try:
+        for label, count in snapshot.get("node_counts", {}).items():
+            TAIG_NODES.labels(label=str(label)).set(float(count))
+        for rel_type, count in snapshot.get("edge_counts", {}).items():
+            TAIG_EDGES.labels(type=str(rel_type)).set(float(count))
+        for check in ("orphan_apks", "orphan_iocs", "broken_relationships", "missing_key_nodes"):
+            TAIG_HEALTH.labels(check=check).set(float(snapshot.get(check, 0)))
+    except Exception as exc:  # noqa: BLE001
+        logger.debug("record_graph_health failed: %s", exc)
 
 
 def metrics_text() -> tuple[bytes, str]:
