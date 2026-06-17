@@ -23,6 +23,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import time
 from dataclasses import dataclass
 from typing import Any, cast
 
@@ -31,6 +32,7 @@ import httpx
 from parallax.core.circuit_breaker import CircuitBreaker, CircuitOpenError
 from parallax.core.config import settings
 from parallax.core.errors import LLMBadOutputError, LLMError
+from parallax.core.metrics import record_llm_call
 
 logger = logging.getLogger(__name__)
 
@@ -87,6 +89,15 @@ ROSTER: dict[str, ModelSpec] = {
 _DEFAULT_SPEC = ModelSpec("mistral:7b", _ECONOMY_LONG)
 
 _JSON_OBJECT_RE = re.compile(r"\{.*\}", re.DOTALL)
+
+
+def _openai_usage(resp: Any) -> tuple[int, int]:
+    """Extract (prompt_tokens, completion_tokens) from an OpenAI-shaped
+    response, tolerant of providers that omit the usage block."""
+    u = getattr(resp, "usage", None)
+    if u is None:
+        return (0, 0)
+    return (getattr(u, "prompt_tokens", 0) or 0, getattr(u, "completion_tokens", 0) or 0)
 
 
 def _extract_json(text: str) -> dict:
@@ -173,6 +184,30 @@ class LLMProvider:
     # ------------------------------------------------------------------ #
     # Generation
     # ------------------------------------------------------------------ #
+    async def _generate(
+        self,
+        provider: str,
+        role: str,
+        prompt: str,
+        system: str,
+        images: list[str] | None,
+        temperature: float,
+        json_mode: bool,
+    ) -> tuple[str, tuple[int, int]]:
+        """Single timed entry point for every backend, so latency and token
+        volume are recorded once per logical call (per role + provider)."""
+        start = time.perf_counter()
+        if provider == "ollama":
+            text, usage = await self._ollama_generate(
+                self.spec_for(role).local_model, prompt, system, images, temperature, json_mode
+            )
+        else:
+            text, usage = await self._cloud_generate(
+                provider, role, prompt, system, images, temperature, json_mode
+            )
+        record_llm_call(role, provider, time.perf_counter() - start, usage[0], usage[1])
+        return text, usage
+
     async def complete_text(
         self,
         role: str,
@@ -182,18 +217,8 @@ class LLMProvider:
         temperature: float = 0.1,
     ) -> str:
         provider = self.provider_for(role)
-        if provider == "ollama":
-            return await self._ollama_generate(
-                self.spec_for(role).local_model,
-                prompt,
-                system,
-                images,
-                temperature,
-                json_mode=False,
-            )
-        return await self._cloud_generate(
-            provider, role, prompt, system, images, temperature, json_mode=False
-        )
+        text, _ = await self._generate(provider, role, prompt, system, images, temperature, False)
+        return text
 
     async def complete_json(
         self,
@@ -204,19 +229,7 @@ class LLMProvider:
         temperature: float = 0.1,
     ) -> dict:
         provider = self.provider_for(role)
-        if provider == "ollama":
-            raw = await self._ollama_generate(
-                self.spec_for(role).local_model,
-                prompt,
-                system,
-                images,
-                temperature,
-                json_mode=True,
-            )
-        else:
-            raw = await self._cloud_generate(
-                provider, role, prompt, system, images, temperature, json_mode=True
-            )
+        raw, _ = await self._generate(provider, role, prompt, system, images, temperature, True)
         try:
             return _extract_json(raw)
         except (json.JSONDecodeError, ValueError) as exc:
@@ -253,7 +266,7 @@ class LLMProvider:
         images: list[str] | None,
         temperature: float,
         json_mode: bool,
-    ) -> str:
+    ) -> tuple[str, tuple[int, int]]:
         payload: dict = {
             "model": model,
             "prompt": prompt,
@@ -273,7 +286,9 @@ class LLMProvider:
             return r
 
         resp = await self._guarded("ollama", _do)
-        return str(resp.json().get("response", ""))
+        data = resp.json()
+        usage = (int(data.get("prompt_eval_count", 0)), int(data.get("eval_count", 0)))
+        return str(data.get("response", "")), usage
 
     async def _cloud_generate(
         self,
@@ -284,7 +299,7 @@ class LLMProvider:
         images: list[str] | None,
         temperature: float,
         json_mode: bool,
-    ) -> str:
+    ) -> tuple[str, tuple[int, int]]:
         if provider == "aiml":
             return await self._aiml_generate(role, prompt, system, images, temperature, json_mode)
         if provider == "anthropic":
@@ -299,7 +314,7 @@ class LLMProvider:
         images: list[str] | None,
         temperature: float,
         json_mode: bool,
-    ) -> str:
+    ) -> tuple[str, tuple[int, int]]:
         """Generate via the aimlapi.com gateway (OpenAI-compatible).
 
         The gateway fronts 400+ models behind one key; the per-role model ID
@@ -340,7 +355,7 @@ class LLMProvider:
                 messages=messages,
             ),
         )
-        return resp.choices[0].message.content or ""
+        return resp.choices[0].message.content or "", _openai_usage(resp)
 
     async def _anthropic_generate(
         self,
@@ -349,7 +364,7 @@ class LLMProvider:
         images: list[str] | None,
         temperature: float,
         json_mode: bool,
-    ) -> str:
+    ) -> tuple[str, tuple[int, int]]:
         if self._anthropic is None:
             from anthropic import AsyncAnthropic
 
@@ -379,7 +394,10 @@ class LLMProvider:
             system=system or "You are a precise malware-analysis agent.",
             messages=[{"role": "user", "content": content}],
         )
-        return "".join(block.text for block in resp.content if block.type == "text")
+        text = "".join(block.text for block in resp.content if block.type == "text")
+        u = getattr(resp, "usage", None)
+        usage = (getattr(u, "input_tokens", 0) or 0, getattr(u, "output_tokens", 0) or 0)
+        return text, usage
 
     async def _openai_generate(
         self,
@@ -388,7 +406,7 @@ class LLMProvider:
         images: list[str] | None,
         temperature: float,
         json_mode: bool,
-    ) -> str:
+    ) -> tuple[str, tuple[int, int]]:
         if self._openai is None:
             from openai import AsyncOpenAI
 
@@ -415,7 +433,7 @@ class LLMProvider:
         if json_mode:
             kwargs["response_format"] = {"type": "json_object"}
         resp = await self._openai.chat.completions.create(**kwargs)
-        return resp.choices[0].message.content or ""
+        return resp.choices[0].message.content or "", _openai_usage(resp)
 
     async def close(self) -> None:
         await self._ollama.aclose()

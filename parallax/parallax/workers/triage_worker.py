@@ -19,6 +19,7 @@ from parallax.core.database import async_session
 # Tests that mock at the function level will still work; only the
 # @shared_task decorator will fail at runtime if celery is absent.
 from parallax.core.errors import TransientError
+from parallax.core.metrics import record_stage_failure
 from parallax.core.models import Submission
 from parallax.core.storage import APK_BUCKET, get_minio_client
 from parallax.workers.celery_app import celery_app
@@ -156,7 +157,8 @@ async def _async_run_triage_pipeline(submission_id_str: str):
 
         except TransientError:
             raise  # transient (infra/LLM/circuit-open): let Celery retry the task
-        except Exception:
+        except Exception as exc:
+            record_stage_failure("triage", exc)
             logger.exception(f"Error during triage pipeline for {sha256}")
             try:
                 submission.status = "failed"

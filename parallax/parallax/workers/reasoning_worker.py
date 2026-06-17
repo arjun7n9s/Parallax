@@ -21,6 +21,7 @@ from sqlalchemy.orm.attributes import flag_modified
 from parallax.ai.orchestration import run_cortex
 from parallax.core.database import async_session
 from parallax.core.errors import TransientError
+from parallax.core.metrics import record_stage_failure, record_verdict
 from parallax.core.models import IOC, Observation, Submission, TaintFlow
 from parallax.core.storage import DECOMPILED_BUCKET, SCREENSHOTS_BUCKET, get_minio_client
 from parallax.workers.celery_app import celery_app
@@ -175,6 +176,7 @@ async def _async_run_reasoning_pipeline(submission_id_str: str):
             # Persist verdict + score + full result.
             submission.final_score = cortex.risk.calibrated_score
             submission.verdict = cortex.verdict
+            record_verdict(cortex.verdict)
             metadata["cortex_result"] = cortex.to_dict()
             submission.metadata_json = metadata
             # JSON columns are not change-tracked on in-place mutation; flag it
@@ -206,7 +208,8 @@ async def _async_run_reasoning_pipeline(submission_id_str: str):
 
     except TransientError:
         raise  # transient (infra/LLM/circuit-open): let Celery retry the task
-    except Exception:
+    except Exception as exc:
+        record_stage_failure("reasoning", exc)
         logger.exception("Error during reasoning pipeline for %s", submission_id_str)
         try:
             async with async_session() as db:

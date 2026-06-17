@@ -15,6 +15,7 @@ from parallax.ai.hook_planner.parser import HookPlannerParser
 from parallax.core.config import settings
 from parallax.core.database import async_session
 from parallax.core.errors import TransientError
+from parallax.core.metrics import record_stage_failure
 from parallax.core.models import ExperimentObservationLink, Hypothesis, Observation, Submission
 from parallax.core.storage import APK_BUCKET, get_minio_client
 from parallax.sandbox.runner import SandboxRunner
@@ -299,7 +300,8 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
 
     except TransientError:
         raise  # transient (infra/LLM/circuit-open): let Celery retry the task
-    except Exception:
+    except Exception as exc:
+        record_stage_failure("dynamic", exc)
         logger.exception(f"Error during dynamic pipeline for {submission_id_str}")
         try:
             async with async_session() as db:
