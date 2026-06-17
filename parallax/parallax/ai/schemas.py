@@ -170,6 +170,18 @@ class RiskScore(BaseModel):
     notes: list[str] = Field(default_factory=list)
 
 
+class OverallConfidence(BaseModel):
+    """How much a human should trust the whole verdict (distinct from each
+    agent's self-confidence). Deterministic + auditable: ``drivers`` lists the
+    factors that moved the score, and ``needs_human_review`` gates the report."""
+
+    model_config = ConfigDict(extra="ignore")
+    score: float = 0.0  # 0.0-1.0
+    band: Literal["high", "moderate", "low"] = "low"
+    needs_human_review: bool = True
+    drivers: list[str] = Field(default_factory=list)
+
+
 class Recommendation(BaseModel):
     model_config = ConfigDict(extra="ignore")
     action: str = ""
@@ -195,6 +207,7 @@ class CortexResult(BaseModel):
     sha256: str = ""
     verdict: Verdict = "UNCERTAIN"
     risk: RiskScore = Field(default_factory=RiskScore)
+    confidence: OverallConfidence = Field(default_factory=OverallConfidence)
 
     executive_summary: str = ""
     technical_findings: list[str] = Field(default_factory=list)

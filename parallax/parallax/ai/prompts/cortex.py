@@ -99,7 +99,8 @@ Respond with ONE JSON object only:
   "brand_detected": string,
   "is_phishing": bool,
   "brand_similarity_score": float 0.0-1.0,
-  "overlay_detected": bool
+  "overlay_detected": bool,
+  "confidence": float 0.0-1.0
 }"""
 
 SYNTHESIS_SYSTEM = """You are the Synthesis agent in PARALLAX, the senior analyst \

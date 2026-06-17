@@ -24,6 +24,7 @@ from parallax.ai.agents.code_interpreter import run_code_interpreter
 from parallax.ai.agents.intel_correlator import run_intel_correlator
 from parallax.ai.agents.synthesis import run_synthesis
 from parallax.ai.agents.visual import run_visual_intelligence
+from parallax.ai.confidence import compute_overall_confidence
 from parallax.ai.debate import run_debate
 from parallax.ai.risk import compute_risk
 from parallax.ai.schemas import (
@@ -163,6 +164,19 @@ async def run_cortex(
         dynamic_observed=bool(observations) or bool(screenshot_keys),
     )
 
+    # How much a human should trust the whole verdict (distinct from per-agent
+    # confidence). Deterministic + auditable; drives the report's review banner.
+    overall_confidence = compute_overall_confidence(
+        code=code,
+        behavior=behavior,
+        intel=intel,
+        visual=visual,
+        debate=debate,
+        risk=risk,
+        dynamic_observed=bool(observations) or bool(screenshot_keys),
+        known_family=family_match,
+    )
+
     # Stage 4: synthesis narrative.
     synth = await _safe(
         run_synthesis(
@@ -194,6 +208,7 @@ async def run_cortex(
         sha256=sha256,
         verdict=risk.verdict,
         risk=risk,
+        confidence=overall_confidence,
         executive_summary=synth["executive_summary"],
         technical_findings=synth["technical_findings"],
         attck_techniques=attck,

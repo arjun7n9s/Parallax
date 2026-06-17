@@ -68,6 +68,23 @@ def render_html(sha256: str, package: str, cortex: CortexResult, fraud_chain: li
         for k, v in comp.model_dump().items()
     )
 
+    conf = cortex.confidence
+    _CONF_COLOR = {"high": "#2e7d32", "moderate": "#f9a825", "low": "#b00020"}
+    conf_color = _CONF_COLOR.get(conf.band, "#616161")
+    review_banner = (
+        "<div class='review'>&#9888; <b>Flagged for human review.</b> "
+        "Confidence in this automated verdict is not high; an analyst should confirm "
+        "before acting on customer-impacting recommendations.</div>"
+        if conf.needs_human_review
+        else ""
+    )
+    conf_block = (
+        f"<div class='section'><h2>Verdict Confidence</h2>"
+        f"<p><span class='confband' style='background:{conf_color}'>"
+        f"{_esc(conf.band.upper())} &middot; {conf.score * 100:.0f}%</span></p>"
+        f"<ul>{li(conf.drivers)}</ul>{review_banner}</div>"
+    )
+
     return f"""<!doctype html><html><head><meta charset="utf-8">
 <title>PARALLAX Report — {_esc(package)}</title>
 <style>
@@ -80,10 +97,13 @@ th{{background:#f5f5f5;}} .tag{{background:#37474f;color:#fff;padding:2px 8px;bo
 .irt{{border-left:4px solid {color};padding:8px 14px;margin:10px 0;background:#fafafa;}}
 .section{{margin-top:28px;}} code{{background:#f0f0f0;padding:1px 4px;border-radius:3px;}}
 ul{{margin:4px 0;}}
+.confband{{display:inline-block;color:#fff;padding:4px 12px;border-radius:6px;font-weight:700;font-size:14px;}}
+.review{{margin-top:10px;padding:10px 14px;border-left:4px solid #b00020;background:#fdecea;color:#7f1d1d;border-radius:4px;}}
 </style></head><body>
 <h1>PARALLAX Investigation Report</h1>
 <p class="sub">{_esc(package)} &middot; <code>{_esc(sha256)}</code></p>
 <p><span class="verdict">{_esc(cortex.verdict)}</span></p>
+{conf_block}
 <div class="section"><h2>Risk Score</h2>
 <p class="score">{risk.calibrated_score:.0f}<span style="font-size:18px;color:#666;">/100 &plusmn;{risk.confidence_interval:.0f}</span></p>
 <p class="sub">Evidence score {risk.evidence_score:.1f} (Layer A, deterministic) → calibrated {risk.calibrated_score:.1f} (Layer B).</p>
@@ -139,6 +159,17 @@ def render_pdf(sha256: str, package: str, cortex: CortexResult, fraud_chain: lis
             styles["Heading2"],
         )
     )
+    conf = cortex.confidence
+    story.append(
+        Paragraph(
+            f"<b>Confidence:</b> {conf.band.upper()} ({conf.score * 100:.0f}%)"
+            + (" &nbsp; <b>[FLAGGED FOR HUMAN REVIEW]</b>" if conf.needs_human_review else ""),
+            styles["Normal"],
+        )
+    )
+    if conf.drivers:
+        story.append(Paragraph("<i>" + _esc("; ".join(conf.drivers)) + "</i>", styles["Normal"]))
+
     story.append(Spacer(1, 8))
     story.append(Paragraph("Executive Summary", styles["Heading2"]))
     story.append(Paragraph(_esc(cortex.executive_summary) or "n/a", styles["Normal"]))
