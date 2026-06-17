@@ -110,6 +110,7 @@ def compute_risk(
     yara_matches: list[dict] | None = None,
     taint_flows: list[dict] | None = None,
     known_family: dict | None = None,
+    dynamic_observed: bool = True,
 ) -> RiskScore:
     comp = RiskComponents(
         permission_abuse=_permission_abuse(permissions),
@@ -158,13 +159,25 @@ def compute_risk(
             )
             evidence = floor
 
+    # Graceful degradation: when no runtime evidence was captured (dynamic stage
+    # skipped, emulator unavailable, or frida instrumentation failed), the verdict
+    # rests on static signals alone. Widen the confidence band and say so, rather
+    # than presenting a static-only result as if it were fully verified.
+    confidence_interval = 5.0
+    if not dynamic_observed:
+        confidence_interval = 12.0
+        notes.append(
+            "Static-only analysis: no runtime observations were captured; "
+            "verdict rests on static evidence and confidence is reduced."
+        )
+
     calibrated = _calibrate(evidence)
     return RiskScore(
         evidence_score=round(evidence, 1),
         components=comp,
         weights=dict(WEIGHTS),
         calibrated_score=round(calibrated, 1),
-        confidence_interval=5.0,
+        confidence_interval=confidence_interval,
         verdict=_verdict(calibrated),
         notes=notes,
     )

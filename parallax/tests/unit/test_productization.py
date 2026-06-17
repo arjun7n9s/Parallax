@@ -46,6 +46,33 @@ class TestTaintRisk:
         assert floored.verdict == "HIGH"
         assert any("Cerberus" in n for n in floored.notes)
 
+    def test_static_only_widens_confidence_and_notes(self):
+        """No runtime evidence => wider confidence band + an explicit note."""
+        r = compute_risk(
+            permissions=["android.permission.READ_SMS"],
+            code=None,
+            behavior=None,
+            intel=None,
+            visual=None,
+            debate=None,
+            dynamic_observed=False,
+        )
+        assert r.confidence_interval > 5.0
+        assert any("Static-only" in n for n in r.notes)
+
+    def test_dynamic_observed_keeps_tight_confidence(self):
+        r = compute_risk(
+            permissions=[],
+            code=None,
+            behavior=None,
+            intel=None,
+            visual=None,
+            debate=None,
+            dynamic_observed=True,
+        )
+        assert r.confidence_interval == 5.0
+        assert not any("Static-only" in n for n in r.notes)
+
     def test_low_confidence_family_does_not_floor(self):
         fam = {"family": "Maybe", "confidence": 0.4, "sources": []}
         r = compute_risk(

@@ -158,6 +158,9 @@ async def run_cortex(
         yara_matches=yara_matches,
         taint_flows=taint_flows,
         known_family=family_match,
+        # Static-only when the dynamic stage produced neither runtime
+        # observations nor screenshots (skipped / emulator down / frida failed).
+        dynamic_observed=bool(observations) or bool(screenshot_keys),
     )
 
     # Stage 4: synthesis narrative.
