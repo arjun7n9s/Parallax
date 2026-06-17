@@ -15,7 +15,7 @@ import httpx
 import redis as redis_lib
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from minio import Minio
 from neo4j import GraphDatabase
 from qdrant_client import QdrantClient
@@ -183,6 +183,18 @@ app.add_middleware(
 async def health_check() -> dict:
     """Basic liveness probe — always returns OK if the process is alive."""
     return {"status": "ok", "service": settings.PROJECT_NAME, "version": "0.1.0"}
+
+
+# ------------------------------------------------------------------ Metrics
+@app.get("/metrics", tags=["System"])
+async def metrics() -> Response:
+    """Prometheus exposition endpoint (unauthenticated; scraped by the
+    bundled prometheus.yml). Returns LLM latency/token, verdict, and
+    stage-failure series."""
+    from parallax.core.metrics import metrics_text
+
+    body, content_type = metrics_text()
+    return Response(content=body, media_type=content_type)
 
 
 # ------------------------------------------------------------------ Ready
