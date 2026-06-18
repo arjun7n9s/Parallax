@@ -13,7 +13,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from parallax.api.idempotency import lookup_submission_id, remember_submission_id
-from parallax.api.schemas.submission import SubmissionResponse
+from parallax.api.schemas.submission import (
+    BatchStatusResponse,
+    BatchSubmissionResponse,
+    SubmissionResponse,
+)
 from parallax.core.config import settings
 from parallax.core.database import get_session
 from parallax.core.models import Submission
@@ -112,7 +116,22 @@ async def _ingest_apk(
             os.unlink(temp_file_path)
 
 
-@router.post("", response_model=SubmissionResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "",
+    response_model=SubmissionResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Submit one APK for analysis",
+    description=(
+        "Upload one APK, persist the binary to object storage, deduplicate by SHA-256, "
+        "and enqueue triage. Optional `webhook_url` receives a signed completion payload. "
+        "Use `Idempotency-Key` for safe client retries."
+    ),
+    responses={
+        400: {"description": "The uploaded file is not an APK or has invalid APK magic bytes."},
+        413: {"description": "The APK exceeds the configured upload size limit."},
+        500: {"description": "Storage or queueing failed while processing the submission."},
+    },
+)
 async def submit_apk(
     file: Annotated[UploadFile, File(...)],
     db: AsyncSession = Depends(get_session),
@@ -155,7 +174,20 @@ async def submit_apk(
     return new_submission
 
 
-@router.post("/batch", status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/batch",
+    response_model=BatchSubmissionResponse,
+    response_model_exclude_none=True,
+    status_code=status.HTTP_201_CREATED,
+    summary="Submit a batch of APKs",
+    description=(
+        "Upload up to 100 APKs in one request. Each file is validated independently; "
+        "bad files are reported inline and do not abort the rest of the batch."
+    ),
+    responses={
+        400: {"description": "No files were supplied or the batch exceeds the 100-APK limit."}
+    },
+)
 async def submit_batch(
     files: Annotated[list[UploadFile], File(...)],
     db: AsyncSession = Depends(get_session),
@@ -195,7 +227,14 @@ async def submit_batch(
     }
 
 
-@router.get("/batch/{batch_id}")
+@router.get(
+    "/batch/{batch_id}",
+    response_model=BatchStatusResponse,
+    response_model_exclude_none=True,
+    summary="Get batch analysis status",
+    description=("Return per-sample progress, verdicts and aggregate status counts for a batch."),
+    responses={404: {"description": "The batch id is unknown."}},
+)
 async def batch_status(batch_id: uuid.UUID, db: AsyncSession = Depends(get_session)):
     """Per-sample progress + verdicts for a batch. 404 if the batch is unknown."""
     res = await db.execute(select(Submission).where(Submission.batch_id == batch_id))

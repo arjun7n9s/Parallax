@@ -1,0 +1,1775 @@
+{
+  "components": {
+    "schemas": {
+      "AnalysisStatusFilter": {
+        "enum": [
+          "queued",
+          "triaging",
+          "static",
+          "dynamic",
+          "reasoning",
+          "complete",
+          "failed"
+        ],
+        "title": "AnalysisStatusFilter",
+        "type": "string"
+      },
+      "BatchStatusItem": {
+        "properties": {
+          "file_name": {
+            "title": "File Name",
+            "type": "string"
+          },
+          "score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Score"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "submission_id": {
+            "title": "Submission Id",
+            "type": "string"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict"
+          }
+        },
+        "required": [
+          "submission_id",
+          "file_name",
+          "status"
+        ],
+        "title": "BatchStatusItem",
+        "type": "object"
+      },
+      "BatchStatusResponse": {
+        "description": "Per-sample status returned by GET /analyze/batch/{batch_id}.",
+        "example": {
+          "batch_id": "60c97ebb-a5cc-462d-84ba-ef2200f21b08",
+          "by_status": {
+            "complete": 1,
+            "dynamic": 1
+          },
+          "complete": false,
+          "submissions": [
+            {
+              "file_name": "sample-1.apk",
+              "score": 78.0,
+              "status": "complete",
+              "submission_id": "6f1b8c6a-7c33-4b71-b1f9-1867c56f7f54",
+              "verdict": "HIGH"
+            },
+            {
+              "file_name": "sample-2.apk",
+              "status": "dynamic",
+              "submission_id": "2c404c37-fc5b-46ad-98f6-1f6f9a0da013"
+            }
+          ],
+          "total": 2
+        },
+        "properties": {
+          "batch_id": {
+            "title": "Batch Id",
+            "type": "string"
+          },
+          "by_status": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "By Status",
+            "type": "object"
+          },
+          "complete": {
+            "title": "Complete",
+            "type": "boolean"
+          },
+          "submissions": {
+            "items": {
+              "$ref": "#/components/schemas/BatchStatusItem"
+            },
+            "title": "Submissions",
+            "type": "array"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "batch_id",
+          "total",
+          "by_status",
+          "complete",
+          "submissions"
+        ],
+        "title": "BatchStatusResponse",
+        "type": "object"
+      },
+      "BatchSubmissionResponse": {
+        "description": "Response returned by POST /analyze/batch.",
+        "example": {
+          "batch_id": "60c97ebb-a5cc-462d-84ba-ef2200f21b08",
+          "results": [
+            {
+              "file_name": "sample-1.apk",
+              "status": "queued",
+              "submission_id": "6f1b8c6a-7c33-4b71-b1f9-1867c56f7f54"
+            },
+            {
+              "error": "Only .apk files are supported.",
+              "file_name": "not-an-apk.txt"
+            }
+          ],
+          "submitted": 1,
+          "total": 2
+        },
+        "properties": {
+          "batch_id": {
+            "title": "Batch Id",
+            "type": "string"
+          },
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/BatchSubmissionResult"
+            },
+            "title": "Results",
+            "type": "array"
+          },
+          "submitted": {
+            "title": "Submitted",
+            "type": "integer"
+          },
+          "total": {
+            "title": "Total",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "batch_id",
+          "total",
+          "submitted",
+          "results"
+        ],
+        "title": "BatchSubmissionResponse",
+        "type": "object"
+      },
+      "BatchSubmissionResult": {
+        "description": "Per-file outcome returned by batch submission.",
+        "properties": {
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          },
+          "file_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "File Name"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "submission_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Submission Id"
+          }
+        },
+        "title": "BatchSubmissionResult",
+        "type": "object"
+      },
+      "Body_submit_apk_api_v1_analyze_post": {
+        "properties": {
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "title": "File",
+            "type": "string"
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webhook Url"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "title": "Body_submit_apk_api_v1_analyze_post",
+        "type": "object"
+      },
+      "Body_submit_batch_api_v1_analyze_batch_post": {
+        "properties": {
+          "files": {
+            "items": {
+              "contentMediaType": "application/octet-stream",
+              "type": "string"
+            },
+            "title": "Files",
+            "type": "array"
+          },
+          "webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Webhook Url"
+          }
+        },
+        "required": [
+          "files"
+        ],
+        "title": "Body_submit_batch_api_v1_analyze_batch_post",
+        "type": "object"
+      },
+      "CypherRequest": {
+        "properties": {
+          "params": {
+            "additionalProperties": true,
+            "title": "Params",
+            "type": "object"
+          },
+          "query": {
+            "description": "Read-only Cypher query",
+            "title": "Query",
+            "type": "string"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "CypherRequest",
+        "type": "object"
+      },
+      "DynamicAnalysisRequest": {
+        "properties": {
+          "hypothesis_claim": {
+            "title": "Hypothesis Claim",
+            "type": "string"
+          },
+          "hypothesis_id": {
+            "title": "Hypothesis Id",
+            "type": "string"
+          },
+          "package_name": {
+            "title": "Package Name",
+            "type": "string"
+          },
+          "permissions": {
+            "default": [],
+            "items": {
+              "type": "string"
+            },
+            "title": "Permissions",
+            "type": "array"
+          },
+          "submission_id": {
+            "title": "Submission Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "submission_id",
+          "hypothesis_id",
+          "hypothesis_claim",
+          "package_name"
+        ],
+        "title": "DynamicAnalysisRequest",
+        "type": "object"
+      },
+      "DynamicAnalysisResponse": {
+        "properties": {
+          "hypothesis_id": {
+            "title": "Hypothesis Id",
+            "type": "string"
+          },
+          "is_unresolved": {
+            "default": false,
+            "title": "Is Unresolved",
+            "type": "boolean"
+          },
+          "script": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Script"
+          },
+          "submission_id": {
+            "title": "Submission Id",
+            "type": "string"
+          },
+          "unresolved_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unresolved Reason"
+          }
+        },
+        "required": [
+          "submission_id",
+          "hypothesis_id"
+        ],
+        "title": "DynamicAnalysisResponse",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HuntRequest": {
+        "properties": {
+          "days": {
+            "default": 7,
+            "title": "Days",
+            "type": "integer"
+          },
+          "family": {
+            "default": "",
+            "title": "Family",
+            "type": "string"
+          },
+          "hunt": {
+            "title": "Hunt",
+            "type": "string"
+          },
+          "limit": {
+            "default": 50,
+            "title": "Limit",
+            "type": "integer"
+          },
+          "min_score": {
+            "default": 60.0,
+            "title": "Min Score",
+            "type": "number"
+          },
+          "sha256": {
+            "default": "",
+            "title": "Sha256",
+            "type": "string"
+          },
+          "technique": {
+            "default": "",
+            "title": "Technique",
+            "type": "string"
+          }
+        },
+        "required": [
+          "hunt"
+        ],
+        "title": "HuntRequest",
+        "type": "object"
+      },
+      "IoCRequest": {
+        "properties": {
+          "domains": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Domains",
+            "type": "array"
+          },
+          "ips": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Ips",
+            "type": "array"
+          }
+        },
+        "title": "IoCRequest",
+        "type": "object"
+      },
+      "SimilarRequest": {
+        "properties": {
+          "query": {
+            "title": "Query",
+            "type": "string"
+          },
+          "top_k": {
+            "default": 5,
+            "title": "Top K",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "query"
+        ],
+        "title": "SimilarRequest",
+        "type": "object"
+      },
+      "SubmissionResponse": {
+        "description": "API response model for an analysis submission.",
+        "example": {
+          "created_at": "2026-06-18T10:00:00Z",
+          "file_name": "sample.apk",
+          "file_size": 2489132,
+          "id": "6f1b8c6a-7c33-4b71-b1f9-1867c56f7f54",
+          "md5": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "package_name": "com.example.app",
+          "priority": "normal",
+          "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "status": "queued",
+          "updated_at": "2026-06-18T10:00:00Z"
+        },
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "file_name": {
+            "title": "File Name",
+            "type": "string"
+          },
+          "file_size": {
+            "title": "File Size",
+            "type": "integer"
+          },
+          "final_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Final Score"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "md5": {
+            "title": "Md5",
+            "type": "string"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          },
+          "package_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Package Name"
+          },
+          "priority": {
+            "title": "Priority",
+            "type": "string"
+          },
+          "sha256": {
+            "title": "Sha256",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "triage_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Triage Score"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "verdict": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verdict"
+          }
+        },
+        "required": [
+          "file_name",
+          "file_size",
+          "id",
+          "sha256",
+          "md5",
+          "status",
+          "priority",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "SubmissionResponse",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      }
+    },
+    "securitySchemes": {
+      "APIKeyHeader": {
+        "in": "header",
+        "name": "X-API-Key",
+        "type": "apiKey"
+      }
+    }
+  },
+  "info": {
+    "description": "GenAI-native automated malware reverse engineering and APK fraud analysis platform",
+    "title": "PARALLAX",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/analysis/{submission_id}": {
+      "get": {
+        "description": "Fetch the current status of an analysis, including triage score and active hypotheses.",
+        "operationId": "get_analysis_status_api_v1_analysis__submission_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Analysis Status Api V1 Analysis  Submission Id  Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Analysis Status",
+        "tags": [
+          "Analysis"
+        ]
+      }
+    },
+    "/api/v1/analysis/{submission_id}/fraud-chain": {
+      "get": {
+        "operationId": "get_fraud_chain_api_v1_analysis__submission_id__fraud_chain_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Fraud Chain",
+        "tags": [
+          "results"
+        ]
+      }
+    },
+    "/api/v1/analysis/{submission_id}/fraud-rules": {
+      "get": {
+        "operationId": "get_fraud_rules_api_v1_analysis__submission_id__fraud_rules_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Fraud Rules",
+        "tags": [
+          "results"
+        ]
+      }
+    },
+    "/api/v1/analysis/{submission_id}/irt": {
+      "get": {
+        "operationId": "get_irt_api_v1_analysis__submission_id__irt_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Irt",
+        "tags": [
+          "results"
+        ]
+      }
+    },
+    "/api/v1/analysis/{submission_id}/report.html": {
+      "get": {
+        "operationId": "get_report_html_api_v1_analysis__submission_id__report_html_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Report Html",
+        "tags": [
+          "results"
+        ]
+      }
+    },
+    "/api/v1/analysis/{submission_id}/report.pdf": {
+      "get": {
+        "operationId": "get_report_pdf_api_v1_analysis__submission_id__report_pdf_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Report Pdf",
+        "tags": [
+          "results"
+        ]
+      }
+    },
+    "/api/v1/analysis/{submission_id}/result": {
+      "get": {
+        "operationId": "get_result_api_v1_analysis__submission_id__result_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Result",
+        "tags": [
+          "results"
+        ]
+      }
+    },
+    "/api/v1/analysis/{submission_id}/stix": {
+      "get": {
+        "operationId": "get_stix_api_v1_analysis__submission_id__stix_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Stix",
+        "tags": [
+          "results"
+        ]
+      }
+    },
+    "/api/v1/analysis/{submission_id}/yara": {
+      "get": {
+        "operationId": "get_yara_api_v1_analysis__submission_id__yara_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Yara",
+        "tags": [
+          "results"
+        ]
+      }
+    },
+    "/api/v1/analyze": {
+      "post": {
+        "description": "Upload one APK, persist the binary to object storage, deduplicate by SHA-256, and enqueue triage. Optional `webhook_url` receives a signed completion payload. Use `Idempotency-Key` for safe client retries.",
+        "operationId": "submit_apk_api_v1_analyze_post",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Idempotency-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_submit_apk_api_v1_analyze_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubmissionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "The uploaded file is not an APK or has invalid APK magic bytes."
+          },
+          "413": {
+            "description": "The APK exceeds the configured upload size limit."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          },
+          "500": {
+            "description": "Storage or queueing failed while processing the submission."
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Submit one APK for analysis",
+        "tags": [
+          "Analyze"
+        ]
+      }
+    },
+    "/api/v1/analyze/batch": {
+      "post": {
+        "description": "Upload up to 100 APKs in one request. Each file is validated independently; bad files are reported inline and do not abort the rest of the batch.",
+        "operationId": "submit_batch_api_v1_analyze_batch_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_submit_batch_api_v1_analyze_batch_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchSubmissionResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "400": {
+            "description": "No files were supplied or the batch exceeds the 100-APK limit."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Submit a batch of APKs",
+        "tags": [
+          "Analyze"
+        ]
+      }
+    },
+    "/api/v1/analyze/batch/{batch_id}": {
+      "get": {
+        "description": "Return per-sample progress, verdicts and aggregate status counts for a batch.",
+        "operationId": "batch_status_api_v1_analyze_batch__batch_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "batch_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Batch Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchStatusResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "404": {
+            "description": "The batch id is unknown."
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get batch analysis status",
+        "tags": [
+          "Analyze"
+        ]
+      }
+    },
+    "/api/v1/dynamic/analyze": {
+      "post": {
+        "description": "Generate a Frida hook for a specific hypothesis using the Hook Planner LLM.",
+        "operationId": "generate_dynamic_hook_api_v1_dynamic_analyze_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DynamicAnalysisRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DynamicAnalysisResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Generate Dynamic Hook",
+        "tags": [
+          "Dynamic Analysis"
+        ]
+      }
+    },
+    "/api/v1/graph/cypher": {
+      "post": {
+        "description": "Execute a read-only Cypher query against the TAIG graph.",
+        "operationId": "run_cypher_api_v1_graph_cypher_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CypherRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Run Cypher",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/v1/graph/find-by-ioc": {
+      "post": {
+        "description": "Find APKs that communicated with the given domains/IPs.",
+        "operationId": "find_by_ioc_api_v1_graph_find_by_ioc_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IoCRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Find By Ioc",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/v1/graph/health": {
+      "get": {
+        "description": "Return TAIG graph health counts and update Prometheus gauges.",
+        "operationId": "graph_health_api_v1_graph_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Graph Health",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/v1/graph/patterns": {
+      "get": {
+        "description": "Query the Malware Pattern Memory subsystem.",
+        "operationId": "list_patterns_api_v1_graph_patterns_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "category",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Category"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "List Patterns",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/v1/graph/similar": {
+      "post": {
+        "description": "Find prior submissions semantically similar to a text query.",
+        "operationId": "similar_api_v1_graph_similar_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimilarRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Similar",
+        "tags": [
+          "graph"
+        ]
+      }
+    },
+    "/api/v1/history": {
+      "get": {
+        "description": "Get paginated list of past analyses.\n\nReturns submissions ordered by most recent first, with total count for pagination.",
+        "operationId": "get_analysis_history_api_v1_history_get",
+        "parameters": [
+          {
+            "description": "Page number (1-indexed)",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "default": 1,
+              "description": "Page number (1-indexed)",
+              "minimum": 1,
+              "title": "Page",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Items per page",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "description": "Items per page",
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Page Size",
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Filter by analysis status",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "$ref": "#/components/schemas/AnalysisStatusFilter"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by analysis status",
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Get Analysis History Api V1 History Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Analysis History",
+        "tags": [
+          "History"
+        ]
+      }
+    },
+    "/api/v1/hunt": {
+      "post": {
+        "operationId": "run_hunt_api_v1_hunt_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HuntRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Run Hunt",
+        "tags": [
+          "hunt"
+        ]
+      }
+    },
+    "/api/v1/hunt/detect-campaigns": {
+      "post": {
+        "description": "Re-run community detection and return the current campaign clusters.",
+        "operationId": "run_campaign_detection_api_v1_hunt_detect_campaigns_post",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "min_size",
+            "required": false,
+            "schema": {
+              "default": 2,
+              "title": "Min Size",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Run Campaign Detection",
+        "tags": [
+          "hunt"
+        ]
+      }
+    },
+    "/api/v1/hunt/templates": {
+      "get": {
+        "operationId": "list_hunts_api_v1_hunt_templates_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "List Hunts",
+        "tags": [
+          "hunt"
+        ]
+      }
+    },
+    "/health": {
+      "get": {
+        "description": "Basic liveness probe \u2014 always returns OK if the process is alive.",
+        "operationId": "health_check_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Health Check Health Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Health Check",
+        "tags": [
+          "System"
+        ]
+      }
+    },
+    "/metrics": {
+      "get": {
+        "description": "Prometheus exposition endpoint (unauthenticated; scraped by the\nbundled prometheus.yml). Returns LLM latency/token, verdict, and\nstage-failure series.",
+        "operationId": "metrics_metrics_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Metrics",
+        "tags": [
+          "System"
+        ]
+      }
+    },
+    "/ready": {
+      "get": {
+        "description": "Readiness probe \u2014 checks connectivity to all backing services.\nReturns 503 if any critical service is unreachable.",
+        "operationId": "readiness_check_ready_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Readiness Check",
+        "tags": [
+          "System"
+        ]
+      }
+    }
+  }
+}
