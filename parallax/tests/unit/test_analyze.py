@@ -24,6 +24,7 @@ def test_submit_apk_success(mock_get_minio, mock_run_triage, client: TestClient)
     # Mock database session with sync add and async commit/refresh
     mock_session = MagicMock()
     mock_session.commit = AsyncMock()
+    mock_session.flush = AsyncMock()
     mock_session.refresh = AsyncMock()
     mock_session.execute = AsyncMock()
 
@@ -60,8 +61,8 @@ def test_submit_apk_success(mock_get_minio, mock_run_triage, client: TestClient)
     assert "md5" in data
     assert "id" in data
 
-    # Verify minio was called
-    mock_minio.fput_object.assert_called_once()
+    # Verify both quarantine custody and analysis-worker copies were stored.
+    assert mock_minio.fput_object.call_count == 2
 
     app.dependency_overrides.clear()
 
@@ -89,6 +90,7 @@ def test_submit_apk_invalid_magic_bytes(client: TestClient):
 
     mock_session = MagicMock()
     mock_session.commit = AsyncMock()
+    mock_session.flush = AsyncMock()
     mock_session.refresh = AsyncMock()
     mock_session.execute = AsyncMock()
 

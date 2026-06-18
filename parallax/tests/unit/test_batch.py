@@ -29,6 +29,7 @@ class TestBatchSubmit:
         mock_minio.return_value = MagicMock()
         mock_session = MagicMock()
         mock_session.commit = AsyncMock()
+        mock_session.flush = AsyncMock()
         result = MagicMock()
         result.scalar_one_or_none.return_value = None  # no dedup hit
         mock_session.execute = AsyncMock(return_value=result)
@@ -59,6 +60,7 @@ class TestBatchSubmit:
         mock_minio.return_value = MagicMock()
         mock_session = MagicMock()
         mock_session.commit = AsyncMock()
+        mock_session.flush = AsyncMock()
         result = MagicMock()
         result.scalar_one_or_none.return_value = None
         mock_session.execute = AsyncMock(return_value=result)

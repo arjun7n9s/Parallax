@@ -5,6 +5,7 @@ Uses lazy initialization to avoid hard failures if MinIO is unreachable
 at import time (e.g. during tests or partial infra bring-up).
 """
 
+from datetime import timedelta
 from functools import lru_cache
 
 from minio import Minio
@@ -13,11 +14,18 @@ from parallax.core.config import settings
 
 # Bucket names — single source of truth
 APK_BUCKET = "parallax-apks"
+QUARANTINE_BUCKET = "parallax-quarantine"
 DECOMPILED_BUCKET = "parallax-decompiled"
 SCREENSHOTS_BUCKET = "parallax-screenshots"
 REPORTS_BUCKET = "parallax-reports"
 
-_ALL_BUCKETS = [APK_BUCKET, DECOMPILED_BUCKET, SCREENSHOTS_BUCKET, REPORTS_BUCKET]
+_ALL_BUCKETS = [
+    APK_BUCKET,
+    QUARANTINE_BUCKET,
+    DECOMPILED_BUCKET,
+    SCREENSHOTS_BUCKET,
+    REPORTS_BUCKET,
+]
 
 
 @lru_cache(maxsize=1)
@@ -45,3 +53,13 @@ def init_buckets() -> None:
     for bucket in _ALL_BUCKETS:
         if not client.bucket_exists(bucket):
             client.make_bucket(bucket)
+
+
+def signed_get_url(bucket: str, object_name: str) -> str:
+    """Create a short-lived URL for an object without exposing storage secrets."""
+    ttl = max(1, min(settings.SIGNED_URL_TTL_SECONDS, 7 * 24 * 60 * 60))
+    return get_minio_client().presigned_get_object(
+        bucket,
+        object_name,
+        expires=timedelta(seconds=ttl),
+    )

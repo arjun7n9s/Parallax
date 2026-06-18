@@ -46,6 +46,10 @@ def get_request_tenant(request: Request) -> str:
     return str(getattr(request.state, "tenant_id", settings.TENANT_ID))
 
 
+def get_request_actor(request: Request) -> str:
+    return str(getattr(request.state, "actor", "system"))
+
+
 def redact_secrets(text: str) -> str:
     """Scrub configured secret *values* from a string before it is logged or
     returned. Cheap insurance for the CI secret-grep gate — a stack trace or

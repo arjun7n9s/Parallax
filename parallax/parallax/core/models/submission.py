@@ -7,7 +7,17 @@ These are the foundational tables required by Phase 0.
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, Enum, Float, ForeignKey, Integer, String, Text, func
+from sqlalchemy import (
+    DateTime,
+    Enum,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -18,10 +28,11 @@ class Submission(Base):
     """An APK submitted for analysis."""
 
     __tablename__ = "submissions"
+    __table_args__ = (UniqueConstraint("tenant_id", "sha256", name="uq_submissions_tenant_sha256"),)
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     tenant_id: Mapped[str] = mapped_column(String(128), default="default", index=True)
-    sha256: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), index=True, nullable=False)
     md5: Mapped[str] = mapped_column(String(32), nullable=False)
     file_name: Mapped[str] = mapped_column(String(512), nullable=False)
     file_size: Mapped[int] = mapped_column(Integer, nullable=False)

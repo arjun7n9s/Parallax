@@ -108,6 +108,7 @@ class TestRouteReplay:
 
         mock_session = MagicMock()
         mock_session.commit = AsyncMock()
+        mock_session.flush = AsyncMock()
         result = MagicMock()
         result.scalar_one_or_none.return_value = existing
         mock_session.execute = AsyncMock(return_value=result)

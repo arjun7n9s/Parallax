@@ -17,9 +17,17 @@ def upgrade() -> None:
         )
         op.create_index(f"ix_{table}_tenant_id", table, ["tenant_id"])
         op.alter_column(table, "tenant_id", server_default=None)
+    op.drop_constraint("submissions_sha256_key", "submissions", type_="unique")
+    op.create_unique_constraint(
+        "uq_submissions_tenant_sha256",
+        "submissions",
+        ["tenant_id", "sha256"],
+    )
 
 
 def downgrade() -> None:
+    op.drop_constraint("uq_submissions_tenant_sha256", "submissions", type_="unique")
+    op.create_unique_constraint("submissions_sha256_key", "submissions", ["sha256"])
     for table in ("audit_log", "iocs", "submissions"):
         op.drop_index(f"ix_{table}_tenant_id", table_name=table)
         op.drop_column(table, "tenant_id")

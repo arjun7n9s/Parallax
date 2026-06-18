@@ -835,6 +835,51 @@
         ]
       }
     },
+    "/api/v1/analysis/{submission_id}/quarantine-url": {
+      "get": {
+        "operationId": "get_quarantine_url_api_v1_analysis__submission_id__quarantine_url_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "submission_id",
+            "required": true,
+            "schema": {
+              "title": "Submission Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "security": [
+          {
+            "APIKeyHeader": []
+          }
+        ],
+        "summary": "Get Quarantine Url",
+        "tags": [
+          "results"
+        ]
+      }
+    },
     "/api/v1/analysis/{submission_id}/report.html": {
       "get": {
         "operationId": "get_report_html_api_v1_analysis__submission_id__report_html_get",

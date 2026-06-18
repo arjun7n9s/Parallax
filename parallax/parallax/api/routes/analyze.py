@@ -28,11 +28,12 @@ from parallax.api.schemas.submission import (
     BatchSubmissionResponse,
     SubmissionResponse,
 )
-from parallax.api.security import get_request_tenant
+from parallax.api.security import get_request_actor, get_request_tenant
+from parallax.core.audit import write_audit_log
 from parallax.core.config import settings
 from parallax.core.database import get_session
 from parallax.core.models import Submission
-from parallax.core.storage import APK_BUCKET, get_minio_client
+from parallax.core.storage import APK_BUCKET, QUARANTINE_BUCKET, get_minio_client
 
 router = APIRouter(prefix="/analyze", tags=["Analyze"])
 
@@ -50,6 +51,7 @@ async def _ingest_apk(
     webhook_url: str | None = None,
     batch_id: uuid.UUID | None = None,
     tenant_id: str = "default",
+    actor: str = "system",
 ) -> Submission:
     """Stream-hash, dedup, store, and queue one APK. Returns the (possibly
     pre-existing) Submission. Raises HTTPException on a client/validation error.
@@ -99,10 +101,26 @@ async def _ingest_apk(
         )
         existing_sub = cast(Submission | None, existing.scalar_one_or_none())
         if existing_sub:
+            await write_audit_log(
+                db,
+                tenant_id=tenant_id,
+                actor=actor,
+                action="submission.deduplicated",
+                submission_id=existing_sub.id,
+                detail={"sha256": sha256_hex, "file_name": file.filename},
+            )
+            await db.commit()
             return existing_sub
 
         s3_path = f"s3://{APK_BUCKET}/{sha256_hex}.apk"
-        get_minio_client().fput_object(
+        minio_client = get_minio_client()
+        minio_client.fput_object(
+            bucket_name=QUARANTINE_BUCKET,
+            object_name=f"{sha256_hex}.apk",
+            file_path=temp_file_path,
+            content_type="application/vnd.android.package-archive",
+        )
+        minio_client.fput_object(
             bucket_name=APK_BUCKET,
             object_name=f"{sha256_hex}.apk",
             file_path=temp_file_path,
@@ -123,6 +141,19 @@ async def _ingest_apk(
             batch_id=batch_id,
         )
         db.add(new_submission)
+        await write_audit_log(
+            db,
+            tenant_id=tenant_id,
+            actor=actor,
+            action="submission.created",
+            submission_id=new_submission.id,
+            detail={
+                "sha256": sha256_hex,
+                "file_name": file.filename,
+                "file_size": file_size,
+                "quarantine_path": f"s3://{QUARANTINE_BUCKET}/{sha256_hex}.apk",
+            },
+        )
         await db.commit()
 
         from parallax.workers.triage_worker import run_triage_pipeline
@@ -189,7 +220,13 @@ async def submit_apk(
 
     try:
         tenant_id = get_request_tenant(request)
-        new_submission = await _ingest_apk(file, db, webhook_url=webhook_url, tenant_id=tenant_id)
+        new_submission = await _ingest_apk(
+            file,
+            db,
+            webhook_url=webhook_url,
+            tenant_id=tenant_id,
+            actor=get_request_actor(request),
+        )
     except HTTPException:
         raise
     except Exception as e:  # noqa: BLE001
@@ -245,6 +282,7 @@ async def submit_batch(
                 webhook_url=webhook_url,
                 batch_id=batch_id,
                 tenant_id=tenant_id,
+                actor=get_request_actor(request),
             )
             results.append(
                 {"file_name": f.filename, "submission_id": str(sub.id), "status": sub.status}
