@@ -17,6 +17,20 @@ python scripts/build_corpus.py \
 
 Use `--dry-run` to validate family selection and manifest writing without downloading APK payloads.
 
+For a publishable validation run, use the readiness gate before downloads:
+
+```bash
+python scripts/build_corpus.py \
+  --dry-run \
+  --benign-dir samples/benign \
+  --benign-limit 20 \
+  --manifest samples/corpus_preflight.jsonl \
+  --min-total 200 \
+  --require-benign
+```
+
+If this fails, do not publish validation claims. Add benign controls, adjust family targets, or expand MalwareBazaar tags until the preflight passes.
+
 ## Run validation
 
 The harness is resumable. It writes rows after each sample, so interrupted long runs can continue safely.

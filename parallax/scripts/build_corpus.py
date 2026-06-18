@@ -238,6 +238,31 @@ def write_manifest(records: list[CorpusRecord], manifest: Path) -> None:
     manifest.write_text("\n".join(r.to_json() for r in records) + "\n", encoding="utf-8")
 
 
+def corpus_summary(records: list[CorpusRecord]) -> dict[str, int]:
+    summary = {
+        "total": len(records),
+        "malicious": sum(1 for r in records if r.true_verdict == "MALICIOUS"),
+        "benign": sum(1 for r in records if r.true_verdict == "CLEAN"),
+    }
+    for record in records:
+        summary[f"family:{record.family}"] = summary.get(f"family:{record.family}", 0) + 1
+    return summary
+
+
+def readiness_issues(
+    records: list[CorpusRecord], *, min_total: int = 0, require_benign: bool = False
+) -> list[str]:
+    summary = corpus_summary(records)
+    issues: list[str] = []
+    if min_total and summary["total"] < min_total:
+        issues.append(f"need at least {min_total} total records; selected {summary['total']}")
+    if require_benign and summary["benign"] == 0:
+        issues.append("require at least one benign APK; selected 0")
+    if summary["malicious"] == 0:
+        issues.append("need at least one malicious APK; selected 0")
+    return issues
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--families", help="Comma-separated Family=Count targets")
@@ -247,6 +272,17 @@ def main() -> int:
     parser.add_argument("--benign-dir", type=Path)
     parser.add_argument("--benign-limit", default=20, type=int)
     parser.add_argument("--dry-run", action="store_true", help="Write manifest without downloads")
+    parser.add_argument(
+        "--min-total",
+        default=0,
+        type=int,
+        help="Fail if the selected corpus has fewer than this many records.",
+    )
+    parser.add_argument(
+        "--require-benign",
+        action="store_true",
+        help="Fail unless at least one benign APK is selected.",
+    )
     args = parser.parse_args()
 
     targets = parse_family_targets(args.families)
@@ -257,12 +293,17 @@ def main() -> int:
         query_limit=args.query_limit,
     )
     records.extend(build_benign_records(args.benign_dir, limit=args.benign_limit))
+    issues = readiness_issues(records, min_total=args.min_total, require_benign=args.require_benign)
+    if issues:
+        for issue in issues:
+            print(f"readiness error: {issue}")
+        return 2
+
     write_manifest(records, args.manifest)
 
-    malicious = sum(1 for r in records if r.true_verdict == "MALICIOUS")
-    benign = sum(1 for r in records if r.true_verdict == "CLEAN")
+    summary = corpus_summary(records)
     print(f"wrote {len(records)} records -> {args.manifest}")
-    print(f"malicious={malicious} benign={benign}")
+    print(f"malicious={summary['malicious']} benign={summary['benign']}")
     return 0
 
 

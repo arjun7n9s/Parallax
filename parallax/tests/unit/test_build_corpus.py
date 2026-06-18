@@ -71,6 +71,50 @@ def test_write_manifest_jsonl(tmp_path):
     assert row["tags"] == ["Cerberus"]
 
 
+def test_readiness_issues_require_minimums_and_benign():
+    records = [
+        build_corpus.CorpusRecord(
+            sha256="a" * 64,
+            family="Cerberus",
+            true_verdict="MALICIOUS",
+            source="MalwareBazaar",
+            path="samples/corpus/malware/Cerberus/a.apk",
+        )
+    ]
+
+    issues = build_corpus.readiness_issues(records, min_total=200, require_benign=True)
+
+    assert "need at least 200 total records; selected 1" in issues
+    assert "require at least one benign APK; selected 0" in issues
+
+
+def test_corpus_summary_counts_families_and_verdicts():
+    records = [
+        build_corpus.CorpusRecord(
+            sha256="a" * 64,
+            family="Cerberus",
+            true_verdict="MALICIOUS",
+            source="MalwareBazaar",
+            path="a.apk",
+        ),
+        build_corpus.CorpusRecord(
+            sha256="b" * 64,
+            family="benign",
+            true_verdict="CLEAN",
+            source="local_benign",
+            path="b.apk",
+        ),
+    ]
+
+    summary = build_corpus.corpus_summary(records)
+
+    assert summary["total"] == 2
+    assert summary["malicious"] == 1
+    assert summary["benign"] == 1
+    assert summary["family:Cerberus"] == 1
+    assert summary["family:benign"] == 1
+
+
 def test_build_benign_records_hashes_local_apks(tmp_path):
     benign_dir = tmp_path / "benign"
     benign_dir.mkdir()
