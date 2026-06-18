@@ -368,3 +368,32 @@ Commit on `main` (authored as arjun7n9s): `feat(workers)` heartbeat + orphan rea
 ### Remaining on 1.3: the live `kill -9 a worker mid-dynamic → re-queued and completes from
 ### the dynamic stage within ~60s` proof — needs live Redis + a running beat, deferred to a
 ### live session.
+
+---
+
+## Session 2026-06-18 — Phase 2 reconciliation (state audit, no new code)
+
+Resumed from a stale summary and discovered `main` had already advanced ~14h with a full
+Phase 2 build (and the 1.1b/1.1c dynamic fixes) layered on top of the reaper commit. Audited
+every commit against its gate rather than rebuild. Each shipped code **plus** a dedicated test
+file; the full unit suite is **247 passed**, mypy + ruff clean.
+
+True state after audit:
+
+- **2.4a confidence** (`cb8ddb3`) — ✅ `ai/confidence.py`: overall-confidence from coverage +
+  agent self-confidence + dynamic-observed + attribution → band + `needs_human_review`; report
+  surfaces it (test_confidence).
+- **2.4b high-risk LLM debate** (`055b5c0`) — ✅ FOR/AGAINST/judge for high-risk claims, the
+  deterministic evasion check as the fast-path trigger, cost-gated (test_debate_llm).
+- **2.4c structured synthesis** (`55c7e57`) — ✅ `SynthesisOutput` (key_findings, evidence_table,
+  risk_breakdown, attck, iocs, recommendations); report renders each section (test_synthesis,
+  test_delivery).
+- **2.6 pattern memory** (`34d5296`) — ✅ stable content-hash IDs (re-run → identical, dedupes),
+  idiom + fraud-flow extractors, per-category tests (test_pattern_memory).
+- **2.1 / 2.2 / 2.3 / 2.5** — 🟡 code+tests landed (`build_corpus.py`, `run_corpus.py`,
+  `ai/calibration/` + `risk._calibrate`, `knowledge/graph_health.py`), but their gates need the
+  live ≥200-sample corpus run: the accuracy table, a fitted isotonic model that beats identity,
+  and cross-sample TAIG queries over loaded data. Deferred to a live-data session.
+
+Note: a tree sync to HEAD during this session discarded an in-progress local re-implementation
+of 2.4a (duplicate of `cb8ddb3`); nothing committed was lost. Tracker rows updated to match.
