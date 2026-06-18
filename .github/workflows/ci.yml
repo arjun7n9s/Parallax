@@ -105,11 +105,11 @@ jobs:
         env:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: parallax_db_pass
-          POSTGRES_DB: parallax
+          POSTGRES_DB: parallax_migration_smoke
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U postgres -d parallax"
+          --health-cmd "pg_isready -U postgres -d parallax_migration_smoke"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
@@ -117,7 +117,7 @@ jobs:
       POSTGRES_SERVER: localhost
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: parallax_db_pass
-      POSTGRES_DB: parallax
+      POSTGRES_DB: parallax_migration_smoke
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -131,3 +131,7 @@ jobs:
         run: python -m alembic upgrade head
       - name: Show current revision
         run: python -m alembic current
+      - name: Roundtrip latest migration on seeded database
+        run: |
+          python -m alembic downgrade base
+          python scripts/verify_migration_roundtrip.py
