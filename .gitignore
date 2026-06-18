@@ -10,6 +10,9 @@ tools/
 
 # Private internal build plan - keep out of the public repo until shipped
 Claude/
+Other-Plans/
+BUILD_HANDOFF.md
+Build_Handoff.md
 
 # Caches
 __pycache__/
