@@ -57,12 +57,22 @@ curl -s http://localhost:8000/ready | python -m json.tool   # all checks "ok"?
 curl -s -F "file=@samples/app.apk" http://localhost:8000/api/v1/analyze
 # -> {"submission_id": "..."}
 
-curl -s http://localhost:8000/api/v1/status/<submission_id>     # queued -> ... -> complete
+curl -s http://localhost:8000/api/v1/analysis/<submission_id>     # queued -> ... -> complete
 curl -s http://localhost:8000/api/v1/analysis/<submission_id>/result
 curl -s http://localhost:8000/api/v1/analysis/<submission_id>/report.html -o report.html
 ```
 
 Other artifacts: `/report.pdf`, `/stix`, `/yara`, `/fraud-rules`, `/fraud-chain`, `/irt`. Threat hunting: `POST /api/v1/hunt`, `POST /api/v1/graph/cypher` (read-only Cypher).
+
+### 5. Run the analyst console
+
+```bash
+cd frontend
+npm ci
+npm run dev
+```
+
+Open `http://127.0.0.1:5173`, set the API base to `http://127.0.0.1:8000/api/v1`, and enter `X-API-Key` if your `.env` enables API auth. The console supports APK submit, live history/status polling, result detail, artifact downloads, signed quarantine APK URLs, graph health, and hunt templates.
 
 ## Configuration highlights (`.env`)
 
