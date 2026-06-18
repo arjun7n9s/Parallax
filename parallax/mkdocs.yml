@@ -1,0 +1,31 @@
+site_name: PARALLAX Documentation
+site_description: Persistent APK risk analysis for banking security teams.
+site_url: https://arjun7n9s.github.io/Parallax/
+repo_url: https://github.com/arjun7n9s/Parallax
+docs_dir: docs
+site_dir: site
+theme:
+  name: readthedocs
+nav:
+  - Home: README.md
+  - Analyst Guide:
+      - Getting Started: user/getting-started.md
+      - Verdict Meanings: user/verdicts.md
+      - Report Guide: user/report-guide.md
+      - SOC FAQ: user/faq.md
+  - Admin Guide:
+      - Installation: admin/installation.md
+      - Configuration: admin/configuration.md
+      - Scaling: admin/scaling.md
+      - Monitoring: admin/monitoring.md
+  - Security:
+      - Bank Audit Overview: security.md
+  - API:
+      - API Reference: api/README.md
+  - Runbooks:
+      - Operations: runbooks/README.md
+      - Backup and Restore: runbooks/backup_restore.md
+  - Architecture:
+      - Overview: architecture/README.md
+      - Hook Planner Prompt: architecture/hook_planner_prompt_design.md
+strict: true
