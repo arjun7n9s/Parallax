@@ -8,10 +8,11 @@ import tempfile
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
+from parallax.api.idempotency import lookup_submission_id, remember_submission_id
 from parallax.api.schemas.submission import SubmissionResponse
 from parallax.core.config import settings
 from parallax.core.database import get_session
@@ -28,13 +29,33 @@ _APK_MAGIC = b"PK\x03\x04"
 async def submit_apk(
     file: Annotated[UploadFile, File(...)],
     db: AsyncSession = Depends(get_session),
+    idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
 ):
     """
     Submit an APK for analysis.
     Computes hashes, stores the original binary in MinIO, and queues for triage.
+
+    Supplying an ``Idempotency-Key`` header makes retries safe: the same key
+    within 24h returns the original submission instead of creating a duplicate.
     """
     if not file.filename or not file.filename.endswith(".apk"):
         raise HTTPException(status_code=400, detail="Only .apk files are supported.")
+
+    # Idempotency-Key short-circuit: a retried request returns the same submission
+    # without re-uploading or re-hashing. Redis-backed; degrades gracefully.
+    idem_client = None
+    if idempotency_key:
+        try:
+            from parallax.workers.heartbeat import get_redis
+
+            idem_client = get_redis()
+            prior_id = lookup_submission_id(idem_client, idempotency_key)
+            if prior_id:
+                prior = await db.execute(select(Submission).where(Submission.id == prior_id))
+                if prior_sub := prior.scalar_one_or_none():
+                    return prior_sub
+        except Exception:  # noqa: BLE001 - idempotency is best-effort
+            idem_client = None
 
     max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
 
@@ -106,6 +127,10 @@ async def submit_apk(
         from parallax.workers.triage_worker import run_triage_pipeline
 
         run_triage_pipeline.delay(str(new_submission.id))
+
+        # Bind the idempotency key so a retry returns this same submission.
+        if idempotency_key and idem_client is not None:
+            remember_submission_id(idem_client, idempotency_key, str(new_submission.id))
 
         return new_submission
 
