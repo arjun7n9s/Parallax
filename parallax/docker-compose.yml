@@ -25,6 +25,10 @@ services:
       OLLAMA_HOST: http://ollama:11434
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
       API_KEY: ${API_KEY:-}
+      TENANT_ID: ${TENANT_ID:-default}
+      API_KEY_TENANT_MAP: ${API_KEY_TENANT_MAP:-}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-["http://localhost:3000","http://localhost:5173","http://127.0.0.1:5173","http://localhost:8000"]}
+      SIGNED_URL_TTL_SECONDS: ${SIGNED_URL_TTL_SECONDS:-300}
       LLM_MODE: ${LLM_MODE:-local}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     ports:

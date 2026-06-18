@@ -18,7 +18,12 @@ class Settings(BaseSettings):
     LOG_FORMAT: str = "auto"
 
     # Security
-    ALLOWED_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:8000"]
+    ALLOWED_ORIGINS: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:8000",
+    ]
     MAX_UPLOAD_SIZE_MB: int = 500  # Max APK upload size in megabytes
     # API key required (X-API-Key header) on all endpoints except /health and
     # /ready. Empty = auth disabled (development only — never run open in prod).
