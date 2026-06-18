@@ -89,6 +89,7 @@ async def _async_run_delivery(submission_id_str: str):
         permissions = artifact.get("static_features", {}).get("permissions", [])
         sha256 = submission.sha256
         package = submission.package_name or "unknown"
+        submission_webhook = submission.webhook_url
 
         fraud_chain = build_fraud_chain(cortex, permissions)
         client = get_minio_client()
@@ -179,6 +180,7 @@ async def _async_run_delivery(submission_id_str: str):
             EVENT_ANALYSIS_COMPLETED,
             EVENT_VERDICT_CRITICAL,
             dispatch,
+            dispatch_to_url,
         )
 
         payload = {
@@ -192,5 +194,8 @@ async def _async_run_delivery(submission_id_str: str):
         await dispatch(EVENT_ANALYSIS_COMPLETED, payload)
         if cortex.verdict == "CRITICAL":
             await dispatch(EVENT_VERDICT_CRITICAL, payload)
+        # Per-submission subscriber (the webhook_url passed at submit time).
+        if submission_webhook:
+            await dispatch_to_url(submission_webhook, EVENT_ANALYSIS_COMPLETED, payload)
     except Exception as exc:
         logger.warning("Webhook dispatch failed: %s", exc)

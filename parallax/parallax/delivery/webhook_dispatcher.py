@@ -34,13 +34,8 @@ def _sign(body: bytes) -> str:
     return hmac.new(secret, body, hashlib.sha256).hexdigest()
 
 
-async def dispatch(event_type: str, payload: dict, max_retries: int = 4) -> dict:
-    """Send an event to all configured webhook targets with retries."""
-    targets = _targets()
-    if not targets:
-        logger.debug("No webhook targets configured; skipping %s", event_type)
-        return {"delivered": 0, "targets": 0}
-
+def _build_request(event_type: str, payload: dict) -> tuple[bytes, dict]:
+    """Serialize + HMAC-sign one event into (body, headers)."""
     body = json.dumps({"event": event_type, "data": payload}).encode()
     headers = {"Content-Type": "application/json"}
     sig = _sign(body)
@@ -52,26 +47,52 @@ async def dispatch(event_type: str, payload: dict, max_retries: int = 4) -> dict
             "Receivers cannot verify authenticity; set WEBHOOK_SECRET and "
             "verify X-Parallax-Signature (hmac.compare_digest over the raw body)."
         )
+    return body, headers
 
+
+async def _post_with_retries(
+    client: httpx.AsyncClient, url: str, body: bytes, headers: dict, max_retries: int
+) -> bool:
+    """POST one body to one URL with bounded exponential backoff. True on a 2xx."""
+    for attempt in range(max_retries):
+        try:
+            resp = await client.post(url, content=body, headers=headers)
+            if resp.status_code < 300:
+                return True
+            raise httpx.HTTPStatusError("bad status", request=resp.request, response=resp)
+        except Exception as exc:  # noqa: BLE001
+            backoff = 2**attempt
+            logger.warning(
+                "Webhook %s attempt %d failed: %s (retry in %ds)", url, attempt + 1, exc, backoff
+            )
+            if attempt < max_retries - 1:
+                await asyncio.sleep(backoff)
+    return False
+
+
+async def dispatch(event_type: str, payload: dict, max_retries: int = 4) -> dict:
+    """Send an event to all deployment-configured webhook targets with retries."""
+    targets = _targets()
+    if not targets:
+        logger.debug("No webhook targets configured; skipping %s", event_type)
+        return {"delivered": 0, "targets": 0}
+
+    body, headers = _build_request(event_type, payload)
     delivered = 0
     async with httpx.AsyncClient(timeout=15.0) as client:
         for url in targets:
-            for attempt in range(max_retries):
-                try:
-                    resp = await client.post(url, content=body, headers=headers)
-                    if resp.status_code < 300:
-                        delivered += 1
-                        break
-                    raise httpx.HTTPStatusError("bad status", request=resp.request, response=resp)
-                except Exception as exc:
-                    backoff = 2**attempt
-                    logger.warning(
-                        "Webhook %s attempt %d failed: %s (retry in %ds)",
-                        url,
-                        attempt + 1,
-                        exc,
-                        backoff,
-                    )
-                    if attempt < max_retries - 1:
-                        await asyncio.sleep(backoff)
+            if await _post_with_retries(client, url, body, headers, max_retries):
+                delivered += 1
     return {"delivered": delivered, "targets": len(targets)}
+
+
+async def dispatch_to_url(url: str, event_type: str, payload: dict, max_retries: int = 4) -> dict:
+    """Send one event to a single explicit subscriber URL — the per-submission
+    ``webhook_url`` a client passed at submit time. Signed identically to
+    deployment webhooks so the same verification works."""
+    if not url:
+        return {"delivered": 0, "targets": 0}
+    body, headers = _build_request(event_type, payload)
+    async with httpx.AsyncClient(timeout=15.0) as client:
+        ok = await _post_with_retries(client, url, body, headers, max_retries)
+    return {"delivered": int(ok), "targets": 1}

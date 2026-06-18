@@ -46,6 +46,8 @@ class Submission(Base):
     final_score: Mapped[float | None] = mapped_column(Float, nullable=True)
     verdict: Mapped[str | None] = mapped_column(String(64), nullable=True)
     s3_path: Mapped[str] = mapped_column(String(1024), nullable=False)
+    # Optional per-submission completion webhook (HMAC-signed POST on terminal status).
+    webhook_url: Mapped[str | None] = mapped_column(String(2048), nullable=True)
     metadata_json: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(

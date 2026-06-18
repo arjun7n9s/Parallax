@@ -8,7 +8,7 @@ import tempfile
 import uuid
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Header, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -30,6 +30,7 @@ async def submit_apk(
     file: Annotated[UploadFile, File(...)],
     db: AsyncSession = Depends(get_session),
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
+    webhook_url: Annotated[str | None, Form()] = None,
 ):
     """
     Submit an APK for analysis.
@@ -119,6 +120,7 @@ async def submit_apk(
             status="queued",
             priority="normal",
             s3_path=s3_path,
+            webhook_url=webhook_url or None,
         )
 
         db.add(new_submission)
