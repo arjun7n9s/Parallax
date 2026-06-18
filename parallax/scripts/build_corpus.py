@@ -37,11 +37,16 @@ DEFAULT_FAMILIES: dict[str, int] = {
     "Hydra": 50,
     "Anatsa": 30,
     "SpyNote": 30,
-    "SharkBot": 4,
-    "FluBot": 4,
-    "TeaBot": 4,
-    "Octo": 4,
-    "Coper": 4,
+    "SharkBot": 10,
+    "FluBot": 10,
+    "TeaBot": 10,
+    "Octo": 10,
+    "Coper": 10,
+    "Ermac": 10,
+    "Xenomorph": 10,
+    "SOVA": 10,
+    "Vultur": 10,
+    "Alien": 10,
 }
 
 
