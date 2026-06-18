@@ -397,3 +397,32 @@ True state after audit:
 
 Note: a tree sync to HEAD during this session discarded an in-progress local re-implementation
 of 2.4a (duplicate of `cb8ddb3`); nothing committed was lost. Tracker rows updated to match.
+
+---
+
+## Session 2026-06-18 (cont.) — Phase 3 backend: security controls + API hardening
+
+Built the code-doable, no-live-DB parts of Phase 3.3 and 3.2 in tested checkpoints.
+
+- **3.3 security controls** (`a7ea08f`): `LOCAL_ONLY` hard-disables all cloud LLM routing at
+  the `provider_for` chokepoint (data residency for strict banks); `require_admin_key` gates
+  `/admin` with a separate `X-Admin-Key` and **fails closed** if API_KEY is set but
+  ADMIN_API_KEY isn't (a leaked analyst key can't escalate); a Redis fixed-window per-key
+  rate limiter (`RATE_LIMIT_PER_HOUR`, 429, fails open, identity = hash of key not the secret)
+  on submission endpoints; `redact_secrets()` scrubs configured key values from logs/errors
+  (test_security_controls).
+- **3.2c Idempotency-Key** (`72c0d6c`): `POST /analyze` honors the header — same key within
+  24h returns the original submission, short-circuiting before upload/hashing. Redis nx + 24h
+  TTL (first writer wins under a retry race), fails open with the sha256 unique index as
+  backstop (test_idempotency_key).
+- **3.2a per-submission webhooks** (`b9f2987`): optional `webhook_url` at submit (migration
+  0007); delivery POSTs the signed result to it via a new `dispatch_to_url()` that reuses the
+  HMAC signing + bounded-backoff retry path (refactored into `_build_request` +
+  `_post_with_retries`) (test_webhooks).
+
+Full unit suite green throughout; mypy + ruff + bandit clean.
+
+### Remaining Phase 3 (the larger / gated pieces):
+### - 3.3 tenancy (`tenant_id` + per-tenant query scoping) + AuditLog wiring — need a live DB.
+### - 3.2b batch submit + 3.2d OpenAPI examples / generated SDKs.
+### - 3.1 React frontend — a separate large stack; its E2E gate needs the full running system.
