@@ -422,7 +422,12 @@ Built the code-doable, no-live-DB parts of Phase 3.3 and 3.2 in tested checkpoin
 
 Full unit suite green throughout; mypy + ruff + bandit clean.
 
-### Remaining Phase 3 (the larger / gated pieces):
-### - 3.3 tenancy (`tenant_id` + per-tenant query scoping) + AuditLog wiring — need a live DB.
-### - 3.2b batch submit + 3.2d OpenAPI examples / generated SDKs.
-### - 3.1 React frontend — a separate large stack; its E2E gate needs the full running system.
+### 3.2b batch submission also landed (`c4e394f`): POST /analyze/batch (≤100 APKs, shared
+### batch_id via migration 0008, _ingest_apk shared with single-submit) + GET
+### /analyze/batch/{id} per-sample status; bad files reported inline without aborting (test_batch).
+
+### Remaining Phase 3 (genuinely gated, not pure-code-from-here):
+### - 3.3 tenancy (`tenant_id` + per-tenant query scoping) + AuditLog wiring — need a live DB
+###   migration + every query touched to verify cross-tenant 403 / audit rows.
+### - 3.2d OpenAPI examples + generated SDKs — needs openapi-python-client / openapi-typescript tooling.
+### - 3.1 React frontend — a separate Vite/React stack; its E2E gate needs the full running system.
