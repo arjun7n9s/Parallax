@@ -69,3 +69,13 @@ Before updating the whitepaper or case studies with numbers, verify:
 - `scripts/train_calibration.py` writes a model with `has_both_classes: true`.
 - The trained model Brier score is no worse than identity Brier.
 - The exact manifest, results CSV, report, model metadata, and PARALLAX commit SHA are archived together.
+
+## Remaining blocker preflight
+
+Run the phase preflight helper to summarize external blockers without downloading malware or booting live infrastructure:
+
+```bash
+python scripts/phase_preflight.py --root . --min-benign 20
+```
+
+Use `--json` for automation, or `--strict` to exit nonzero when any check is blocked.
