@@ -23,6 +23,8 @@ nav:
       - Bank Audit Overview: security.md
   - Product:
       - Draft Whitepaper: whitepaper.md
+      - Pricing and Packaging: pricing.md
+      - Sales Collateral Checklist: collateral.md
   - API:
       - API Reference: api/README.md
   - Runbooks:

@@ -11,6 +11,7 @@ documentation.
 - `api/` - REST API reference
 - `runbooks/` - Operational runbooks for deployment and troubleshooting
 - `security.md` - Bank audit security overview
+- `pricing.md` and `collateral.md` - buyer-facing packaging, pricing, and collateral guardrails
 
 ## Build
 
