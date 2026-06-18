@@ -128,3 +128,32 @@ def test_build_benign_records_hashes_local_apks(tmp_path):
     assert records[0].true_verdict == "CLEAN"
     assert records[0].source == "local_benign"
     assert records[0].file_name == "clock.apk"
+
+
+def test_build_malware_records_skips_failed_downloads(tmp_path, monkeypatch, capsys):
+    good = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+    bad = "b" * 64
+
+    monkeypatch.setattr(
+        build_corpus,
+        "query_tag",
+        lambda *_args, **_kwargs: [
+            {"sha256_hash": bad, "file_type": "apk", "tags": ["Cerberus"]},
+            {"sha256_hash": good, "file_type": "apk", "tags": ["Cerberus"]},
+        ],
+    )
+
+    def fake_download(sha256, **_kwargs):
+        if sha256 == bad:
+            raise RuntimeError("temporary 502")
+        return b"hello"
+
+    monkeypatch.setattr(build_corpus, "download_apk", fake_download)
+
+    records = build_corpus.build_malware_records(
+        targets={"Cerberus": 2},
+        out_dir=tmp_path,
+    )
+
+    assert [record.sha256 for record in records] == [good]
+    assert "temporary 502" in capsys.readouterr().out

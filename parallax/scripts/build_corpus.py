@@ -20,12 +20,16 @@ import argparse
 import hashlib
 import io
 import json
+import sys
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
 
 import httpx
 import pyzipper
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from parallax.core.config import settings
 
@@ -149,18 +153,29 @@ def select_apks(entries: Iterable[dict], *, family: str, count: int, seen: set[s
     return selected
 
 
-def download_apk(sha256: str, *, client: httpx.Client | None = None) -> bytes:
+def download_apk(sha256: str, *, client: httpx.Client | None = None, attempts: int = 4) -> bytes:
     """Download and extract a MalwareBazaar APK zip by sha256."""
     own_client = client is None
     client = client or httpx.Client(timeout=120)
     try:
-        resp = client.post(
-            MB_API,
-            headers=_headers(),
-            data={"query": "get_file", "sha256_hash": sha256},
-        )
-        resp.raise_for_status()
-        content = resp.content
+        last_error: Exception | None = None
+        for attempt in range(1, attempts + 1):
+            try:
+                resp = client.post(
+                    MB_API,
+                    headers=_headers(),
+                    data={"query": "get_file", "sha256_hash": sha256},
+                )
+                resp.raise_for_status()
+                content = resp.content
+                break
+            except (httpx.HTTPError, httpx.TimeoutException) as exc:
+                last_error = exc
+                if attempt == attempts:
+                    raise
+                time.sleep(min(2**attempt, 20))
+        else:  # pragma: no cover - loop always breaks or raises
+            raise RuntimeError(f"MalwareBazaar download for {sha256} failed: {last_error}")
     finally:
         if own_client:
             client.close()
@@ -170,7 +185,13 @@ def download_apk(sha256: str, *, client: httpx.Client | None = None) -> bytes:
     with pyzipper.AESZipFile(io.BytesIO(content)) as zf:
         zf.setpassword(ZIP_PASSWORD)
         name = zf.namelist()[0]
-        return zf.read(name)
+        apk = zf.read(name)
+    actual = hashlib.sha256(apk).hexdigest()
+    if actual.lower() != sha256.lower():
+        raise RuntimeError(
+            f"MalwareBazaar download for {sha256} failed SHA-256 verification: got {actual}"
+        )
+    return apk
 
 
 def _write_bytes(path: Path, data: bytes) -> None:
@@ -199,7 +220,16 @@ def build_malware_records(
             sha256 = entry["sha256_hash"]
             apk_path = out_dir / "malware" / family / f"{sha256}.apk"
             if not dry_run and not apk_path.exists():
-                _write_bytes(apk_path, download_apk(sha256, client=client))
+                try:
+                    _write_bytes(apk_path, download_apk(sha256, client=client))
+                except Exception as exc:  # noqa: BLE001 - readiness gate handles short corpus
+                    print(f"warning: failed to download {sha256} ({family}): {exc}")
+                    continue
+            if not dry_run and apk_path.exists():
+                actual = hashlib.sha256(apk_path.read_bytes()).hexdigest()
+                if actual.lower() != sha256.lower():
+                    print(f"warning: skipping {sha256} ({family}); existing file hash is {actual}")
+                    continue
             records.append(
                 CorpusRecord(
                     sha256=sha256,
