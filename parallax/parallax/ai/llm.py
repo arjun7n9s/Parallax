@@ -168,6 +168,9 @@ class LLMProvider:
 
     def provider_for(self, role: str) -> str:
         """Return ``"ollama"``, ``"aiml"``, ``"anthropic"`` or ``"openai"``."""
+        # Data residency overrides everything: never route off-host.
+        if settings.LOCAL_ONLY:
+            return "ollama"
         spec = self.spec_for(role)
         mode = settings.LLM_MODE.lower()
         wants_cloud = mode in ("cloud", "auto") and spec.cloud_capable

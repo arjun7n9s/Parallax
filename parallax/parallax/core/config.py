@@ -23,6 +23,15 @@ class Settings(BaseSettings):
     # API key required (X-API-Key header) on all endpoints except /health and
     # /ready. Empty = auth disabled (development only — never run open in prod).
     API_KEY: str = ""
+    # Separate key for administrative endpoints (/admin/...). A leaked analyst
+    # key must not grant admin. Empty = admin endpoints rejected unless API_KEY
+    # auth is also disabled (dev).
+    ADMIN_API_KEY: str = ""
+    # Per-key request budget for submission endpoints. 0 disables the limit.
+    RATE_LIMIT_PER_HOUR: int = 100
+    # TTL (seconds) for signed URLs handed out for stored APK/artifact objects —
+    # raw object paths are never exposed.
+    SIGNED_URL_TTL_SECONDS: int = 300
 
     # PostgreSQL
     POSTGRES_SERVER: str = "localhost"
@@ -66,6 +75,11 @@ class Settings(BaseSettings):
     # routes cloud-capable agents to the configured cloud provider; "auto"
     # uses cloud when a key is present and falls back to local otherwise.
     LLM_MODE: str = "local"  # local | cloud | auto
+    # Data residency: when true, hard-disables ALL cloud LLM routing regardless
+    # of LLM_MODE or any configured key — every role runs on local Ollama, so no
+    # decompiled code, screenshot, or observation ever leaves the host. The
+    # control banks with strict data-residency rules flip on; overrides LLM_MODE.
+    LOCAL_ONLY: bool = False
     CLOUD_PROVIDER: str = "aiml"  # aiml | anthropic | openai
     ANTHROPIC_API_KEY: str = ""
     ANTHROPIC_MODEL: str = "claude-sonnet-4-6"

@@ -43,6 +43,7 @@ except ImportError:
     BatchSpanProcessor = None  # type: ignore[assignment,misc]
 
 from parallax.ai.llm import llm
+from parallax.api.rate_limit import rate_limit
 from parallax.api.routes import (
     analyze_router,
     dynamic_router,
@@ -157,7 +158,10 @@ if OTEL_AVAILABLE:
 # All business routes require the API key (no-op when API_KEY is unset);
 # only /health and /ready below stay open for probes.
 _auth = [Depends(require_api_key)]
-app.include_router(analyze_router, prefix=settings.API_V1_STR, dependencies=_auth)
+# Submission endpoints additionally carry the per-key hourly rate limit.
+app.include_router(
+    analyze_router, prefix=settings.API_V1_STR, dependencies=[*_auth, Depends(rate_limit)]
+)
 app.include_router(status_router, prefix=settings.API_V1_STR, dependencies=_auth)
 app.include_router(history_router, prefix=settings.API_V1_STR, dependencies=_auth)
 app.include_router(dynamic_router, prefix=settings.API_V1_STR, dependencies=_auth)
