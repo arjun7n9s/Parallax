@@ -219,7 +219,7 @@ def build_malware_records(
 def build_benign_records(benign_dir: Path | None, *, limit: int) -> list[CorpusRecord]:
     if not benign_dir:
         return []
-    apks = sorted(benign_dir.glob("*.apk"))[:limit]
+    apks = sorted(benign_dir.rglob("*.apk"))[:limit]
     records: list[CorpusRecord] = []
     for path in apks:
         sha256 = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -255,14 +255,14 @@ def corpus_summary(records: list[CorpusRecord]) -> dict[str, int]:
 
 
 def readiness_issues(
-    records: list[CorpusRecord], *, min_total: int = 0, require_benign: bool = False
+    records: list[CorpusRecord], *, min_total: int = 0, min_benign: int = 0
 ) -> list[str]:
     summary = corpus_summary(records)
     issues: list[str] = []
     if min_total and summary["total"] < min_total:
         issues.append(f"need at least {min_total} total records; selected {summary['total']}")
-    if require_benign and summary["benign"] == 0:
-        issues.append("require at least one benign APK; selected 0")
+    if min_benign and summary["benign"] < min_benign:
+        issues.append(f"need at least {min_benign} benign APKs; selected {summary['benign']}")
     if summary["malicious"] == 0:
         issues.append("need at least one malicious APK; selected 0")
     return issues
@@ -286,7 +286,13 @@ def main() -> int:
     parser.add_argument(
         "--require-benign",
         action="store_true",
-        help="Fail unless at least one benign APK is selected.",
+        help="Fail unless at least --benign-limit benign APKs are selected.",
+    )
+    parser.add_argument(
+        "--min-benign",
+        default=0,
+        type=int,
+        help="Fail if fewer than this many benign APKs are selected.",
     )
     args = parser.parse_args()
 
@@ -298,7 +304,8 @@ def main() -> int:
         query_limit=args.query_limit,
     )
     records.extend(build_benign_records(args.benign_dir, limit=args.benign_limit))
-    issues = readiness_issues(records, min_total=args.min_total, require_benign=args.require_benign)
+    min_benign = args.benign_limit if args.require_benign else args.min_benign
+    issues = readiness_issues(records, min_total=args.min_total, min_benign=min_benign)
     if issues:
         for issue in issues:
             print(f"readiness error: {issue}")

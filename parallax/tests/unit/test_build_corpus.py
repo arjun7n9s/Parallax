@@ -82,10 +82,10 @@ def test_readiness_issues_require_minimums_and_benign():
         )
     ]
 
-    issues = build_corpus.readiness_issues(records, min_total=200, require_benign=True)
+    issues = build_corpus.readiness_issues(records, min_total=200, min_benign=20)
 
     assert "need at least 200 total records; selected 1" in issues
-    assert "require at least one benign APK; selected 0" in issues
+    assert "need at least 20 benign APKs; selected 0" in issues
 
 
 def test_corpus_summary_counts_families_and_verdicts():
@@ -117,8 +117,9 @@ def test_corpus_summary_counts_families_and_verdicts():
 
 def test_build_benign_records_hashes_local_apks(tmp_path):
     benign_dir = tmp_path / "benign"
-    benign_dir.mkdir()
-    (benign_dir / "clock.apk").write_bytes(b"benign-apk")
+    nested_dir = benign_dir / "fdroid"
+    nested_dir.mkdir(parents=True)
+    (nested_dir / "clock.apk").write_bytes(b"benign-apk")
 
     records = build_corpus.build_benign_records(benign_dir, limit=20)
 

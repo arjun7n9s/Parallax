@@ -29,7 +29,7 @@ python scripts/build_corpus.py \
   --require-benign
 ```
 
-If this fails, do not publish validation claims. Add benign controls, adjust family targets, or expand MalwareBazaar tags until the preflight passes.
+`--require-benign` requires the full `--benign-limit` count. Use `--min-benign` if you intentionally want a different gate. If this fails, do not publish validation claims. Add benign controls, adjust family targets, or expand MalwareBazaar tags until the preflight passes.
 
 The default malware mix intentionally over-targets the 200-sample gate because public tag availability changes over time. Keep the final report tied to the manifest that was actually selected, not to the requested target counts.
 
