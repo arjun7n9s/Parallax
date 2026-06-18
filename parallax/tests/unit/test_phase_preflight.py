@@ -44,8 +44,24 @@ def test_render_markdown_escapes_pipe():
     assert "a\\|b" in report
 
 
+def test_tool_check_finds_project_local_tools(tmp_path, monkeypatch):
+    monkeypatch.setattr(phase_preflight.shutil, "which", lambda _tool: None)
+    tool = tmp_path / "tools" / "helm" / "helm.exe"
+    tool.parent.mkdir(parents=True)
+    tool.write_bytes(b"exe")
+
+    check = phase_preflight.tool_check("helm", search_roots=[tmp_path])
+
+    assert check.status == "ok"
+    assert check.detail == str(tool)
+
+
 def test_collect_checks_includes_core_blockers(tmp_path, monkeypatch):
-    monkeypatch.setattr(phase_preflight, "tool_check", lambda tool: phase_preflight._ok(tool, "ok"))
+    monkeypatch.setattr(
+        phase_preflight,
+        "tool_check",
+        lambda tool, search_roots=None: phase_preflight._ok(tool, "ok"),
+    )
     monkeypatch.setattr(phase_preflight, "kvm_check", lambda: phase_preflight._blocked("kvm", "no"))
     monkeypatch.setenv("MALWAREBAZAAR_API_KEY", "secret")
     (tmp_path / "deploy" / "helm" / "parallax").mkdir(parents=True)

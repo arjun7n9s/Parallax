@@ -36,11 +36,31 @@ def _warn(name: str, detail: str) -> Check:
     return Check(name=name, status="warn", detail=detail)
 
 
-def tool_check(tool: str) -> Check:
+def tool_check(tool: str, *, search_roots: list[Path] | None = None) -> Check:
     path = shutil.which(tool)
     if path:
         return _ok(f"tool:{tool}", path)
+    local = _find_local_tool(tool, search_roots or [])
+    if local:
+        return _ok(f"tool:{tool}", str(local))
     return _blocked(f"tool:{tool}", f"{tool} not found on PATH")
+
+
+def _find_local_tool(tool: str, search_roots: list[Path]) -> Path | None:
+    names = [tool]
+    if not tool.endswith(".exe"):
+        names.append(f"{tool}.exe")
+    roots: list[Path] = []
+    for root in search_roots:
+        roots.extend([root / "tools", root.parent / "tools"])
+    for base in roots:
+        if not base.exists():
+            continue
+        for name in names:
+            matches = sorted(path for path in base.rglob(name) if path.is_file())
+            if matches:
+                return matches[0]
+    return None
 
 
 def env_key_check(key: str, *, env_file: Path | None = None) -> Check:
@@ -88,15 +108,16 @@ def helm_chart_check(path: Path) -> Check:
 
 def collect_checks(root: Path, *, min_benign: int) -> list[Check]:
     env_file = root / ".env"
+    tool_roots = [root]
     return [
         env_key_check("MALWAREBAZAAR_API_KEY", env_file=env_file),
         benign_corpus_check(root / "samples" / "benign", min_benign=min_benign),
         sample_check(root / "samples"),
         kvm_check(),
-        tool_check("docker"),
-        tool_check("adb"),
-        tool_check("helm"),
-        tool_check("kubectl"),
+        tool_check("docker", search_roots=tool_roots),
+        tool_check("adb", search_roots=tool_roots),
+        tool_check("helm", search_roots=tool_roots),
+        tool_check("kubectl", search_roots=tool_roots),
         helm_chart_check(root / "deploy" / "helm" / "parallax" / "Chart.yaml"),
     ]
 
@@ -123,7 +144,7 @@ def main() -> int:
     parser.add_argument("--strict", action="store_true", help="Exit 2 if any check is blocked")
     args = parser.parse_args()
 
-    checks = collect_checks(args.root, min_benign=args.min_benign)
+    checks = collect_checks(args.root.resolve(), min_benign=args.min_benign)
     if args.json:
         print(json.dumps([asdict(check) for check in checks], indent=2))
     else:
