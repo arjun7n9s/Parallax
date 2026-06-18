@@ -49,6 +49,33 @@
       "targets": [
         {"rawSql": "SELECT status AS metric, count(*) AS value FROM submissions GROUP BY status", "format": "table"}
       ]
+    },
+    {
+      "id": 5,
+      "title": "Estimated LLM spend, 24h",
+      "type": "stat",
+      "datasource": "Prometheus",
+      "gridPos": {"h": 6, "w": 8, "x": 0, "y": 16},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {"color": "green", "value": null},
+              {"color": "orange", "value": 10},
+              {"color": "red", "value": 25}
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "targets": [
+        {
+          "expr": "sum(increase(parallax_llm_cost_usd_total[24h]))",
+          "legendFormat": "24h LLM spend"
+        }
+      ]
     }
   ]
 }

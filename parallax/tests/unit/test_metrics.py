@@ -63,6 +63,24 @@ class TestRecordHelpers:
         assert tokens_after == tokens_before + 100
         assert count_after == count_before + 1.0
 
+    def test_record_llm_call_estimates_cloud_cost(self):
+        before = (
+            REGISTRY.get_sample_value(
+                "parallax_llm_cost_usd_total",
+                {"role": "synthesis", "provider": "aiml"},
+            )
+            or 0.0
+        )
+        metrics.record_llm_call("synthesis", "aiml", 1.5, tokens_in=1000, tokens_out=2000)
+        after = REGISTRY.get_sample_value(
+            "parallax_llm_cost_usd_total",
+            {"role": "synthesis", "provider": "aiml"},
+        )
+        assert after == pytest.approx(before + 0.033)
+
+    def test_local_llm_cost_is_zero_marginal_api_spend(self):
+        assert metrics.estimate_llm_cost_usd("synthesis", "ollama", 1000, 2000) == 0.0
+
     def test_helpers_never_raise(self):
         # Defensive: bad inputs degrade silently, never break a pipeline stage.
         metrics.record_stage_failure("x", RuntimeError("boom"))

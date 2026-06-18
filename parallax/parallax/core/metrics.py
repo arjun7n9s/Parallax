@@ -15,6 +15,17 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+_PREMIUM_ROLES = {"re_workbench", "code_interpreter", "synthesis"}
+_LONG_CONTEXT_ROLES = {"behavior_analyst", "evidence_validator", "dynamic_explorer", "visual"}
+
+# Approximate public USD-per-million-token bands. These are intentionally
+# conservative planning numbers for spend alerts, not accounting invoices.
+_USD_PER_MILLION = {
+    "economy": {"input": 0.15, "output": 0.60},
+    "long_context": {"input": 0.30, "output": 2.50},
+    "premium": {"input": 3.00, "output": 15.00},
+}
+
 try:
     from prometheus_client import (
         CONTENT_TYPE_LATEST,
@@ -38,6 +49,11 @@ if _ENABLED:
         "parallax_llm_tokens_total",
         "LLM tokens consumed",
         ["role", "direction"],  # direction = input | output
+    )
+    LLM_COST = Counter(
+        "parallax_llm_cost_usd_total",
+        "Estimated LLM spend in USD",
+        ["role", "provider"],
     )
     ANALYSIS_VERDICT = Counter(
         "parallax_analysis_verdict_total",
@@ -71,6 +87,21 @@ if _ENABLED:
     )
 
 
+def estimate_llm_cost_usd(role: str, provider: str, tokens_in: int, tokens_out: int) -> float:
+    """Estimate LLM cost for alerting. Local Ollama inference is treated as
+    zero marginal API spend; host compute is tracked separately by ops."""
+    if provider == "ollama":
+        return 0.0
+    if role in _PREMIUM_ROLES:
+        tier = "premium"
+    elif role in _LONG_CONTEXT_ROLES:
+        tier = "long_context"
+    else:
+        tier = "economy"
+    prices = _USD_PER_MILLION[tier]
+    return (tokens_in * prices["input"] + tokens_out * prices["output"]) / 1_000_000
+
+
 def record_llm_call(
     role: str, provider: str, duration_s: float, tokens_in: int = 0, tokens_out: int = 0
 ) -> None:
@@ -82,6 +113,9 @@ def record_llm_call(
             LLM_TOKENS.labels(role=role, direction="input").inc(tokens_in)
         if tokens_out:
             LLM_TOKENS.labels(role=role, direction="output").inc(tokens_out)
+        cost_usd = estimate_llm_cost_usd(role, provider, tokens_in, tokens_out)
+        if cost_usd:
+            LLM_COST.labels(role=role, provider=provider).inc(cost_usd)
     except Exception as exc:  # noqa: BLE001 - metrics must never break the pipeline
         logger.debug("record_llm_call failed: %s", exc)
 
