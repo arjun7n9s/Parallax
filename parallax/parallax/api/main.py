@@ -29,8 +29,6 @@ try:
 except ImportError:
     FastAPIInstrumentor = None  # type: ignore[assignment,misc]
 
-from parallax.core.telemetry import OTEL_AVAILABLE, init_telemetry
-
 from parallax.ai.llm import llm
 from parallax.api.rate_limit import rate_limit
 from parallax.api.routes import (
@@ -46,11 +44,9 @@ from parallax.api.security import require_api_key, warn_if_auth_disabled
 from parallax.core.config import settings
 from parallax.core.logging import setup_logging
 from parallax.core.storage import init_buckets
+from parallax.core.telemetry import OTEL_AVAILABLE, init_telemetry
 
 logger = logging.getLogger(__name__)
-
-
-
 
 
 # -------------------------------------------------------- Correlation ID Middleware

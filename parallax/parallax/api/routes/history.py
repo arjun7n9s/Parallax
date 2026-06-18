@@ -2,16 +2,16 @@
 Paginated analysis history endpoint.
 """
 
+import asyncio
+import json
 from enum import Enum
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from fastapi.responses import StreamingResponse
-import asyncio
-import json
 
 from parallax.api.schemas.submission import SubmissionResponse
 from parallax.api.security import get_request_tenant
@@ -86,12 +86,14 @@ async def stream_analysis_history(
     Server-Sent Events (SSE) endpoint for history.
     Streams the paginated history, updating every 2 seconds.
     """
+
     async def event_generator():
         while True:
             if await request.is_disconnected():
                 break
 
             from parallax.core.database import async_session_maker
+
             async with async_session_maker() as session:
                 tenant_id = get_request_tenant(request)
                 query = select(Submission).where(Submission.tenant_id == tenant_id)
@@ -110,7 +112,10 @@ async def stream_analysis_history(
                 submissions = result.scalars().all()
 
                 data = {
-                    "items": [SubmissionResponse.model_validate(s).model_dump(mode="json") for s in submissions],
+                    "items": [
+                        SubmissionResponse.model_validate(s).model_dump(mode="json")
+                        for s in submissions
+                    ],
                     "total": total,
                     "page": page,
                     "page_size": page_size,
@@ -122,4 +127,3 @@ async def stream_analysis_history(
             await asyncio.sleep(2)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
-

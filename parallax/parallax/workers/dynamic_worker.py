@@ -343,9 +343,7 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
             shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-def _provision_device(
-    local_apk_path: str, pool_device: EmulatorDevice | None = None
-):
+def _provision_device(local_apk_path: str, pool_device: EmulatorDevice | None = None):
     """Provision a live emulator/device for dynamic analysis.
 
     Installs the APK, ensures frida-server and the mitmproxy CA are present, and

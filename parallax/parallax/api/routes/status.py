@@ -2,15 +2,15 @@
 Endpoint for fetching the status of an ongoing or completed analysis.
 """
 
+import asyncio
+import json
 import uuid
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from fastapi.responses import StreamingResponse
-import asyncio
-import json
 
 from parallax.api.schemas.submission import SubmissionResponse
 from parallax.api.security import get_request_tenant
@@ -64,19 +64,19 @@ async def get_analysis_status(
 
 
 @router.get("/{submission_id}/stream")
-async def stream_analysis_status(
-    request: Request, submission_id: uuid.UUID
-):
+async def stream_analysis_status(request: Request, submission_id: uuid.UUID):
     """
     Server-Sent Events (SSE) endpoint for individual analysis status.
     Streams the full submission detail and hypotheses, updating every 2 seconds.
     """
+
     async def event_generator():
         while True:
             if await request.is_disconnected():
                 break
 
             from parallax.core.database import async_session_maker
+
             async with async_session_maker() as session:
                 tenant_id = get_request_tenant(request)
                 result = await session.execute(
@@ -95,7 +95,9 @@ async def stream_analysis_status(
                 )
                 hypotheses = hypotheses_result.scalars().all()
 
-                response_data = SubmissionResponse.model_validate(submission).model_dump(mode="json")
+                response_data = SubmissionResponse.model_validate(submission).model_dump(
+                    mode="json"
+                )
                 response_data["hypotheses"] = [
                     {
                         "id": h.hypothesis_id,
@@ -113,4 +115,3 @@ async def stream_analysis_status(
             await asyncio.sleep(2)
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
-

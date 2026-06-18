@@ -1,11 +1,13 @@
 # PARALLAX: Agentic Malware Analysis Platform
-## Executive Whitepaper
+## Draft Executive Whitepaper
 
 ### Abstract
-Modern malware is increasingly polymorphic, adaptive, and designed to evade traditional sandbox environments. Traditional static analysis tools generate massive amounts of noise, leading to analyst fatigue. **Parallax** is a next-generation malware analysis platform that introduces an **Agentic Workflow**, **Two-Layer Risk Scoring**, and an **Infrastructure Degradation Matrix** to provide high-fidelity, resilient, and fully automated threat intelligence.
+Modern Android malware is increasingly adaptive and designed to evade traditional sandbox environments. Traditional static analysis tools can generate significant noise, leading to analyst fatigue. **PARALLAX** combines deterministic APK analysis, dynamic instrumentation, and agent-assisted reasoning to produce evidence-first reports for banking fraud and malware triage.
+
+This paper is a product and architecture summary. Accuracy, calibration, and case-study claims remain pending until the corpus validation workflow is run on a representative sample set.
 
 ### 1. Introduction
-Parallax bridges the gap between raw telemetry and actionable intelligence by combining deterministic static analysis (Soot, YARA) with non-deterministic dynamic analysis (Frida, Android Emulator) and orchestrating them through an intelligent LLM agent. By reasoning over execution traces and code artifacts, Parallax identifies the *intent* of an application rather than relying solely on signatures.
+PARALLAX bridges the gap between raw telemetry and actionable intelligence by combining deterministic static analysis (Jadx, YARA, FlowDroid where configured) with dynamic analysis (Frida, mitmproxy, Android emulator) and structured LLM-assisted reasoning. The goal is to surface the likely intent of an application while keeping the underlying evidence auditable.
 
 ### 2. Core Architecture
 The Parallax pipeline is built on a resilient, microservice-based architecture:
@@ -23,7 +25,7 @@ Parallax replaces static rule engines with an autonomous agentic reasoning loop:
 ### 4. Two-Layer Risk Scoring
 To reduce false positives and ensure analysts focus on critical threats, Parallax uses a two-tier scoring system:
 - **Triage Score**: A fast, deterministic score computed immediately after static analysis using YARA rules, permissions mapping, and heuristic matching.
-- **Final Confidence Score**: A post-dynamic score refined by the LLM, taking into account observed behaviors. If the LLM's confidence is low, the system widens the confidence interval, flagging the sample for manual analyst review.
+- **Final Risk Score**: A post-dynamic score refined from observed behaviors, agent confidence, debate output, and available evidence. Calibration of this layer against a large corpus is still pending.
 
 ### 5. Infrastructure Degradation Matrix
 Security infrastructure often fails under load or sophisticated attacks. Parallax is designed to degrade gracefully rather than fail entirely:
@@ -32,4 +34,4 @@ Security infrastructure often fails under load or sophisticated attacks. Paralla
 - **Database Resilience**: If Neo4j or Qdrant goes offline, the analysis continues without graph population or semantic search, ensuring the core triage pipeline remains uninterrupted.
 
 ### 6. Conclusion
-Parallax represents a paradigm shift in automated malware analysis. By integrating deterministic tooling with resilient agentic reasoning, Parallax enables security operations centers to triage Android malware at unprecedented scale and accuracy.
+PARALLAX is designed to help security operations centers triage Android malware and banking fraud apps faster while preserving evidence for analyst review. The next validation milestone is a reproducible corpus run with calibrated risk scoring and documented case studies.

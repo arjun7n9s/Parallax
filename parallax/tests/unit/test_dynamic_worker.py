@@ -27,6 +27,9 @@ def _hermetic_worker(monkeypatch):
 @pytest.fixture
 def mock_db_session():
     session = AsyncMock()
+    # SQLAlchemy AsyncSession.add is synchronous; keep the mock faithful so
+    # production code does not create un-awaited coroutine warnings in tests.
+    session.add = MagicMock()
     # Mock result for select
     result = MagicMock()
 

@@ -20,6 +20,8 @@ nav:
       - Monitoring: admin/monitoring.md
   - Security:
       - Bank Audit Overview: security.md
+  - Product:
+      - Draft Whitepaper: whitepaper.md
   - API:
       - API Reference: api/README.md
   - Runbooks:

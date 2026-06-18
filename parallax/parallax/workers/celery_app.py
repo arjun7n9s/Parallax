@@ -44,6 +44,7 @@ celery_app.conf.update(
     },
 )
 
+
 @worker_process_init.connect
 def init_worker_telemetry(**kwargs):
     """Initialize OpenTelemetry tracing for the worker process."""

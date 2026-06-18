@@ -177,9 +177,7 @@ class EmulatorPool:
     def leased(self) -> list[EmulatorDevice]:
         return [d for d in self._devices.values() if d.state == DeviceState.LEASED]
 
-    async def acquire(
-        self, submission_id: str, timeout: float = 60.0
-    ) -> EmulatorDevice:
+    async def acquire(self, submission_id: str, timeout: float = 60.0) -> EmulatorDevice:
         """Lease an available, healthy device for analysis.
 
         Blocks up to *timeout* seconds waiting for a device. Raises
@@ -254,10 +252,18 @@ class EmulatorPool:
     async def check_all_health(self) -> None:
         """Run a health check on every non-leased device."""
         async with self._lock:
-            for device in list(self._devices.values()):
+            candidates = [
+                device for device in self._devices.values() if device.state != DeviceState.LEASED
+            ]
+
+        health_results = [(device, await self._is_healthy(device)) for device in candidates]
+
+        async with self._lock:
+            for device, healthy in health_results:
+                # A device may be leased while its probe is in flight; stale
+                # health data must not interrupt a running analysis.
                 if device.state == DeviceState.LEASED:
-                    continue  # don't interfere with running analyses
-                healthy = await self._is_healthy(device)
+                    continue
                 device.last_health_check = time.time()
                 if healthy:
                     device.consecutive_failures = 0
