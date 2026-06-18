@@ -7,6 +7,7 @@ at import time (e.g. during tests or partial infra bring-up).
 
 from datetime import timedelta
 from functools import lru_cache
+from typing import cast
 
 from minio import Minio
 
@@ -58,8 +59,11 @@ def init_buckets() -> None:
 def signed_get_url(bucket: str, object_name: str) -> str:
     """Create a short-lived URL for an object without exposing storage secrets."""
     ttl = max(1, min(settings.SIGNED_URL_TTL_SECONDS, 7 * 24 * 60 * 60))
-    return get_minio_client().presigned_get_object(
-        bucket,
-        object_name,
-        expires=timedelta(seconds=ttl),
+    return cast(
+        str,
+        get_minio_client().presigned_get_object(
+            bucket,
+            object_name,
+            expires=timedelta(seconds=ttl),
+        ),
     )
