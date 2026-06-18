@@ -1,0 +1,14 @@
+apiVersion: v2
+name: parallax
+description: PARALLAX APK risk analysis platform
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - malware-analysis
+  - apk
+  - cybersecurity
+home: https://github.com/arjun7n9s/Parallax
+maintainers:
+  - name: arjun7n9s
+    email: arjun7n9s@gmail.com

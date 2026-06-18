@@ -1,0 +1,201 @@
+replicaCount:
+  api: 2
+  worker: 2
+
+image:
+  repository: ghcr.io/arjun7n9s/parallax
+  tag: ""
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+podSecurityContext:
+  fsGroup: 1000
+securityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: parallax.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+resources:
+  api:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: "1"
+      memory: 1Gi
+  worker:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: "2"
+      memory: 4Gi
+
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+env:
+  ENVIRONMENT: production
+  LOG_LEVEL: INFO
+  LOG_FORMAT: json
+  ALLOWED_ORIGINS: '["http://localhost:5173"]'
+  TENANT_ID: default
+  RATE_LIMIT_PER_HOUR: "100"
+  SIGNED_URL_TTL_SECONDS: "300"
+  LLM_MODE: local
+  LOCAL_ONLY: "false"
+  CLOUD_PROVIDER: aiml
+  MINIO_SECURE: "false"
+  HEARTBEAT_ENABLED: "true"
+  HEARTBEAT_INTERVAL: "10"
+  HEARTBEAT_TTL: "30"
+  ORPHAN_GRACE_SECONDS: "90"
+  DYNAMIC_LIVE_DEVICE: "false"
+  DYNAMIC_TIMEOUT_SECONDS: "120"
+  DROIDBOT_MAX_TURNS: "20"
+  MITM_PROXY_HOST: "127.0.0.1"
+  MITM_PROXY_PORT: "8080"
+  FRIDA_DEVICE_ID: localhost:5555
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://parallax-jaeger:4317
+
+secrets:
+  create: true
+  existingSecret: ""
+  values:
+    API_KEY: ""
+    ADMIN_API_KEY: ""
+    API_KEY_TENANT_MAP: ""
+    ANTHROPIC_API_KEY: ""
+    OPENAI_API_KEY: ""
+    AIML_API: ""
+    WEBHOOK_SECRET: ""
+    VIRUSTOTAL_API_KEY: ""
+    MALWAREBAZAAR_API_KEY: ""
+    MISP_KEY: ""
+    POSTGRES_PASSWORD: parallax_db_pass
+    MINIO_ROOT_USER: admin
+    MINIO_ROOT_PASSWORD: parallax_minio_pass
+    NEO4J_PASSWORD: parallax_neo4j_pass
+    NEO4J_AUTH: neo4j/parallax_neo4j_pass
+
+postgres:
+  bundled: true
+  image: postgres:16-alpine
+  storage: 20Gi
+  user: postgres
+  database: parallax
+  external:
+    host: ""
+    user: ""
+    database: ""
+
+redis:
+  bundled: true
+  image: redis:7.2-alpine
+  storage: 5Gi
+  external:
+    host: ""
+    port: 6379
+
+minio:
+  bundled: true
+  image: minio/minio:RELEASE.2024-03-15T01-07-19Z
+  storage: 50Gi
+  external:
+    server: ""
+
+neo4j:
+  bundled: true
+  image: neo4j:5.20-community
+  storage: 20Gi
+  user: neo4j
+  external:
+    uri: ""
+    user: ""
+
+qdrant:
+  bundled: true
+  image: qdrant/qdrant:v1.10.0
+  storage: 20Gi
+  external:
+    host: ""
+    port: 6333
+
+ollama:
+  enabled: false
+  image: ollama/ollama:0.3.3
+  storage: 50Gi
+  nodeSelector:
+    accelerator: nvidia
+  resources:
+    requests:
+      cpu: "2"
+      memory: 8Gi
+    limits:
+      cpu: "8"
+      memory: 24Gi
+
+emulator:
+  enabled: false
+  image:
+    repository: ghcr.io/arjun7n9s/parallax-emulator
+    tag: latest
+  replicas: 1
+  nodeSelector:
+    workload: android-emulator
+  tolerations: []
+  devicePath: /dev/kvm
+  resources:
+    requests:
+      cpu: "2"
+      memory: 4Gi
+    limits:
+      cpu: "4"
+      memory: 8Gi
+
+migrations:
+  enabled: true
+  ttlSecondsAfterFinished: 3600
+
+worker:
+  queues: celery,triage
+  concurrency: 2
+
+prometheus:
+  bundled: true
+  image: prom/prometheus:v2.51.2
+
+grafana:
+  bundled: true
+  image: grafana/grafana:10.4.2
+  adminPassword: admin
+
+jaeger:
+  bundled: true
+  image: jaegertracing/all-in-one:1.56

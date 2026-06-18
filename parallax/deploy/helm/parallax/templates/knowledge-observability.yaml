@@ -1,0 +1,252 @@
+{{- if .Values.neo4j.bundled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "parallax.fullname" . }}-neo4j
+  labels:
+    {{- include "parallax.labels" . | nindent 4 }}
+    app.kubernetes.io/component: neo4j
+spec:
+  serviceName: {{ include "parallax.fullname" . }}-neo4j
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "parallax.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: neo4j
+  template:
+    metadata:
+      labels:
+        {{- include "parallax.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: neo4j
+    spec:
+      containers:
+        - name: neo4j
+          image: {{ .Values.neo4j.image | quote }}
+          ports:
+            - name: http
+              containerPort: 7474
+            - name: bolt
+              containerPort: 7687
+          env:
+            - name: NEO4J_AUTH
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "parallax.secretName" . }}
+                  key: NEO4J_AUTH
+            - name: NEO4J_PLUGINS
+              value: '["apoc"]'
+          volumeMounts:
+            - name: data
+              mountPath: /data
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.neo4j.storage }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "parallax.fullname" . }}-neo4j
+spec:
+  ports:
+    - name: http
+      port: 7474
+      targetPort: http
+    - name: bolt
+      port: 7687
+      targetPort: bolt
+  selector:
+    {{- include "parallax.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: neo4j
+---
+{{- end }}
+{{- if .Values.qdrant.bundled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "parallax.fullname" . }}-qdrant
+  labels:
+    {{- include "parallax.labels" . | nindent 4 }}
+    app.kubernetes.io/component: qdrant
+spec:
+  serviceName: {{ include "parallax.fullname" . }}-qdrant
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "parallax.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: qdrant
+  template:
+    metadata:
+      labels:
+        {{- include "parallax.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: qdrant
+    spec:
+      containers:
+        - name: qdrant
+          image: {{ .Values.qdrant.image | quote }}
+          ports:
+            - name: http
+              containerPort: 6333
+            - name: grpc
+              containerPort: 6334
+          volumeMounts:
+            - name: data
+              mountPath: /qdrant/storage
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.qdrant.storage }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "parallax.fullname" . }}-qdrant
+spec:
+  ports:
+    - name: http
+      port: 6333
+      targetPort: http
+    - name: grpc
+      port: 6334
+      targetPort: grpc
+  selector:
+    {{- include "parallax.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: qdrant
+---
+{{- end }}
+{{- if .Values.jaeger.bundled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "parallax.fullname" . }}-jaeger
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "parallax.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: jaeger
+  template:
+    metadata:
+      labels:
+        {{- include "parallax.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: jaeger
+    spec:
+      containers:
+        - name: jaeger
+          image: {{ .Values.jaeger.image | quote }}
+          ports:
+            - name: ui
+              containerPort: 16686
+            - name: otlp-grpc
+              containerPort: 4317
+            - name: otlp-http
+              containerPort: 4318
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "parallax.fullname" . }}-jaeger
+spec:
+  ports:
+    - name: ui
+      port: 16686
+      targetPort: ui
+    - name: otlp-grpc
+      port: 4317
+      targetPort: otlp-grpc
+    - name: otlp-http
+      port: 4318
+      targetPort: otlp-http
+  selector:
+    {{- include "parallax.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: jaeger
+---
+{{- end }}
+{{- if .Values.prometheus.bundled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "parallax.fullname" . }}-prometheus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "parallax.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: prometheus
+  template:
+    metadata:
+      labels:
+        {{- include "parallax.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: prometheus
+    spec:
+      containers:
+        - name: prometheus
+          image: {{ .Values.prometheus.image | quote }}
+          ports:
+            - name: http
+              containerPort: 9090
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "parallax.fullname" . }}-prometheus
+spec:
+  ports:
+    - name: http
+      port: 9090
+      targetPort: http
+  selector:
+    {{- include "parallax.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+---
+{{- end }}
+{{- if .Values.grafana.bundled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "parallax.fullname" . }}-grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "parallax.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: grafana
+  template:
+    metadata:
+      labels:
+        {{- include "parallax.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: {{ .Values.grafana.image | quote }}
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              value: {{ .Values.grafana.adminPassword | quote }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "parallax.fullname" . }}-grafana
+spec:
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+  selector:
+    {{- include "parallax.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+{{- end }}

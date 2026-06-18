@@ -1,0 +1,37 @@
+{{- if .Values.migrations.enabled }}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "parallax.fullname" . }}-migrate
+  labels:
+    {{- include "parallax.labels" . | nindent 4 }}
+    app.kubernetes.io/component: migrations
+  annotations:
+    helm.sh/hook: pre-install,pre-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  ttlSecondsAfterFinished: {{ .Values.migrations.ttlSecondsAfterFinished }}
+  template:
+    metadata:
+      labels:
+        {{- include "parallax.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: migrations
+    spec:
+      restartPolicy: OnFailure
+      serviceAccountName: {{ include "parallax.serviceAccountName" . }}
+      containers:
+        - name: migrate
+          image: {{ include "parallax.image" . | quote }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command:
+            - python
+            - -m
+            - alembic
+            - upgrade
+            - head
+          envFrom:
+            - configMapRef:
+                name: {{ include "parallax.fullname" . }}-config
+            - secretRef:
+                name: {{ include "parallax.secretName" . }}
+{{- end }}

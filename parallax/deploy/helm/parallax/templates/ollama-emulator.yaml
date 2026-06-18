@@ -1,0 +1,107 @@
+{{- if .Values.ollama.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "parallax.fullname" . }}-ollama
+  labels:
+    {{- include "parallax.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ollama
+spec:
+  serviceName: {{ include "parallax.fullname" . }}-ollama
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "parallax.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: ollama
+  template:
+    metadata:
+      labels:
+        {{- include "parallax.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: ollama
+    spec:
+      {{- with .Values.ollama.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: ollama
+          image: {{ .Values.ollama.image | quote }}
+          ports:
+            - name: http
+              containerPort: 11434
+          resources:
+            {{- toYaml .Values.ollama.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /root/.ollama
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: {{ .Values.ollama.storage }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "parallax.fullname" . }}-ollama
+spec:
+  ports:
+    - name: http
+      port: 11434
+      targetPort: http
+  selector:
+    {{- include "parallax.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: ollama
+---
+{{- end }}
+{{- if .Values.emulator.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "parallax.fullname" . }}-emulator
+  labels:
+    {{- include "parallax.labels" . | nindent 4 }}
+    app.kubernetes.io/component: android-emulator
+spec:
+  replicas: {{ .Values.emulator.replicas }}
+  selector:
+    matchLabels:
+      {{- include "parallax.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: android-emulator
+  template:
+    metadata:
+      labels:
+        {{- include "parallax.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: android-emulator
+    spec:
+      nodeSelector:
+        {{- toYaml .Values.emulator.nodeSelector | nindent 8 }}
+      {{- with .Values.emulator.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: emulator
+          image: {{ printf "%s:%s" .Values.emulator.image.repository .Values.emulator.image.tag | quote }}
+          securityContext:
+            privileged: true
+          ports:
+            - name: adb
+              containerPort: 5555
+            - name: frida
+              containerPort: 27042
+          volumeDevices:
+            - name: kvm
+              devicePath: {{ .Values.emulator.devicePath }}
+          resources:
+            {{- toYaml .Values.emulator.resources | nindent 12 }}
+      volumes:
+        - name: kvm
+          hostPath:
+            path: {{ .Values.emulator.devicePath }}
+            type: CharDevice
+{{- end }}

@@ -1,0 +1,31 @@
+image:
+  tag: ci
+
+replicaCount:
+  api: 1
+  worker: 1
+
+resources:
+  api: {}
+  worker: {}
+
+postgres:
+  storage: 1Gi
+redis:
+  storage: 1Gi
+minio:
+  storage: 1Gi
+neo4j:
+  storage: 1Gi
+qdrant:
+  storage: 1Gi
+
+ollama:
+  enabled: true
+  storage: 1Gi
+  resources: {}
+
+emulator:
+  enabled: true
+  replicas: 1
+  resources: {}

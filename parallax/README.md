@@ -122,3 +122,19 @@ python -m mypy parallax/ai parallax/knowledge parallax/delivery
 ```
 
 Integration tests under `tests/integration/` need live services and auto-skip when unreachable.
+
+## Kubernetes Deployment
+
+The Helm chart lives in `deploy/helm/parallax`. It renders the API, worker,
+pre-install/pre-upgrade migration job, and optional bundled backing services for
+staging. Production EKS should point the chart at managed Postgres/S3/Redis and
+an externally managed secret.
+
+```bash
+helm lint deploy/helm/parallax
+helm upgrade --install parallax deploy/helm/parallax \
+  --namespace parallax --create-namespace \
+  --set image.repository=ghcr.io/arjun7n9s/parallax \
+  --set image.tag=<git-sha> \
+  --set secrets.existingSecret=parallax-runtime
+```

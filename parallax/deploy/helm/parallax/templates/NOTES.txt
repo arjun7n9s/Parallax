@@ -1,0 +1,13 @@
+PARALLAX has been installed.
+
+API service:
+  {{ include "parallax.fullname" . }}-api:{{ .Values.service.port }}
+
+Run migrations are handled by the Helm pre-install/pre-upgrade Job when
+migrations.enabled=true.
+
+For EKS production:
+  - Set postgres.bundled=false and point postgres.external.* to RDS.
+  - Set minio.bundled=false and point minio.external.server to S3-compatible storage.
+  - Use secrets.existingSecret or External Secrets instead of inline values.
+  - Enable emulator only on nodes with /dev/kvm, typically bare-metal or real-device farms.
