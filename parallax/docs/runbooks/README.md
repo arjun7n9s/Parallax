@@ -9,6 +9,16 @@
 
 ## Troubleshooting
 
+## Backup and Restore
+
+Run the local compose drill with:
+
+```bash
+python scripts/drill_postgres_restore.py
+```
+
+See [backup_restore.md](backup_restore.md) for the full procedure and production notes.
+
 ### Neo4j won't start
 - Check logs: `docker logs parallax_neo4j`
 - Verify password matches `.env`: `NEO4J_PASSWORD`
