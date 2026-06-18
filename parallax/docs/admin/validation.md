@@ -6,6 +6,17 @@ PARALLAX treats corpus validation as an evidence gate, not a marketing number. A
 
 Malware samples come from MalwareBazaar. Benign controls come from a local APK directory so the corpus remains explicit and auditable.
 
+To populate the local benign controls from F-Droid:
+
+```bash
+python scripts/fetch_fdroid_benign.py \
+  --count 20 \
+  --out-dir samples/benign/fdroid \
+  --manifest samples/benign/fdroid_manifest.jsonl
+```
+
+The downloader verifies each APK SHA-256 against F-Droid index metadata. The APKs and manifest live under ignored `samples/` paths.
+
 ```bash
 export MALWAREBAZAAR_API_KEY=...
 python scripts/build_corpus.py \
