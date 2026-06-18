@@ -18,6 +18,7 @@ from parallax.core.errors import TransientError
 from parallax.core.metrics import record_stage_failure
 from parallax.core.models import ExperimentObservationLink, Hypothesis, Observation, Submission
 from parallax.core.storage import APK_BUCKET, get_minio_client
+from parallax.sandbox.pool import EmulatorDevice, get_pool
 from parallax.sandbox.runner import SandboxRunner
 from parallax.workers.celery_app import celery_app
 from parallax.workers.heartbeat import stage_context
@@ -100,6 +101,7 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
         return
 
     temp_dir = None
+    pool_device: EmulatorDevice | None = None
     try:
         async with async_session() as db:
             result = await db.execute(select(Submission).where(Submission.id == submission_id))
@@ -231,7 +233,21 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
 
             avd_manager = None
             if settings.DYNAMIC_LIVE_DEVICE:
-                avd_manager = _provision_device(local_apk_path)
+                # Acquire a device from the pool (raises InfraError → Celery
+                # retries with backoff, giving the pool time to recycle).
+                try:
+                    pool = get_pool()
+                    pool_device = await pool.acquire(
+                        submission_id_str,
+                        timeout=settings.EMULATOR_ACQUIRE_TIMEOUT,
+                    )
+                    avd_manager = _provision_device(local_apk_path, pool_device)
+                except Exception as exc:
+                    logger.warning(
+                        "Pool acquire/provision failed, trying legacy single device: %s",
+                        exc,
+                    )
+                    avd_manager = _provision_device(local_apk_path)
 
             sandbox = SandboxRunner(
                 submission_id=submission_id_str,
@@ -316,11 +332,20 @@ async def _async_run_dynamic_pipeline(submission_id_str: str):
         except Exception:
             pass
     finally:
+        # Always release the pool device so it can be reused by other analyses.
+        if pool_device is not None:
+            try:
+                pool = get_pool()
+                await pool.release(pool_device)
+            except Exception:  # noqa: BLE001
+                logger.warning("Failed to release pool device %s", pool_device.container_name)
         if temp_dir and os.path.exists(temp_dir):
             shutil.rmtree(temp_dir, ignore_errors=True)
 
 
-def _provision_device(local_apk_path: str):
+def _provision_device(
+    local_apk_path: str, pool_device: EmulatorDevice | None = None
+):
     """Provision a live emulator/device for dynamic analysis.
 
     Installs the APK, ensures frida-server and the mitmproxy CA are present, and
@@ -334,7 +359,14 @@ def _provision_device(local_apk_path: str):
             install_frida_server,
         )
 
-        avd = AVDManager()
+        # Use pool device connection info when available, else defaults.
+        if pool_device is not None:
+            avd = AVDManager(
+                adb_port=pool_device.adb_port,
+                device_id=pool_device.adb_serial,
+            )
+        else:
+            avd = AVDManager()
         if not avd.is_running():
             avd.boot()
         avd.install_apk(local_apk_path)

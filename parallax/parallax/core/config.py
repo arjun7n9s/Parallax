@@ -127,6 +127,14 @@ class Settings(BaseSettings):
     # serial (e.g. "localhost:5555"); frida tunnels to frida-server through adb.
     # NOT the TCP "host:27042" form — plain get_device() cannot open that.
     FRIDA_DEVICE_ID: str = "localhost:5555"
+    # Emulator pool settings. POOL_SIZE=1 wraps the legacy single device.
+    # Each container maps adb to BASE_ADB_PORT+i and frida to BASE_FRIDA_PORT+i.
+    EMULATOR_POOL_SIZE: int = 1
+    EMULATOR_BASE_ADB_PORT: int = 5555
+    EMULATOR_BASE_FRIDA_PORT: int = 27042
+    EMULATOR_HEALTH_INTERVAL: float = 30.0
+    # Timeout (seconds) the dynamic worker waits for a pool device before raising.
+    EMULATOR_ACQUIRE_TIMEOUT: float = 60.0
 
     # Delivery: outbound webhooks (comma-separated URLs) + HMAC secret. Optional.
     WEBHOOK_URLS: str = ""

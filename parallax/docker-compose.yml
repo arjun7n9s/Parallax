@@ -186,7 +186,7 @@ services:
       - parallax_net
 
   # ============================================================
-  # Metrics scraping
+  # Metrics scraping & Alerting
   # ============================================================
   prometheus:
     image: prom/prometheus:v2.51.2
@@ -197,6 +197,16 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - ./prometheus_rules.yml:/etc/prometheus/prometheus_rules.yml
       - prometheus_data:/prometheus
+    networks:
+      - parallax_net
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    container_name: parallax_alertmanager
+    ports:
+      - "9093:9093"
+    volumes:
+      - ./alertmanager.yml:/etc/alertmanager/alertmanager.yml
     networks:
       - parallax_net
 

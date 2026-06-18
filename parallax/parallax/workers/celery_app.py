@@ -1,6 +1,7 @@
 import os
 
 from celery import Celery
+from celery.signals import worker_process_init
 
 # Setup Celery with Redis broker and backend
 REDIS_URL = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
@@ -42,6 +43,23 @@ celery_app.conf.update(
         }
     },
 )
+
+@worker_process_init.connect
+def init_worker_telemetry(**kwargs):
+    """Initialize OpenTelemetry tracing for the worker process."""
+    from parallax.core.telemetry import OTEL_AVAILABLE, init_telemetry
+
+    if OTEL_AVAILABLE:
+        try:
+            init_telemetry("parallax-worker")
+            from opentelemetry.instrumentation.celery import CeleryInstrumentor
+
+            CeleryInstrumentor().instrument()
+        except Exception as e:
+            import logging
+
+            logging.getLogger(__name__).warning(f"Failed to initialize Celery telemetry: {e}")
+
 
 if __name__ == "__main__":
     celery_app.start()

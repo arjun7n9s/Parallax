@@ -1,0 +1,14 @@
+global:
+  resolve_timeout: 5m
+
+route:
+  group_by: ['alertname']
+  group_wait: 10s
+  group_interval: 10m
+  repeat_interval: 1h
+  receiver: 'default-receiver'
+
+receivers:
+  - name: 'default-receiver'
+    # By default, alerts just show up in the Alertmanager UI.
+    # In production, configure slack_configs, email_configs, pagerduty_configs, etc.

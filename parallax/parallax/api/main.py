@@ -25,22 +25,11 @@ from starlette.middleware.base import BaseHTTPMiddleware
 # Guarded imports allow the app to import in environments without the otel
 # packages installed. Telemetry is silently disabled in that case.
 try:
-    from opentelemetry import trace
-    from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
     from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
-    from opentelemetry.sdk.resources import Resource
-    from opentelemetry.sdk.trace import TracerProvider
-    from opentelemetry.sdk.trace.export import BatchSpanProcessor
-
-    OTEL_AVAILABLE = True
 except ImportError:
-    OTEL_AVAILABLE = False
-    trace = None  # type: ignore[assignment]
-    OTLPSpanExporter = None  # type: ignore[assignment,misc]
     FastAPIInstrumentor = None  # type: ignore[assignment,misc]
-    Resource = None  # type: ignore[assignment,misc]
-    TracerProvider = None  # type: ignore[assignment,misc]
-    BatchSpanProcessor = None  # type: ignore[assignment,misc]
+
+from parallax.core.telemetry import OTEL_AVAILABLE, init_telemetry
 
 from parallax.ai.llm import llm
 from parallax.api.rate_limit import rate_limit
@@ -61,26 +50,7 @@ from parallax.core.storage import init_buckets
 logger = logging.getLogger(__name__)
 
 
-# ------------------------------------------------------------------ Telemetry
-def _init_telemetry() -> None:
-    """Initialize OpenTelemetry tracing with OTLP exporter to Jaeger.
 
-    No-op if the opentelemetry packages are not installed (lightweight dev venv).
-    """
-    if not OTEL_AVAILABLE:
-        logger.debug("OpenTelemetry not installed; skipping telemetry init")
-        return
-    resource = Resource.create(
-        {
-            "service.name": "parallax-api",
-            "service.version": "0.1.0",
-            "deployment.environment": settings.ENVIRONMENT,
-        }
-    )
-    provider = TracerProvider(resource=resource)
-    exporter = OTLPSpanExporter(endpoint=settings.OTEL_EXPORTER_OTLP_ENDPOINT, insecure=True)
-    provider.add_span_processor(BatchSpanProcessor(exporter))
-    trace.set_tracer_provider(provider)
 
 
 # -------------------------------------------------------- Correlation ID Middleware
@@ -115,7 +85,7 @@ async def lifespan(app: FastAPI):
 
     # Initialize OpenTelemetry
     try:
-        _init_telemetry()
+        init_telemetry("parallax-api")
         logger.info("OpenTelemetry tracing initialized")
     except Exception as e:
         logger.warning(f"OpenTelemetry init failed (non-fatal): {e}")
