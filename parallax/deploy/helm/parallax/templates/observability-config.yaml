@@ -1,0 +1,56 @@
+{{- if .Values.prometheus.bundled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "parallax.fullname" . }}-prometheus-config
+  labels:
+    {{- include "parallax.labels" . | nindent 4 }}
+    app.kubernetes.io/component: prometheus
+data:
+  prometheus.yml: |
+{{ tpl (.Files.Get "files/prometheus.yml") . | indent 4 }}
+  prometheus_rules.yml: |
+{{ tpl (.Files.Get "files/prometheus_rules.yml") . | indent 4 }}
+---
+{{- end }}
+{{- if .Values.alertmanager.bundled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "parallax.fullname" . }}-alertmanager-config
+  labels:
+    {{- include "parallax.labels" . | nindent 4 }}
+    app.kubernetes.io/component: alertmanager
+data:
+  alertmanager.yml: |
+{{ tpl (.Files.Get "files/alertmanager.yml") . | indent 4 }}
+---
+{{- end }}
+{{- if .Values.grafana.bundled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "parallax.fullname" . }}-grafana-provisioning
+  labels:
+    {{- include "parallax.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+data:
+  datasources.yml: |
+{{ tpl (.Files.Get "files/grafana-datasources.yml") . | indent 4 }}
+  dashboards.yml: |
+{{ tpl (.Files.Get "files/grafana-dashboards.yml") . | indent 4 }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "parallax.fullname" . }}-grafana-dashboards
+  labels:
+    {{- include "parallax.labels" . | nindent 4 }}
+    app.kubernetes.io/component: grafana
+data:
+  analysis_overview.json: |
+{{ .Files.Get "files/analysis_overview.json" | indent 4 }}
+  threat_landscape.json: |
+{{ .Files.Get "files/threat_landscape.json" | indent 4 }}
+---
+{{- end }}

@@ -13,19 +13,27 @@ cost metrics.
 
 ## Dashboards
 
+Docker Compose mounts `grafana/provisioning/` and `parallax/delivery/grafana_dashboards/`
+directly. The Helm chart packages the same datasource, dashboard-provider, and dashboard JSON
+as ConfigMaps, so a chart install comes up with populated PARALLAX dashboards instead of an
+empty Grafana shell.
+
 Grafana dashboards cover:
 
 - Submission volume and pipeline status
-- Analysis latency by stage
-- Worker health and orphan requeue behavior
+- Verdict distribution and average final risk score
 - LLM token usage and estimated spend
-- Backing-service health
+- Threat landscape tables for top C2 domains and IPs
+- Critical verdicts over time
 
 ## Alerts
 
 Prometheus rules include daily LLM spend thresholding and are tested in CI with
 `promtool test rules prometheus_rule_tests.yml`. Alertmanager config is also
 validated in CI with `amtool check-config`.
+
+In Helm, Prometheus, Alertmanager, Grafana datasources, and Grafana dashboards are mounted from
+chart-owned ConfigMaps. In Compose, the same configs are mounted from the repository root.
 
 Run the same checks locally:
 

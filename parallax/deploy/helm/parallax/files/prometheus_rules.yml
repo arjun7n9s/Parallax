@@ -1,0 +1,11 @@
+groups:
+  - name: parallax-cost
+    rules:
+      - alert: ParallaxDailyLLMCostBudgetHigh
+        expr: sum(increase(parallax_llm_cost_usd_total[24h])) > 25
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "PARALLAX daily LLM cost budget exceeded"
+          description: "Estimated LLM spend crossed $25 over the last 24h. Check model routing, batch volume, and retry behavior."

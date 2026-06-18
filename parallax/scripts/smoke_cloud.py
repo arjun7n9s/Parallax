@@ -15,8 +15,11 @@ import io
 import struct
 import sys
 import zlib
+from pathlib import Path
 
 import httpx
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from parallax.ai.llm import llm
 from parallax.core.config import settings

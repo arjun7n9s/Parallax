@@ -191,6 +191,10 @@ prometheus:
   bundled: true
   image: prom/prometheus:v2.51.2
 
+alertmanager:
+  bundled: true
+  image: prom/alertmanager:v0.27.0
+
 grafana:
   bundled: true
   image: grafana/grafana:10.4.2
