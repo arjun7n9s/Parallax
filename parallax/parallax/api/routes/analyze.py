@@ -1,5 +1,5 @@
 """
-APK submission and analysis triggering endpoints.
+APK submission and analysis triggering endpoints (single + batch).
 """
 
 import hashlib
@@ -24,6 +24,92 @@ router = APIRouter(prefix="/analyze", tags=["Analyze"])
 # APK files are ZIP archives — the first 4 bytes are always the PK magic header.
 _APK_MAGIC = b"PK\x03\x04"
 
+# A single batch may carry at most this many APKs (bounds memory + queue burst).
+_MAX_BATCH = 100
+
+
+async def _ingest_apk(
+    file: UploadFile,
+    db: AsyncSession,
+    *,
+    webhook_url: str | None = None,
+    batch_id: uuid.UUID | None = None,
+) -> Submission:
+    """Stream-hash, dedup, store, and queue one APK. Returns the (possibly
+    pre-existing) Submission. Raises HTTPException on a client/validation error.
+
+    Shared by the single and batch endpoints so both have identical ingest
+    semantics (magic-byte check, size limit, sha256 content dedup)."""
+    if not file.filename or not file.filename.endswith(".apk"):
+        raise HTTPException(status_code=400, detail="Only .apk files are supported.")
+
+    max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+    sha256_hash = hashlib.sha256()
+    md5_hash = hashlib.md5(usedforsecurity=False)
+    file_size = 0
+    temp_file_path: str | None = None
+
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".apk") as temp_file:
+            temp_file_path = temp_file.name
+            is_first_chunk = True
+            while chunk := await file.read(8192):
+                file_size += len(chunk)
+                if file_size > max_bytes:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"File exceeds max upload size of {settings.MAX_UPLOAD_SIZE_MB} MB.",
+                    )
+                if is_first_chunk:
+                    if not chunk[:4].startswith(_APK_MAGIC):
+                        raise HTTPException(
+                            status_code=400,
+                            detail="File does not appear to be a valid APK (invalid magic bytes).",
+                        )
+                    is_first_chunk = False
+                sha256_hash.update(chunk)
+                md5_hash.update(chunk)
+                temp_file.write(chunk)
+
+        sha256_hex = sha256_hash.hexdigest()
+        md5_hex = md5_hash.hexdigest()
+
+        # Content dedup: an identical APK reuses its existing submission.
+        existing = await db.execute(select(Submission).where(Submission.sha256 == sha256_hex))
+        if existing_sub := existing.scalar_one_or_none():
+            return existing_sub
+
+        s3_path = f"s3://{APK_BUCKET}/{sha256_hex}.apk"
+        get_minio_client().fput_object(
+            bucket_name=APK_BUCKET,
+            object_name=f"{sha256_hex}.apk",
+            file_path=temp_file_path,
+            content_type="application/vnd.android.package-archive",
+        )
+
+        new_submission = Submission(
+            id=uuid.uuid4(),
+            sha256=sha256_hex,
+            md5=md5_hex,
+            file_name=file.filename,
+            file_size=file_size,
+            status="queued",
+            priority="normal",
+            s3_path=s3_path,
+            webhook_url=webhook_url or None,
+            batch_id=batch_id,
+        )
+        db.add(new_submission)
+        await db.commit()
+
+        from parallax.workers.triage_worker import run_triage_pipeline
+
+        run_triage_pipeline.delay(str(new_submission.id))
+        return new_submission
+    finally:
+        if temp_file_path and os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
+
 
 @router.post("", response_model=SubmissionResponse, status_code=status.HTTP_201_CREATED)
 async def submit_apk(
@@ -38,10 +124,8 @@ async def submit_apk(
 
     Supplying an ``Idempotency-Key`` header makes retries safe: the same key
     within 24h returns the original submission instead of creating a duplicate.
+    An optional ``webhook_url`` form field receives the signed result on completion.
     """
-    if not file.filename or not file.filename.endswith(".apk"):
-        raise HTTPException(status_code=400, detail="Only .apk files are supported.")
-
     # Idempotency-Key short-circuit: a retried request returns the same submission
     # without re-uploading or re-hashing. Redis-backed; degrades gracefully.
     idem_client = None
@@ -58,89 +142,84 @@ async def submit_apk(
         except Exception:  # noqa: BLE001 - idempotency is best-effort
             idem_client = None
 
-    max_bytes = settings.MAX_UPLOAD_SIZE_MB * 1024 * 1024
-
-    sha256_hash = hashlib.sha256()
-    md5_hash = hashlib.md5(usedforsecurity=False)
-    file_size = 0
-    temp_file_path: str | None = None
-
     try:
-        # Write to a temporary file while hashing — avoids loading large APKs entirely in memory
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".apk") as temp_file:
-            temp_file_path = temp_file.name
-            is_first_chunk = True
-
-            while chunk := await file.read(8192):
-                file_size += len(chunk)
-
-                # Enforce file size limit
-                if file_size > max_bytes:
-                    msg = f"File exceeds max upload size of {settings.MAX_UPLOAD_SIZE_MB} MB."
-                    raise HTTPException(status_code=413, detail=msg)
-
-                # Validate APK magic bytes from the first chunk
-                if is_first_chunk:
-                    if not chunk[:4].startswith(_APK_MAGIC):
-                        raise HTTPException(
-                            status_code=400,
-                            detail="File does not appear to be a valid APK (invalid magic bytes).",
-                        )
-                    is_first_chunk = False
-
-                sha256_hash.update(chunk)
-                md5_hash.update(chunk)
-                temp_file.write(chunk)
-
-        sha256_hex = sha256_hash.hexdigest()
-        md5_hex = md5_hash.hexdigest()
-
-        # Check if this SHA256 already exists (dedup)
-        existing = await db.execute(select(Submission).where(Submission.sha256 == sha256_hex))
-        if existing_sub := existing.scalar_one_or_none():
-            return existing_sub
-
-        s3_path = f"s3://{APK_BUCKET}/{sha256_hex}.apk"
-
-        # Upload to MinIO
-        get_minio_client().fput_object(
-            bucket_name=APK_BUCKET,
-            object_name=f"{sha256_hex}.apk",
-            file_path=temp_file_path,
-            content_type="application/vnd.android.package-archive",
-        )
-
-        # Create submission record
-        new_submission = Submission(
-            id=uuid.uuid4(),
-            sha256=sha256_hex,
-            md5=md5_hex,
-            file_name=file.filename,
-            file_size=file_size,
-            status="queued",
-            priority="normal",
-            s3_path=s3_path,
-            webhook_url=webhook_url or None,
-        )
-
-        db.add(new_submission)
-        await db.commit()
-        # Enqueue Celery task for triaging
-        from parallax.workers.triage_worker import run_triage_pipeline
-
-        run_triage_pipeline.delay(str(new_submission.id))
-
-        # Bind the idempotency key so a retry returns this same submission.
-        if idempotency_key and idem_client is not None:
-            remember_submission_id(idem_client, idempotency_key, str(new_submission.id))
-
-        return new_submission
-
+        new_submission = await _ingest_apk(file, db, webhook_url=webhook_url)
     except HTTPException:
-        raise  # Re-raise our own validation errors
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to process APK submission: {str(e)}")
-    finally:
-        # Always clean up the temp file — even on error
-        if temp_file_path and os.path.exists(temp_file_path):
-            os.unlink(temp_file_path)
+        raise
+    except Exception as e:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=f"Failed to process APK submission: {e}")
+
+    if idempotency_key and idem_client is not None:
+        remember_submission_id(idem_client, idempotency_key, str(new_submission.id))
+    return new_submission
+
+
+@router.post("/batch", status_code=status.HTTP_201_CREATED)
+async def submit_batch(
+    files: Annotated[list[UploadFile], File(...)],
+    db: AsyncSession = Depends(get_session),
+    webhook_url: Annotated[str | None, Form()] = None,
+):
+    """
+    Submit up to 100 APKs as one batch. Returns a ``batch_id`` plus a per-file
+    outcome. A file that fails validation is reported inline and does not abort
+    the rest of the batch. Track progress via ``GET /analyze/batch/{batch_id}``.
+    """
+    if not files:
+        raise HTTPException(status_code=400, detail="No files provided.")
+    if len(files) > _MAX_BATCH:
+        raise HTTPException(
+            status_code=400, detail=f"Batch size exceeds the {_MAX_BATCH}-APK limit."
+        )
+
+    batch_id = uuid.uuid4()
+    results: list[dict] = []
+    for f in files:
+        try:
+            sub = await _ingest_apk(f, db, webhook_url=webhook_url, batch_id=batch_id)
+            results.append(
+                {"file_name": f.filename, "submission_id": str(sub.id), "status": sub.status}
+            )
+        except HTTPException as exc:
+            results.append({"file_name": f.filename, "error": exc.detail})
+        except Exception as exc:  # noqa: BLE001
+            results.append({"file_name": f.filename, "error": str(exc)})
+
+    accepted = sum(1 for r in results if "submission_id" in r)
+    return {
+        "batch_id": str(batch_id),
+        "total": len(files),
+        "submitted": accepted,
+        "results": results,
+    }
+
+
+@router.get("/batch/{batch_id}")
+async def batch_status(batch_id: uuid.UUID, db: AsyncSession = Depends(get_session)):
+    """Per-sample progress + verdicts for a batch. 404 if the batch is unknown."""
+    res = await db.execute(select(Submission).where(Submission.batch_id == batch_id))
+    subs = list(res.scalars().all())
+    if not subs:
+        raise HTTPException(status_code=404, detail="Batch not found.")
+
+    terminal = {"complete", "failed"}
+    by_status: dict[str, int] = {}
+    items = []
+    for s in subs:
+        by_status[s.status] = by_status.get(s.status, 0) + 1
+        items.append(
+            {
+                "submission_id": str(s.id),
+                "file_name": s.file_name,
+                "status": s.status,
+                "verdict": s.verdict,
+                "score": s.final_score,
+            }
+        )
+    return {
+        "batch_id": str(batch_id),
+        "total": len(subs),
+        "by_status": by_status,
+        "complete": all(s.status in terminal for s in subs),
+        "submissions": items,
+    }
