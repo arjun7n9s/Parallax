@@ -7,6 +7,8 @@ import json
 import sys
 from pathlib import Path
 
+import pytest
+
 SCRIPT = Path(__file__).resolve().parents[2] / "scripts" / "run_corpus.py"
 spec = importlib.util.spec_from_file_location("run_corpus", SCRIPT)
 run_corpus = importlib.util.module_from_spec(spec)
@@ -77,6 +79,7 @@ def test_compute_metrics_precision_recall_f1_and_latency():
             "true_family": "Cerberus",
             "true_verdict": "MALICIOUS",
             "sys_verdict": "HIGH",
+            "sys_score": "80.0",
             "match": "true",
             "latency_s": "10.0",
         },
@@ -84,6 +87,7 @@ def test_compute_metrics_precision_recall_f1_and_latency():
             "true_family": "Hydra",
             "true_verdict": "MALICIOUS",
             "sys_verdict": "CLEAN",
+            "sys_score": "20.0",
             "match": "false",
             "latency_s": "20.0",
         },
@@ -91,6 +95,7 @@ def test_compute_metrics_precision_recall_f1_and_latency():
             "true_family": "benign",
             "true_verdict": "CLEAN",
             "sys_verdict": "LOW",
+            "sys_score": "30.0",
             "match": "true",
             "latency_s": "30.0",
         },
@@ -98,6 +103,7 @@ def test_compute_metrics_precision_recall_f1_and_latency():
             "true_family": "benign",
             "true_verdict": "CLEAN",
             "sys_verdict": "CLEAN",
+            "sys_score": "40.0",
             "match": "true",
             "latency_s": "40.0",
         },
@@ -109,6 +115,8 @@ def test_compute_metrics_precision_recall_f1_and_latency():
     assert metrics["verdict_precision"] == 0.5
     assert metrics["verdict_recall"] == 0.5
     assert metrics["verdict_f1"] == 0.5
+    assert metrics["validation_ready"] is False
+    assert metrics["brier"] == pytest.approx(0.2325)
     assert metrics["tp"] == 1
     assert metrics["fp"] == 1
     assert metrics["tn"] == 1
@@ -130,6 +138,9 @@ def test_render_report_includes_summary_and_accuracy_table():
     report = run_corpus.render_report([row], run_corpus.compute_metrics([row]))
 
     assert "# PARALLAX Validation Report" in report
+    assert "PROVISIONAL ONLY" in report
+    assert "Evidence gate met (N>=200 usable): no" in report
+    assert "Brier score" in report
     assert "Family top-1 accuracy" in report
     assert "| True malicious | 1 | 0 |" in report
     assert "Cerberus" in report

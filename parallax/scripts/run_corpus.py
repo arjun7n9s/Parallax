@@ -193,13 +193,16 @@ def compute_metrics(rows: list[dict]) -> dict[str, float | int]:
     p50 = percentile(latencies, 50)
     p95 = percentile(latencies, 95)
     p99 = percentile(latencies, 99)
+    brier_scores = _brier_score(rows)
     return {
         "samples": len(rows),
         "usable": len(usable),
+        "validation_ready": len(usable) >= 200,
         "family_top1": family_top1,
         "verdict_precision": precision,
         "verdict_recall": recall,
         "verdict_f1": f1,
+        "brier": brier_scores,
         "tp": tp,
         "fp": fp,
         "tn": tn,
@@ -208,6 +211,20 @@ def compute_metrics(rows: list[dict]) -> dict[str, float | int]:
         "latency_p95_s": p95,
         "latency_p99_s": p99,
     }
+
+
+def _brier_score(rows: list[dict]) -> float:
+    errors: list[float] = []
+    for row in rows:
+        if row.get("true_verdict") not in {"MALICIOUS", "CLEAN"}:
+            continue
+        try:
+            probability = max(0.0, min(100.0, float(row.get("sys_score", "")))) / 100.0
+        except ValueError:
+            continue
+        label = 1.0 if row["true_verdict"] == "MALICIOUS" else 0.0
+        errors.append((probability - label) ** 2)
+    return sum(errors) / len(errors) if errors else 0.0
 
 
 def percentile(values: list[float], pct: int) -> float:
@@ -223,17 +240,27 @@ def percentile(values: list[float], pct: int) -> float:
 
 
 def render_report(rows: list[dict], metrics: dict[str, float | int]) -> str:
+    ready = bool(metrics.get("validation_ready", 0))
+    evidence_status = (
+        "REPRODUCIBLE VALIDATION RUN"
+        if ready
+        else "PROVISIONAL ONLY - fewer than 200 usable samples"
+    )
     lines = [
         "# PARALLAX Validation Report",
+        "",
+        f"> Evidence status: **{evidence_status}**.",
         "",
         "## Summary",
         "",
         f"- Samples in CSV: {metrics.get('samples', 0)}",
         f"- Usable pipeline results: {metrics.get('usable', 0)}",
+        f"- Evidence gate met (N>=200 usable): {'yes' if ready else 'no'}",
         f"- Family top-1 accuracy: {metrics.get('family_top1', 0.0):.3f}",
         f"- Verdict precision: {metrics.get('verdict_precision', 0.0):.3f}",
         f"- Verdict recall: {metrics.get('verdict_recall', 0.0):.3f}",
         f"- Verdict F1: {metrics.get('verdict_f1', 0.0):.3f}",
+        f"- Brier score: {metrics.get('brier', 0.0):.3f}",
         f"- Latency p50/p95/p99: {metrics.get('latency_p50_s', 0.0)}s / "
         f"{metrics.get('latency_p95_s', 0.0)}s / {metrics.get('latency_p99_s', 0.0)}s",
         "",

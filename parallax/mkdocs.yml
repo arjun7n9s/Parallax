@@ -18,6 +18,7 @@ nav:
       - Configuration: admin/configuration.md
       - Scaling: admin/scaling.md
       - Monitoring: admin/monitoring.md
+      - Validation and Calibration: admin/validation.md
   - Security:
       - Bank Audit Overview: security.md
   - Product:
