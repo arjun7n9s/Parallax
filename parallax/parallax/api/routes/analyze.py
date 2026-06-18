@@ -8,7 +8,17 @@ import tempfile
 import uuid
 from typing import Annotated, cast
 
-from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, UploadFile, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    File,
+    Form,
+    Header,
+    HTTPException,
+    Request,
+    UploadFile,
+    status,
+)
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
@@ -18,6 +28,7 @@ from parallax.api.schemas.submission import (
     BatchSubmissionResponse,
     SubmissionResponse,
 )
+from parallax.api.security import get_request_tenant
 from parallax.core.config import settings
 from parallax.core.database import get_session
 from parallax.core.models import Submission
@@ -38,6 +49,7 @@ async def _ingest_apk(
     *,
     webhook_url: str | None = None,
     batch_id: uuid.UUID | None = None,
+    tenant_id: str = "default",
 ) -> Submission:
     """Stream-hash, dedup, store, and queue one APK. Returns the (possibly
     pre-existing) Submission. Raises HTTPException on a client/validation error.
@@ -79,7 +91,12 @@ async def _ingest_apk(
         md5_hex = md5_hash.hexdigest()
 
         # Content dedup: an identical APK reuses its existing submission.
-        existing = await db.execute(select(Submission).where(Submission.sha256 == sha256_hex))
+        existing = await db.execute(
+            select(Submission).where(
+                Submission.sha256 == sha256_hex,
+                Submission.tenant_id == tenant_id,
+            )
+        )
         existing_sub = cast(Submission | None, existing.scalar_one_or_none())
         if existing_sub:
             return existing_sub
@@ -94,6 +111,7 @@ async def _ingest_apk(
 
         new_submission = Submission(
             id=uuid.uuid4(),
+            tenant_id=tenant_id,
             sha256=sha256_hex,
             md5=md5_hex,
             file_name=file.filename,
@@ -133,6 +151,7 @@ async def _ingest_apk(
     },
 )
 async def submit_apk(
+    request: Request,
     file: Annotated[UploadFile, File(...)],
     db: AsyncSession = Depends(get_session),
     idempotency_key: str | None = Header(default=None, alias="Idempotency-Key"),
@@ -150,27 +169,36 @@ async def submit_apk(
     # without re-uploading or re-hashing. Redis-backed; degrades gracefully.
     idem_client = None
     if idempotency_key:
+        tenant_id = get_request_tenant(request)
         try:
             from parallax.workers.heartbeat import get_redis
 
             idem_client = get_redis()
-            prior_id = lookup_submission_id(idem_client, idempotency_key)
+            prior_id = lookup_submission_id(idem_client, f"{tenant_id}:{idempotency_key}")
             if prior_id:
-                prior = await db.execute(select(Submission).where(Submission.id == prior_id))
+                prior = await db.execute(
+                    select(Submission).where(
+                        Submission.id == prior_id,
+                        Submission.tenant_id == tenant_id,
+                    )
+                )
                 if prior_sub := prior.scalar_one_or_none():
                     return prior_sub
         except Exception:  # noqa: BLE001 - idempotency is best-effort
             idem_client = None
 
     try:
-        new_submission = await _ingest_apk(file, db, webhook_url=webhook_url)
+        tenant_id = get_request_tenant(request)
+        new_submission = await _ingest_apk(file, db, webhook_url=webhook_url, tenant_id=tenant_id)
     except HTTPException:
         raise
     except Exception as e:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=f"Failed to process APK submission: {e}")
 
     if idempotency_key and idem_client is not None:
-        remember_submission_id(idem_client, idempotency_key, str(new_submission.id))
+        remember_submission_id(
+            idem_client, f"{tenant_id}:{idempotency_key}", str(new_submission.id)
+        )
     return new_submission
 
 
@@ -189,6 +217,7 @@ async def submit_apk(
     },
 )
 async def submit_batch(
+    request: Request,
     files: Annotated[list[UploadFile], File(...)],
     db: AsyncSession = Depends(get_session),
     webhook_url: Annotated[str | None, Form()] = None,
@@ -206,10 +235,17 @@ async def submit_batch(
         )
 
     batch_id = uuid.uuid4()
+    tenant_id = get_request_tenant(request)
     results: list[dict] = []
     for f in files:
         try:
-            sub = await _ingest_apk(f, db, webhook_url=webhook_url, batch_id=batch_id)
+            sub = await _ingest_apk(
+                f,
+                db,
+                webhook_url=webhook_url,
+                batch_id=batch_id,
+                tenant_id=tenant_id,
+            )
             results.append(
                 {"file_name": f.filename, "submission_id": str(sub.id), "status": sub.status}
             )
@@ -235,9 +271,17 @@ async def submit_batch(
     description=("Return per-sample progress, verdicts and aggregate status counts for a batch."),
     responses={404: {"description": "The batch id is unknown."}},
 )
-async def batch_status(batch_id: uuid.UUID, db: AsyncSession = Depends(get_session)):
+async def batch_status(
+    request: Request, batch_id: uuid.UUID, db: AsyncSession = Depends(get_session)
+):
     """Per-sample progress + verdicts for a batch. 404 if the batch is unknown."""
-    res = await db.execute(select(Submission).where(Submission.batch_id == batch_id))
+    tenant_id = get_request_tenant(request)
+    res = await db.execute(
+        select(Submission).where(
+            Submission.batch_id == batch_id,
+            Submission.tenant_id == tenant_id,
+        )
+    )
     subs = list(res.scalars().all())
     if not subs:
         raise HTTPException(status_code=404, detail="Batch not found.")

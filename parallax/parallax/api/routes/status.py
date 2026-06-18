@@ -5,11 +5,12 @@ Endpoint for fetching the status of an ongoing or completed analysis.
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from parallax.api.schemas.submission import SubmissionResponse
+from parallax.api.security import get_request_tenant
 from parallax.core.database import get_session
 from parallax.core.models import Hypothesis, Submission
 
@@ -17,11 +18,19 @@ router = APIRouter(prefix="/analysis", tags=["Analysis"])
 
 
 @router.get("/{submission_id}", response_model=dict[str, Any])
-async def get_analysis_status(submission_id: uuid.UUID, db: AsyncSession = Depends(get_session)):
+async def get_analysis_status(
+    request: Request, submission_id: uuid.UUID, db: AsyncSession = Depends(get_session)
+):
     """
     Fetch the current status of an analysis, including triage score and active hypotheses.
     """
-    result = await db.execute(select(Submission).where(Submission.id == submission_id))
+    tenant_id = get_request_tenant(request)
+    result = await db.execute(
+        select(Submission).where(
+            Submission.id == submission_id,
+            Submission.tenant_id == tenant_id,
+        )
+    )
     submission = result.scalar_one_or_none()
 
     if not submission:

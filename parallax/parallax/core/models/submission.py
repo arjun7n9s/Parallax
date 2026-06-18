@@ -20,6 +20,7 @@ class Submission(Base):
     __tablename__ = "submissions"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[str] = mapped_column(String(128), default="default", index=True)
     sha256: Mapped[str] = mapped_column(String(64), unique=True, index=True, nullable=False)
     md5: Mapped[str] = mapped_column(String(32), nullable=False)
     file_name: Mapped[str] = mapped_column(String(512), nullable=False)
@@ -65,6 +66,7 @@ class IOC(Base):
     __tablename__ = "iocs"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[str] = mapped_column(String(128), default="default", index=True)
     submission_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("submissions.id", ondelete="CASCADE"),
@@ -88,6 +90,7 @@ class AuditLog(Base):
     __tablename__ = "audit_log"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id: Mapped[str] = mapped_column(String(128), default="default", index=True)
     submission_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("submissions.id", ondelete="SET NULL"),

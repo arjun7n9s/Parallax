@@ -1,6 +1,8 @@
 """Tests for the productization pass: taint wiring, API auth, and the
 hardened Cypher/STIX/YARA delivery surface."""
 
+from types import SimpleNamespace
+
 import pytest
 
 from parallax.ai.risk import _network_exfil, compute_risk
@@ -202,13 +204,16 @@ class TestCypherGuard:
 
 # ---------------------------------------------------------------------- API auth
 class TestApiKeyAuth:
+    def _request(self):
+        return SimpleNamespace(state=SimpleNamespace())
+
     @pytest.mark.asyncio
     async def test_disabled_when_key_empty(self, monkeypatch):
         from parallax.api.security import require_api_key
         from parallax.core.config import settings
 
         monkeypatch.setattr(settings, "API_KEY", "")
-        assert await require_api_key(None) is None
+        assert await require_api_key(self._request(), None) == "default"
 
     @pytest.mark.asyncio
     async def test_rejects_missing_key(self, monkeypatch):
@@ -218,8 +223,9 @@ class TestApiKeyAuth:
         from parallax.core.config import settings
 
         monkeypatch.setattr(settings, "API_KEY", "s3cret")
+        monkeypatch.setattr(settings, "API_KEY_TENANT_MAP", "")
         with pytest.raises(HTTPException) as exc:
-            await require_api_key(None)
+            await require_api_key(self._request(), None)
         assert exc.value.status_code == 401
 
     @pytest.mark.asyncio
@@ -230,8 +236,9 @@ class TestApiKeyAuth:
         from parallax.core.config import settings
 
         monkeypatch.setattr(settings, "API_KEY", "s3cret")
+        monkeypatch.setattr(settings, "API_KEY_TENANT_MAP", "")
         with pytest.raises(HTTPException):
-            await require_api_key("wrong")
+            await require_api_key(self._request(), "wrong")
 
     @pytest.mark.asyncio
     async def test_accepts_correct_key(self, monkeypatch):
@@ -239,7 +246,21 @@ class TestApiKeyAuth:
         from parallax.core.config import settings
 
         monkeypatch.setattr(settings, "API_KEY", "s3cret")
-        assert await require_api_key("s3cret") is None
+        monkeypatch.setattr(settings, "API_KEY_TENANT_MAP", "")
+        monkeypatch.setattr(settings, "TENANT_ID", "bank-a")
+        req = self._request()
+        assert await require_api_key(req, "s3cret") == "bank-a"
+        assert req.state.tenant_id == "bank-a"
+
+    @pytest.mark.asyncio
+    async def test_maps_api_key_to_tenant(self, monkeypatch):
+        from parallax.api.security import require_api_key
+        from parallax.core.config import settings
+
+        monkeypatch.setattr(settings, "API_KEY", "fallback")
+        monkeypatch.setattr(settings, "TENANT_ID", "default-bank")
+        monkeypatch.setattr(settings, "API_KEY_TENANT_MAP", "key-a:tenant-a,key-b:tenant-b")
+        assert await require_api_key(self._request(), "key-b") == "tenant-b"
 
 
 # ------------------------------------------------------------------ STIX escaping

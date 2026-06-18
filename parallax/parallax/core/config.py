@@ -23,6 +23,10 @@ class Settings(BaseSettings):
     # API key required (X-API-Key header) on all endpoints except /health and
     # /ready. Empty = auth disabled (development only — never run open in prod).
     API_KEY: str = ""
+    # Tenant assigned to the default API_KEY. For multi-key deployments, use
+    # API_KEY_TENANT_MAP with comma-separated key:tenant entries.
+    TENANT_ID: str = "default"
+    API_KEY_TENANT_MAP: str = ""
     # Separate key for administrative endpoints (/admin/...). A leaked analyst
     # key must not grant admin. Empty = admin endpoints rejected unless API_KEY
     # auth is also disabled (dev).
