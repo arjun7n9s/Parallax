@@ -69,6 +69,7 @@ def redact_secrets(text: str) -> str:
 
 async def require_api_key(request: Request, api_key: str | None = Security(_api_key_header)) -> str:
     """FastAPI dependency enforcing the configured API key on a route."""
+    api_key = api_key or request.query_params.get("api_key")
     if not settings.API_KEY:
         request.state.tenant_id = settings.TENANT_ID
         request.state.actor = "dev"

@@ -12,7 +12,9 @@ import {
   Search,
   Shield,
   UploadCloud,
-  XCircle
+  XCircle,
+  LogOut,
+  Lock
 } from "lucide-react";
 import { ChangeEvent, FormEvent, useCallback, useEffect, useMemo, useState } from "react";
 
@@ -63,10 +65,9 @@ type HuntResponse = { hunt?: string; results?: Array<Record<string, unknown>>; c
 const API_BASE_KEY = "parallax.apiBase";
 const API_KEY_KEY = "parallax.apiKey";
 const DEFAULT_API_BASE = "http://localhost:8000/api/v1";
-const POLL_MS = 5000;
 
 function stored(key: string, fallback: string) {
-  return window.localStorage.getItem(key) ?? fallback;
+  return window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key) ?? fallback;
 }
 
 function formatBytes(bytes: number) {
@@ -90,7 +91,7 @@ function statusIcon(status: Status) {
 
 function verdictClass(verdict: string | null) {
   const normalized = (verdict ?? "").toLowerCase();
-  if (normalized.includes("high") || normalized.includes("malicious")) return "danger";
+  if (normalized.includes("high") || normalized.includes("malicious") || normalized.includes("critical")) return "danger";
   if (normalized.includes("clean") || normalized.includes("low")) return "ok";
   if (normalized.includes("medium") || normalized.includes("suspicious")) return "warn";
   return "muted";
@@ -139,7 +140,7 @@ function useApi(apiBase: string, apiKey: string) {
         fetch(`${apiBase}/analysis/${id}/quarantine-url`, { headers: headers() }).then(
           parseResponse<{ url: string; expires_in_seconds: number }>
         ),
-      artifactUrl: (id: string, artifact: string) => `${apiBase}/analysis/${id}/${artifact}`,
+      artifactUrl: (id: string, artifact: string) => `${apiBase}/analysis/${id}/${artifact}?api_key=${apiKey}`,
       graphHealth: () =>
         fetch(`${apiBase}/graph/health`, { headers: headers() }).then(
           parseResponse<Record<string, unknown>>
@@ -168,6 +169,8 @@ function useApi(apiBase: string, apiKey: string) {
 export function App() {
   const [apiBase, setApiBase] = useState(() => stored(API_BASE_KEY, DEFAULT_API_BASE));
   const [apiKey, setApiKey] = useState(() => stored(API_KEY_KEY, ""));
+  const [isAuthenticated, setIsAuthenticated] = useState(!!apiKey);
+  
   const [statusFilter, setStatusFilter] = useState("all");
   const [history, setHistory] = useState<HistoryResponse | null>(null);
   const [selectedId, setSelectedId] = useState<string>("");
@@ -185,51 +188,65 @@ export function App() {
   const [huntResult, setHuntResult] = useState<HuntResponse | null>(null);
   const api = useApi(apiBase, apiKey);
 
-  useEffect(() => window.localStorage.setItem(API_BASE_KEY, apiBase), [apiBase]);
-  useEffect(() => window.localStorage.setItem(API_KEY_KEY, apiKey), [apiKey]);
-
-  const refreshHistory = useCallback(async () => {
-    try {
-      const next = await api.history(statusFilter);
-      setHistory(next);
-      if (!selectedId && next.items[0]) setSelectedId(next.items[0].id);
-      setError("");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load history");
+  useEffect(() => {
+    window.localStorage.setItem(API_BASE_KEY, apiBase);
+    if (isAuthenticated) {
+      window.sessionStorage.setItem(API_KEY_KEY, apiKey);
+    } else {
+      window.sessionStorage.removeItem(API_KEY_KEY);
     }
-  }, [api, selectedId, statusFilter]);
+  }, [apiBase, apiKey, isAuthenticated]);
 
-  const refreshSelected = useCallback(async () => {
-    if (!selectedId) {
-      setSelected(null);
+  // Real-time SSE for History
+  useEffect(() => {
+    if (!isAuthenticated || !apiKey) return;
+    const url = new URL(`${apiBase}/history/stream`);
+    url.searchParams.set("api_key", apiKey);
+    if (statusFilter !== "all") url.searchParams.set("status", statusFilter);
+
+    const es = new EventSource(url.toString());
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        setHistory(data);
+        if (!selectedId && data.items && data.items.length > 0) {
+          setSelectedId(data.items[0].id);
+        }
+      } catch(err) {}
+    };
+    es.onerror = () => {
+      // Silently reconnect
+    };
+    return () => es.close();
+  }, [apiBase, apiKey, statusFilter, isAuthenticated, selectedId]);
+
+  // Real-time SSE for Selected Analysis
+  useEffect(() => {
+    if (!isAuthenticated || !apiKey || !selectedId) return;
+    const url = new URL(`${apiBase}/analysis/${selectedId}/stream`);
+    url.searchParams.set("api_key", apiKey);
+
+    const es = new EventSource(url.toString());
+    es.onmessage = (e) => {
+      try {
+        const data = JSON.parse(e.data);
+        setSelected(data);
+      } catch(err) {}
+    };
+    return () => es.close();
+  }, [apiBase, apiKey, selectedId, isAuthenticated]);
+
+  // One-time fetch for static result JSON when selection changes
+  useEffect(() => {
+    if (!isAuthenticated || !selectedId) {
       setResult(null);
       return;
     }
-    try {
-      const [statusData, resultData] = await Promise.all([
-        api.status(selectedId),
-        api.result(selectedId).catch(() => null)
-      ]);
-      setSelected(statusData);
-      setResult(resultData);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load analysis");
-    }
-  }, [api, selectedId]);
+    api.result(selectedId).then(setResult).catch(() => setResult(null));
+  }, [api, selectedId, isAuthenticated]);
 
   useEffect(() => {
-    refreshHistory();
-    const timer = window.setInterval(refreshHistory, POLL_MS);
-    return () => window.clearInterval(timer);
-  }, [refreshHistory]);
-
-  useEffect(() => {
-    refreshSelected();
-    const timer = window.setInterval(refreshSelected, POLL_MS);
-    return () => window.clearInterval(timer);
-  }, [refreshSelected]);
-
-  useEffect(() => {
+    if (!isAuthenticated) return;
     api.graphHealth().then(setGraphHealth).catch(() => setGraphHealth(null));
     api.huntTemplates()
       .then((data) => {
@@ -237,7 +254,21 @@ export function App() {
         if (data.hunts[0]) setHuntName(data.hunts[0]);
       })
       .catch(() => setHuntTemplates([]));
-  }, [api]);
+  }, [api, isAuthenticated]);
+
+  const handleLogin = (e: FormEvent) => {
+    e.preventDefault();
+    if (apiKey.trim()) {
+      setIsAuthenticated(true);
+    }
+  };
+
+  const handleLogout = () => {
+    setIsAuthenticated(false);
+    setApiKey("");
+    setHistory(null);
+    setSelected(null);
+  };
 
   async function submitFiles(event: FormEvent) {
     event.preventDefault();
@@ -253,7 +284,6 @@ export function App() {
         setNotice(`${response.file_name} queued`);
         setSelectedId(response.id);
       }
-      await refreshHistory();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed");
     } finally {
@@ -295,11 +325,72 @@ export function App() {
     };
   }, [history]);
 
+  if (!isAuthenticated) {
+    return (
+      <main className="landing-page glass-bg">
+        <header className="landing-header">
+          <div className="brand">
+            <Shield size={32} className="glow-icon" />
+            <h1>PARALLAX</h1>
+          </div>
+          <a href="#login" className="glass-btn primary glow-btn">Platform Access</a>
+        </header>
+
+        <section className="hero">
+          <h1 className="hero-title">Agentic Malware Analysis</h1>
+          <p className="hero-subtitle">
+            Parallax combines deterministic static analysis with resilient, LLM-driven dynamic execution to identify the true intent of polymorphic Android malware.
+          </p>
+          <div className="hero-features">
+            <div className="feature-card glass-panel">
+              <Activity size={32} className="glow-icon" />
+              <h3>Two-Layer Risk Scoring</h3>
+              <p>Fast deterministic triage combined with deep LLM-driven behavioral confidence scoring.</p>
+            </div>
+            <div className="feature-card glass-panel">
+              <Shield size={32} className="glow-icon" />
+              <h3>Graceful Degradation</h3>
+              <p>Resilient infrastructure that falls back to static heuristics and local models when under load.</p>
+            </div>
+            <div className="feature-card glass-panel">
+              <Search size={32} className="glow-icon" />
+              <h3>Agentic Workflow</h3>
+              <p>Autonomous LLM agents that formulate hypotheses and generate dynamic Frida hooks on the fly.</p>
+            </div>
+          </div>
+        </section>
+
+        <section id="login" className="login-section">
+          <div className="login-box glass-panel">
+            <div className="brand center">
+              <Lock size={48} className="glow-icon" />
+              <h2>Analyst Portal</h2>
+              <span>Secure Platform Access</span>
+            </div>
+            <form className="login-form" onSubmit={handleLogin}>
+              <div className="input-group">
+                <Lock size={18} />
+                <input
+                  type="password"
+                  placeholder="Enter Analyst API Key"
+                  value={apiKey}
+                  onChange={(e) => setApiKey(e.target.value)}
+                  required
+                />
+              </div>
+              <button className="primary full-width glow-btn" type="submit">Authenticate</button>
+            </form>
+          </div>
+        </section>
+      </main>
+    );
+  }
+
   return (
     <main className="shell">
-      <header className="topbar">
+      <header className="topbar glass-panel">
         <div className="brand">
-          <Shield size={28} />
+          <Shield size={28} className="glow-icon" />
           <div>
             <h1>PARALLAX</h1>
             <span>Malware analysis console</span>
@@ -310,22 +401,16 @@ export function App() {
             aria-label="API base"
             value={apiBase}
             onChange={(event) => setApiBase(event.target.value)}
+            className="glass-input"
           />
-          <input
-            aria-label="API key"
-            type="password"
-            placeholder="X-API-Key"
-            value={apiKey}
-            onChange={(event) => setApiKey(event.target.value)}
-          />
-          <button title="Refresh data" onClick={refreshHistory}>
-            <RefreshCw size={18} />
+          <button title="Logout" onClick={handleLogout} className="glass-btn danger-hover">
+            <LogOut size={18} /> Logout
           </button>
         </div>
       </header>
 
       {(error || notice) && (
-        <div className={`banner ${error ? "error" : "notice"}`}>
+        <div className={`banner ${error ? "error" : "notice"} glass-panel pop-in`}>
           {error ? <AlertTriangle size={18} /> : <CheckCircle2 size={18} />}
           <span>{error || notice}</span>
         </div>
@@ -333,33 +418,33 @@ export function App() {
 
       <section className="metrics">
         <Metric label="Total" value={counts.total} icon={<FileArchive size={18} />} />
-        <Metric label="Active" value={counts.active} icon={<Activity size={18} />} />
-        <Metric label="High Risk" value={counts.high} icon={<AlertTriangle size={18} />} />
+        <Metric label="Active" value={counts.active} icon={<Activity size={18} className="pulse-icon" />} />
+        <Metric label="High Risk" value={counts.high} icon={<AlertTriangle size={18} />} isDanger={counts.high > 0} />
         <Metric label="Failed" value={counts.failed} icon={<XCircle size={18} />} />
       </section>
 
       <section className="workspace">
         <aside className="left-pane">
-          <form className="upload-panel" onSubmit={submitFiles}>
+          <form className="upload-panel glass-panel" onSubmit={submitFiles}>
             <label className="dropzone">
-              <UploadCloud size={24} />
+              <UploadCloud size={28} className="glow-icon" />
               <input
                 type="file"
                 accept=".apk"
                 multiple
                 onChange={(event: ChangeEvent<HTMLInputElement>) => setFiles(event.target.files)}
               />
-              <span>{files?.length ? `${files.length} APK selected` : "Select APK files"}</span>
+              <span>{files?.length ? `${files.length} APK selected` : "Drag or select APK files"}</span>
             </label>
             <input
-              className="wide-input"
-              placeholder="Webhook URL"
+              className="wide-input glass-input"
+              placeholder="Webhook URL (Optional)"
               value={webhookUrl}
               onChange={(event) => setWebhookUrl(event.target.value)}
             />
-            <button className="primary" disabled={busy || !files?.length}>
+            <button className="primary glow-btn" disabled={busy || !files?.length}>
               {busy ? <Loader2 size={18} className="spin" /> : <Play size={18} />}
-              <span>Submit</span>
+              <span>Submit Analysis</span>
             </button>
           </form>
 
@@ -368,7 +453,7 @@ export function App() {
               (status) => (
                 <button
                   key={status}
-                  className={statusFilter === status ? "active" : ""}
+                  className={`glass-btn ${statusFilter === status ? "active glow-border" : ""}`}
                   onClick={() => setStatusFilter(status)}
                 >
                   {status}
@@ -377,7 +462,7 @@ export function App() {
             )}
           </div>
 
-          <div className="submission-list">
+          <div className="submission-list glass-panel no-padding">
             {(history?.items ?? []).map((item) => (
               <button
                 key={item.id}
@@ -395,15 +480,15 @@ export function App() {
           </div>
         </aside>
 
-        <section className="detail-pane">
+        <section className="detail-pane glass-panel">
           {selected ? (
-            <>
+            <div className="fade-in">
               <div className="detail-header">
                 <div>
                   <h2>{selected.file_name}</h2>
-                  <span>{selected.package_name ?? selected.sha256}</span>
+                  <span className="subtitle">{selected.package_name ?? selected.sha256}</span>
                 </div>
-                <span className={`verdict large ${verdictClass(selected.verdict)}`}>
+                <span className={`verdict large ${verdictClass(selected.verdict)} glow-border`}>
                   {selected.verdict ?? selected.status}
                 </span>
               </div>
@@ -416,7 +501,7 @@ export function App() {
               </div>
 
               <div className="actions">
-                <button onClick={issueQuarantineUrl} title="Open signed quarantine URL">
+                <button onClick={issueQuarantineUrl} className="glass-btn" title="Open signed quarantine URL">
                   <LinkIcon size={17} />
                   <span>Raw APK</span>
                 </button>
@@ -424,6 +509,7 @@ export function App() {
                   <a
                     key={artifact}
                     href={api.artifactUrl(selected.id, artifact)}
+                    className="glass-btn"
                     target="_blank"
                     rel="noreferrer"
                   >
@@ -440,37 +526,37 @@ export function App() {
 
               <div className="hypotheses">
                 {(selected.hypotheses ?? []).map((hypothesis) => (
-                  <div key={hypothesis.id} className="hypothesis">
+                  <div key={hypothesis.id} className="hypothesis glass-panel compact">
                     <strong>{hypothesis.claim}</strong>
-                    <span>{hypothesis.irt_label} · {Math.round(hypothesis.confidence * 100)}%</span>
+                    <span className="badge">{hypothesis.irt_label} · {Math.round(hypothesis.confidence * 100)}%</span>
                   </div>
                 ))}
               </div>
-            </>
+            </div>
           ) : (
-            <div className="empty-state">
-              <FileArchive size={36} />
-              <span>No submission selected</span>
+            <div className="empty-state fade-in">
+              <FileArchive size={48} className="glow-icon" />
+              <span>Select an analysis to view details</span>
             </div>
           )}
         </section>
 
         <aside className="right-pane">
-          <section className="panel">
+          <section className="panel glass-panel">
             <div className="panel-title">
-              <Activity size={18} />
-              <h3>Graph</h3>
+              <Activity size={18} className="glow-icon" />
+              <h3>TAIG Graph</h3>
             </div>
             <JsonPanel title="" data={graphHealth ?? { status: "unavailable" }} compact />
           </section>
 
-          <section className="panel">
+          <section className="panel glass-panel">
             <div className="panel-title">
-              <Search size={18} />
-              <h3>Hunt</h3>
+              <Search size={18} className="glow-icon" />
+              <h3>Threat Hunt</h3>
             </div>
             <form className="hunt-form" onSubmit={runHunt}>
-              <select value={huntName} onChange={(event) => setHuntName(event.target.value)}>
+              <select className="glass-input" value={huntName} onChange={(event) => setHuntName(event.target.value)}>
                 {(huntTemplates.length ? huntTemplates : ["high_risk_apks"]).map((hunt) => (
                   <option key={hunt} value={hunt}>
                     {hunt}
@@ -478,11 +564,12 @@ export function App() {
                 ))}
               </select>
               <input
+                className="glass-input"
                 placeholder="sha256, family, technique"
                 value={huntQuery}
                 onChange={(event) => setHuntQuery(event.target.value)}
               />
-              <button className="primary">
+              <button className="primary glow-btn">
                 {busy ? <Loader2 size={18} className="spin" /> : <Search size={18} />}
                 <span>Run</span>
               </button>
@@ -495,19 +582,21 @@ export function App() {
   );
 }
 
-function Metric({ label, value, icon }: { label: string; value: number; icon: React.ReactNode }) {
+function Metric({ label, value, icon, isDanger }: { label: string; value: number; icon: React.ReactNode, isDanger?: boolean }) {
   return (
-    <div className="metric">
-      {icon}
-      <span>{label}</span>
-      <strong>{value}</strong>
+    <div className={`metric glass-panel ${isDanger ? "danger-glow" : ""}`}>
+      <div className="metric-icon">{icon}</div>
+      <div className="metric-content">
+        <span>{label}</span>
+        <strong>{value}</strong>
+      </div>
     </div>
   );
 }
 
 function Detail({ label, value }: { label: string; value: string | number }) {
   return (
-    <div className="detail">
+    <div className="detail glass-panel compact">
       <span>{label}</span>
       <strong>{value}</strong>
     </div>
@@ -524,9 +613,9 @@ function JsonPanel({
   compact?: boolean;
 }) {
   return (
-    <section className={compact ? "json-panel compact" : "json-panel"}>
+    <section className={`json-panel ${compact ? "compact" : ""}`}>
       {title && <h3>{title}</h3>}
-      <pre>{JSON.stringify(data, null, 2)}</pre>
+      <pre className="glass-code">{JSON.stringify(data, null, 2)}</pre>
     </section>
   );
 }

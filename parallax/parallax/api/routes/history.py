@@ -9,6 +9,9 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
+from fastapi.responses import StreamingResponse
+import asyncio
+import json
 
 from parallax.api.schemas.submission import SubmissionResponse
 from parallax.api.security import get_request_tenant
@@ -68,3 +71,55 @@ async def get_analysis_history(
         "page_size": page_size,
         "total_pages": (total + page_size - 1) // page_size if total > 0 else 0,
     }
+
+
+@router.get("/stream")
+async def stream_analysis_history(
+    request: Request,
+    page: Annotated[int, Query(ge=1, description="Page number (1-indexed)")] = 1,
+    page_size: Annotated[int, Query(ge=1, le=100, description="Items per page")] = 20,
+    status_filter: Annotated[
+        AnalysisStatusFilter | None, Query(alias="status", description="Filter by analysis status")
+    ] = None,
+):
+    """
+    Server-Sent Events (SSE) endpoint for history.
+    Streams the paginated history, updating every 2 seconds.
+    """
+    async def event_generator():
+        while True:
+            if await request.is_disconnected():
+                break
+
+            from parallax.core.database import async_session_maker
+            async with async_session_maker() as session:
+                tenant_id = get_request_tenant(request)
+                query = select(Submission).where(Submission.tenant_id == tenant_id)
+
+                if status_filter:
+                    query = query.where(Submission.status == status_filter)
+
+                count_query = select(func.count()).select_from(query.subquery())
+                total_result = await session.execute(count_query)
+                total = total_result.scalar_one()
+
+                query = query.order_by(Submission.created_at.desc())
+                query = query.offset((page - 1) * page_size).limit(page_size)
+
+                result = await session.execute(query)
+                submissions = result.scalars().all()
+
+                data = {
+                    "items": [SubmissionResponse.model_validate(s).model_dump(mode="json") for s in submissions],
+                    "total": total,
+                    "page": page,
+                    "page_size": page_size,
+                    "total_pages": (total + page_size - 1) // page_size if total > 0 else 0,
+                }
+
+                yield f"data: {json.dumps(data)}\n\n"
+
+            await asyncio.sleep(2)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
