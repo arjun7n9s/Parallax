@@ -1,0 +1,19 @@
+rule_files:
+  - prometheus_rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  - interval: 1m
+    input_series:
+      - series: 'parallax_llm_cost_usd_total{provider="anthropic",model="claude-sonnet"}'
+        values: '0+1x60'
+    alert_rule_test:
+      - eval_time: 45m
+        alertname: ParallaxDailyLLMCostBudgetHigh
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+            exp_annotations:
+              summary: "PARALLAX daily LLM cost budget exceeded"
+              description: "Estimated LLM spend crossed $25 over the last 24h. Check model routing, batch volume, and retry behavior."

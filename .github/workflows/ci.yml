@@ -110,6 +110,23 @@ jobs:
       - name: Build docs
         run: mkdocs build --strict
 
+  observability:
+    name: Observability Config
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: parallax
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check Prometheus config
+        run: docker run --rm -v "$PWD:/workspace" -w /workspace --entrypoint promtool prom/prometheus:v2.51.2 check config prometheus.yml
+      - name: Test Prometheus alert rules
+        run: docker run --rm -v "$PWD:/workspace" -w /workspace --entrypoint promtool prom/prometheus:v2.51.2 test rules prometheus_rule_tests.yml
+      - name: Check Alertmanager config
+        run: docker run --rm -v "$PWD:/workspace" -w /workspace --entrypoint amtool prom/alertmanager:v0.27.0 check-config alertmanager.yml
+      - name: Validate Grafana dashboard JSON
+        run: python -m json.tool parallax/delivery/grafana_dashboards/analysis_overview.json >/dev/null
+
   migrations:
     name: Migration Smoke Test
     runs-on: ubuntu-latest

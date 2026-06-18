@@ -23,7 +23,19 @@ Grafana dashboards cover:
 
 ## Alerts
 
-Prometheus rules include daily LLM spend thresholding. Add production alerts for:
+Prometheus rules include daily LLM spend thresholding and are tested in CI with
+`promtool test rules prometheus_rule_tests.yml`. Alertmanager config is also
+validated in CI with `amtool check-config`.
+
+Run the same checks locally:
+
+```bash
+docker run --rm -v "$PWD:/workspace" -w /workspace --entrypoint promtool prom/prometheus:v2.51.2 check config prometheus.yml
+docker run --rm -v "$PWD:/workspace" -w /workspace --entrypoint promtool prom/prometheus:v2.51.2 test rules prometheus_rule_tests.yml
+docker run --rm -v "$PWD:/workspace" -w /workspace --entrypoint amtool prom/alertmanager:v0.27.0 check-config alertmanager.yml
+```
+
+Add production alerts for:
 
 - API readiness failure
 - Worker heartbeat gaps
