@@ -6,7 +6,7 @@ import hashlib
 import os
 import tempfile
 import uuid
-from typing import Annotated
+from typing import Annotated, cast
 
 from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, UploadFile, status
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -76,7 +76,8 @@ async def _ingest_apk(
 
         # Content dedup: an identical APK reuses its existing submission.
         existing = await db.execute(select(Submission).where(Submission.sha256 == sha256_hex))
-        if existing_sub := existing.scalar_one_or_none():
+        existing_sub = cast(Submission | None, existing.scalar_one_or_none())
+        if existing_sub:
             return existing_sub
 
         s3_path = f"s3://{APK_BUCKET}/{sha256_hex}.apk"
