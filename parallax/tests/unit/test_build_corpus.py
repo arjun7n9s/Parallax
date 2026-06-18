@@ -157,3 +157,35 @@ def test_build_malware_records_skips_failed_downloads(tmp_path, monkeypatch, cap
 
     assert [record.sha256 for record in records] == [good]
     assert "temporary 502" in capsys.readouterr().out
+
+
+def test_build_malware_records_skips_unreadable_existing_files(tmp_path, monkeypatch, capsys):
+    sha256 = "2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824"
+    apk_path = tmp_path / "malware" / "Cerberus" / f"{sha256}.apk"
+    apk_path.parent.mkdir(parents=True)
+    apk_path.write_bytes(b"hello")
+
+    monkeypatch.setattr(
+        build_corpus,
+        "query_tag",
+        lambda *_args, **_kwargs: [
+            {"sha256_hash": sha256, "file_type": "apk", "tags": ["Cerberus"]},
+        ],
+    )
+
+    original_read_bytes = Path.read_bytes
+
+    def fake_read_bytes(path):
+        if path == apk_path:
+            raise OSError("blocked by local scanner")
+        return original_read_bytes(path)
+
+    monkeypatch.setattr(Path, "read_bytes", fake_read_bytes)
+
+    records = build_corpus.build_malware_records(
+        targets={"Cerberus": 1},
+        out_dir=tmp_path,
+    )
+
+    assert records == []
+    assert "blocked by local scanner" in capsys.readouterr().out

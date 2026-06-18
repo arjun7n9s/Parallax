@@ -226,7 +226,11 @@ def build_malware_records(
                     print(f"warning: failed to download {sha256} ({family}): {exc}")
                     continue
             if not dry_run and apk_path.exists():
-                actual = hashlib.sha256(apk_path.read_bytes()).hexdigest()
+                try:
+                    actual = hashlib.sha256(apk_path.read_bytes()).hexdigest()
+                except OSError as exc:
+                    print(f"warning: skipping {sha256} ({family}); cannot read file: {exc}")
+                    continue
                 if actual.lower() != sha256.lower():
                     print(f"warning: skipping {sha256} ({family}); existing file hash is {actual}")
                     continue
