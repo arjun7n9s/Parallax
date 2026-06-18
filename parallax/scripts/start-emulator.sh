@@ -12,17 +12,31 @@ cd "$(dirname "$0")/.."
 
 echo ">>> Preflight: ensuring KVM modules are loaded in the docker-desktop VM"
 if command -v wsl.exe >/dev/null 2>&1; then
-    wsl.exe -d docker-desktop -e sh -c "modprobe kvm 2>/dev/null; modprobe kvm_intel 2>/dev/null; ls -l /dev/kvm" \
-        || echo "    (could not modprobe via wsl; assuming KVM already present)"
+    if ! wsl.exe -d docker-desktop -e sh -c "modprobe kvm && modprobe kvm_intel && ls -la /dev/kvm"; then
+        echo "!!! Docker Desktop WSL2 KVM preflight failed."
+        echo '!!! Run: wsl -d docker-desktop -- sh -c "modprobe kvm && modprobe kvm_intel && ls -la /dev/kvm"'
+        exit 1
+    fi
 else
-    echo "    (wsl.exe not found; assuming KVM already present)"
+    if [ ! -c /dev/kvm ]; then
+        echo "!!! /dev/kvm is missing and wsl.exe is unavailable for Docker Desktop module loading."
+        exit 1
+    fi
+    ls -la /dev/kvm
 fi
 
 echo ">>> Starting android-emulator container"
 docker compose up -d android-emulator
 
 echo ">>> Waiting for emulator boot (sys.boot_completed) ..."
-ADB="${ADB_BIN:-/c/Users/arjun/AppData/Local/Android/Sdk/platform-tools/adb.exe}"
+if [ -n "${ADB_BIN:-}" ]; then
+    ADB="$ADB_BIN"
+elif [ -x "../tools/android-platform-tools/platform-tools/adb.exe" ]; then
+    ADB="../tools/android-platform-tools/platform-tools/adb.exe"
+else
+    ADB="/c/Users/arjun/AppData/Local/Android/Sdk/platform-tools/adb.exe"
+fi
+
 "$ADB" connect localhost:5555 >/dev/null 2>&1 || true
 for i in $(seq 1 60); do
     booted="$("$ADB" -s localhost:5555 shell getprop sys.boot_completed 2>/dev/null | tr -d '\r' || true)"
@@ -30,7 +44,7 @@ for i in $(seq 1 60); do
         echo ">>> Emulator booted after ~$((i*5))s"
         echo ">>> Verifying frida-server is running"
         if ! "$ADB" -s localhost:5555 shell ps -A 2>/dev/null | tr -d '\r' | grep -q "frida-server"; then
-            echo "!!! frida-server is not running after boot — check: docker logs parallax_android_emulator"
+            echo "!!! frida-server is not running after boot - check: docker logs parallax_android_emulator"
             exit 1
         fi
         "$ADB" devices
@@ -39,5 +53,6 @@ for i in $(seq 1 60); do
     sleep 5
     "$ADB" connect localhost:5555 >/dev/null 2>&1 || true
 done
-echo "!!! Emulator did not report boot_completed within 5 min — check: docker logs parallax_android_emulator"
+
+echo "!!! Emulator did not report boot_completed within 5 min - check: docker logs parallax_android_emulator"
 exit 1

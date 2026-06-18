@@ -29,7 +29,7 @@ logger = logging.getLogger("chaos_emulator")
 # Add the project root to sys.path for imports
 sys.path.insert(0, str(__file__ and __import__("pathlib").Path(__file__).resolve().parents[1]))
 
-from parallax.sandbox.pool import DeviceState, EmulatorDevice, EmulatorPool  # noqa: E402
+from parallax.sandbox.pool import EmulatorDevice, EmulatorPool  # noqa: E402
 
 
 async def simulate_analysis(pool: EmulatorPool, analysis_id: str, duration: float) -> dict:
@@ -74,7 +74,9 @@ async def chaos_killer(
             continue
 
         target = random.choice(devices)
-        logger.warning("CHAOS: killing container %s (state=%s)", target.container_name, target.state)
+        logger.warning(
+            "CHAOS: killing container %s (state=%s)", target.container_name, target.state
+        )
         try:
             subprocess.run(
                 ["docker", "kill", target.container_name],
@@ -108,12 +110,9 @@ async def run_chaos(pool_size: int, num_analyses: int, kill_interval: float):
 
     # Launch analyses + chaos killer concurrently
     analysis_tasks = [
-        simulate_analysis(pool, f"analysis-{i}", analysis_duration)
-        for i in range(num_analyses)
+        simulate_analysis(pool, f"analysis-{i}", analysis_duration) for i in range(num_analyses)
     ]
-    chaos_task = asyncio.create_task(
-        chaos_killer(pool, kill_interval, total_duration)
-    )
+    chaos_task = asyncio.create_task(chaos_killer(pool, kill_interval, total_duration))
 
     results = await asyncio.gather(*analysis_tasks)
     chaos_task.cancel()
@@ -136,7 +135,7 @@ async def run_chaos(pool_size: int, num_analyses: int, kill_interval: float):
     print(f"Completed:       {completed}")
     print(f"Failed:          {failed}")
     print(f"Containers killed: {kills}")
-    print(f"Pool final state:")
+    print("Pool final state:")
     for d in pool._devices.values():
         print(f"  {d.container_name}: {d.state.value} (failures={d.consecutive_failures})")
 

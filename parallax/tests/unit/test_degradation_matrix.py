@@ -15,18 +15,13 @@ The test for each row:
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
 from parallax.ai.risk import compute_risk
 from parallax.ai.schemas import (
-    BehaviorAnalystOutput,
     CodeInterpreterOutput,
-    IntelCorrelatorOutput,
-    RiskComponents,
-    Verdict,
-    VisualIntelOutput,
 )
 from parallax.core.errors import (
     InfraError,
@@ -36,7 +31,6 @@ from parallax.core.errors import (
     TransientError,
     is_retryable,
 )
-
 
 # ---------------------------------------------------------------------------
 # Static-only degradation (emulator unavailable / frida failed)
@@ -100,8 +94,10 @@ class TestStaticOnlyDegradation:
     def test_static_only_still_produces_verdict(self):
         """Even without dynamic evidence, a verdict must be returned."""
         score = compute_risk(
-            permissions=["android.permission.BIND_ACCESSIBILITY_SERVICE",
-                         "android.permission.RECEIVE_SMS"],
+            permissions=[
+                "android.permission.BIND_ACCESSIBILITY_SERVICE",
+                "android.permission.RECEIVE_SMS",
+            ],
             code=self._code_output(),
             behavior=None,
             intel=None,
@@ -221,18 +217,24 @@ class TestKnowledgeDegradation:
         """Graph population wraps everything in a try/except and logs
         warnings rather than crashing the pipeline."""
         from parallax.knowledge.population import populate_graph
+
         assert callable(populate_graph)
 
     def test_qdrant_store_exists(self):
         """Qdrant store module exists and is importable."""
         from parallax.knowledge import qdrant_store
-        assert hasattr(qdrant_store, "QdrantSubmissionStore") or hasattr(
-            qdrant_store, "store_embedding"
-        ) or callable(getattr(qdrant_store, "store", None)) or True  # importable is enough
+
+        assert (
+            hasattr(qdrant_store, "QdrantSubmissionStore")
+            or hasattr(qdrant_store, "store_embedding")
+            or callable(getattr(qdrant_store, "store", None))
+            or True
+        )  # importable is enough
 
     def test_misp_sync_exists(self):
         """MISP sync module exists and gates on configuration."""
         from parallax.knowledge import misp_sync
+
         # The module should be importable regardless of MISP being configured
         assert misp_sync is not None
 

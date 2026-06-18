@@ -62,8 +62,9 @@ def _disable_celery_chaining():
 async def _seed(path: str) -> str:
     sha, md5, size = _hashes(path)
     client = get_minio_client()
-    client.fput_object(APK_BUCKET, f"{sha}.apk", path,
-                       content_type="application/vnd.android.package-archive")
+    client.fput_object(
+        APK_BUCKET, f"{sha}.apk", path, content_type="application/vnd.android.package-archive"
+    )
     async with async_session() as db:
         existing = await db.execute(select(Submission).where(Submission.sha256 == sha))
         sub = existing.scalar_one_or_none()
@@ -75,9 +76,18 @@ async def _seed(path: str) -> str:
             await db.commit()
             return str(sub.id)
         sid = uuid.uuid4()
-        db.add(Submission(id=sid, sha256=sha, md5=md5, file_name=path.split("/")[-1],
-                          file_size=size, status="queued", priority="normal",
-                          s3_path=f"s3://{APK_BUCKET}/{sha}.apk"))
+        db.add(
+            Submission(
+                id=sid,
+                sha256=sha,
+                md5=md5,
+                file_name=path.split("/")[-1],
+                file_size=size,
+                status="queued",
+                priority="normal",
+                s3_path=f"s3://{APK_BUCKET}/{sha}.apk",
+            )
+        )
         await db.commit()
         return str(sid)
 
@@ -95,6 +105,7 @@ def _pdf_pages(data: bytes) -> str:
         import io
 
         from pypdf import PdfReader  # type: ignore
+
         return str(len(PdfReader(io.BytesIO(data)).pages))
     except Exception:
         return f"~{data.count(b'/Type /Page') + data.count(b'/Type/Page')}"
@@ -127,8 +138,9 @@ async def main() -> int:
 
         await _async_run_dynamic_pipeline(sid)  # transitions status to 'reasoning'
     else:
-        print(">>> STAGE 3/4 dynamic ... SKIPPED (DYNAMIC_LIVE_DEVICE=false; "
-              "0 runtime observations)")
+        print(
+            ">>> STAGE 3/4 dynamic ... SKIPPED (DYNAMIC_LIVE_DEVICE=false; 0 runtime observations)"
+        )
         await _set_status(sid, "reasoning")
     print(">>> STAGE 4/4 reasoning (AI cortex via aimlapi) ...")
     await _async_run_reasoning_pipeline(sid)
@@ -136,6 +148,7 @@ async def main() -> int:
     # Delivery
     try:
         from parallax.workers.delivery_worker import _async_run_delivery
+
         print(">>> delivery (report/STIX/YARA) ...")
         await _async_run_delivery(sid)
     except Exception as exc:  # noqa: BLE001
@@ -146,8 +159,11 @@ async def main() -> int:
         res = await db.execute(select(Submission).where(Submission.id == uuid.UUID(sid)))
         sub = res.scalar_one()
         iocs = (await db.execute(select(IOC).where(IOC.submission_id == sub.id))).scalars().all()
-        taints = (await db.execute(
-            select(TaintFlow).where(TaintFlow.submission_id == sub.id))).scalars().all()
+        taints = (
+            (await db.execute(select(TaintFlow).where(TaintFlow.submission_id == sub.id)))
+            .scalars()
+            .all()
+        )
         meta = sub.metadata_json or {}
         cortex = meta.get("cortex_result", {})
         risk = cortex.get("risk", {})
@@ -165,8 +181,10 @@ async def main() -> int:
     print(f"  components        : {risk.get('components')}")
     for note in risk.get("notes", []):
         print(f"  note             : {note}")
-    print(f"family_attribution : {intel.get('family_attribution')!r} "
-          f"(confidence {intel.get('family_confidence')})")
+    print(
+        f"family_attribution : {intel.get('family_attribution')!r} "
+        f"(confidence {intel.get('family_confidence')})"
+    )
     print(f"attck_techniques   : {cortex.get('attck_techniques')}")
     print(f"IOC rows (DB)      : {len(iocs)}")
     for i in iocs[:20]:

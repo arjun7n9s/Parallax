@@ -19,7 +19,6 @@ from parallax.sandbox.pool import (
     EmulatorPool,
 )
 
-
 # ---------------------------------------------------------------------------
 # Fixtures
 # ---------------------------------------------------------------------------
@@ -70,9 +69,7 @@ async def test_release_returns_device_to_pool():
 @pytest.mark.asyncio
 async def test_release_unknown_device_is_harmless():
     pool = _pool(1)
-    unknown = EmulatorDevice(
-        container_name="ghost", adb_serial="localhost:9999"
-    )
+    unknown = EmulatorDevice(container_name="ghost", adb_serial="localhost:9999")
     await pool.release(unknown)  # should not raise
 
 
@@ -309,7 +306,5 @@ async def test_concurrent_acquires_are_exclusive():
 
 
 def test_device_id_property():
-    dev = EmulatorDevice(
-        container_name="test", adb_serial="localhost:5555"
-    )
+    dev = EmulatorDevice(container_name="test", adb_serial="localhost:5555")
     assert dev.device_id == "localhost:5555"

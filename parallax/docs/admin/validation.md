@@ -89,4 +89,8 @@ Run the phase preflight helper to summarize external blockers without downloadin
 python scripts/phase_preflight.py --root . --min-benign 20
 ```
 
+On Windows, the dynamic-analysis check actively verifies Docker Desktop WSL2 KVM by running
+`modprobe kvm && modprobe kvm_intel && ls -la /dev/kvm` inside the `docker-desktop` distro.
+The check only passes when `/dev/kvm` reports the expected KVM major/minor device.
+
 Use `--json` for automation, or `--strict` to exit nonzero when any check is blocked.

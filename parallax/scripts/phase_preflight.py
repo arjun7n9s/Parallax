@@ -13,6 +13,7 @@ import json
 import os
 import platform
 import shutil
+import subprocess
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
@@ -84,13 +85,48 @@ def benign_corpus_check(path: Path, *, min_benign: int) -> Check:
 
 
 def kvm_check() -> Check:
-    if platform.system().lower() != "linux":
+    system = platform.system().lower()
+    if system == "windows":
+        return docker_desktop_kvm_check()
+    if system != "linux":
         return _blocked(
             "dynamic:kvm", f"KVM requires Linux host; current OS is {platform.system()}"
         )
     if Path("/dev/kvm").exists():
         return _ok("dynamic:kvm", "/dev/kvm is present")
     return _blocked("dynamic:kvm", "/dev/kvm is missing")
+
+
+def docker_desktop_kvm_check() -> Check:
+    wsl = shutil.which("wsl") or shutil.which("wsl.exe")
+    command = (
+        'wsl -d docker-desktop -- sh -c "modprobe kvm && modprobe kvm_intel && ls -la /dev/kvm"'
+    )
+    if not wsl:
+        return _blocked("dynamic:kvm", "wsl.exe not found; cannot verify Docker Desktop KVM")
+    try:
+        result = subprocess.run(
+            [
+                wsl,
+                "-d",
+                "docker-desktop",
+                "--",
+                "sh",
+                "-c",
+                "modprobe kvm && modprobe kvm_intel && ls -la /dev/kvm",
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return _blocked("dynamic:kvm", f"{command} failed: {exc}")
+    output = " ".join(part.strip() for part in (result.stdout, result.stderr) if part.strip())
+    if result.returncode == 0 and "10," in output and "232" in output:
+        return _ok("dynamic:kvm", f"Docker Desktop /dev/kvm verified: {output}")
+    detail = output or f"exit code {result.returncode}"
+    return _blocked("dynamic:kvm", f"{command} did not verify /dev/kvm: {detail}")
 
 
 def sample_check(path: Path) -> Check:

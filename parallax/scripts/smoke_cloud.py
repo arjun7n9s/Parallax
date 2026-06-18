@@ -61,9 +61,7 @@ async def check_gateway() -> bool:
                 )
                 passed = bool(out.strip())
             else:
-                out_json = await llm.complete_json(
-                    role, 'Reply with exactly {"status": "ok"}.'
-                )
+                out_json = await llm.complete_json(role, 'Reply with exactly {"status": "ok"}.')
                 passed = out_json.get("status") == "ok"
         except Exception as exc:  # noqa: BLE001 — report any failure mode
             print(f"  FAIL {label}: via {provider}: {type(exc).__name__}: {exc}")
