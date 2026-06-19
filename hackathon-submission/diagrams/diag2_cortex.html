@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>PARALLAX — Cortex Multi-Agent DAG</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'JetBrains Mono', monospace; background: #020617; min-height: 100vh; padding: 2rem; color: white; }
+  .container { max-width: 1200px; margin: 0 auto; }
+  .header { margin-bottom: 1.5rem; }
+  .header-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+  .pulse-dot { width: 12px; height: 12px; background: #fbbf24; border-radius: 50%; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+  h1 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.025em; }
+  .subtitle { color: #94a3b8; font-size: 0.875rem; margin-left: 1.75rem; }
+  .diagram-container { background: rgba(15, 23, 42, 0.5); border-radius: 1rem; border: 1px solid #1e293b; padding: 1.5rem; }
+  svg { width: 100%; display: block; }
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1.5rem; }
+  .card { background: rgba(15, 23, 42, 0.5); border-radius: 0.75rem; border: 1px solid #1e293b; padding: 1rem; }
+  .card-header { display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; }
+  .card-dot { width: 8px; height: 8px; border-radius: 50%; }
+  .card h3 { font-size: 0.8rem; font-weight: 600; }
+  .card li { color: #94a3b8; font-size: 0.7rem; margin-bottom: 0.25rem; list-style: none; }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="header-row">
+      <div class="pulse-dot"></div>
+      <h1>PARALLAX — Cortex Multi-Agent DAG</h1>
+    </div>
+    <p class="subtitle">Seven specialized agents, one evidence contract</p>
+  </div>
+  <div class="diagram-container">
+    <svg viewBox="0 0 1180 720" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.5"/>
+        </pattern>
+        <marker id="arr-gray" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#64748b"/>
+        </marker>
+        <marker id="arr-amber" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#fbbf24"/>
+        </marker>
+        <marker id="arr-violet" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+          <polygon points="0 0, 10 3.5, 0 7" fill="#a78bfa"/>
+        </marker>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#grid)"/>
+
+      <!-- =================== ARROWS FIRST =================== -->
+      <!-- Inputs → middle-left agents -->
+      <line x1="170" y1="100" x2="265" y2="100" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr-gray)"/>
+      <line x1="170" y1="240" x2="265" y2="220" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr-gray)"/>
+      <line x1="170" y1="380" x2="265" y2="220" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr-gray)"/>
+      <line x1="170" y1="380" x2="265" y2="380" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr-gray)"/>
+      <line x1="170" y1="500" x2="265" y2="380" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr-gray)"/>
+      <text x="218" y="92" fill="#94a3b8" font-size="8">code</text>
+      <text x="218" y="232" fill="#94a3b8" font-size="8">hooks</text>
+      <text x="218" y="372" fill="#94a3b8" font-size="8">flows</text>
+      <text x="218" y="392" fill="#94a3b8" font-size="8">shots</text>
+
+      <!-- Middle-left agents → Intel Correlator -->
+      <line x1="430" y1="100" x2="500" y2="170" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr-gray)"/>
+      <line x1="430" y1="220" x2="500" y2="200" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr-gray)"/>
+
+      <!-- Middle-left agents → Debate -->
+      <line x1="430" y1="220" x2="500" y2="380" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr-gray)"/>
+      <line x1="430" y1="380" x2="500" y2="400" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr-gray)"/>
+      <line x1="430" y1="100" x2="500" y2="400" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr-gray)"/>
+
+      <!-- TAIG → Intel Correlator (dashed, query) -->
+      <path d="M 580 580 Q 580 540 580 270" fill="none" stroke="#a78bfa" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#arr-violet)"/>
+      <text x="585" y="540" fill="#a78bfa" font-size="9">RAG query</text>
+
+      <!-- Intel Correlator + Debate → Risk Scorer -->
+      <line x1="660" y1="200" x2="730" y2="240" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr-gray)"/>
+      <line x1="660" y1="400" x2="730" y2="260" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr-gray)"/>
+
+      <!-- All agents → Synthesis -->
+      <line x1="430" y1="100" x2="730" y2="430" stroke="#64748b" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#arr-gray)"/>
+      <line x1="430" y1="220" x2="730" y2="450" stroke="#64748b" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#arr-gray)"/>
+      <line x1="430" y1="380" x2="730" y2="470" stroke="#64748b" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#arr-gray)"/>
+      <line x1="660" y1="200" x2="730" y2="480" stroke="#64748b" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#arr-gray)"/>
+      <line x1="660" y1="400" x2="730" y2="500" stroke="#64748b" stroke-width="1.2" stroke-dasharray="3,3" marker-end="url(#arr-gray)"/>
+      <line x1="830" y1="260" x2="830" y2="420" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr-gray)"/>
+
+      <!-- Synthesis → CortexResult -->
+      <line x1="900" y1="450" x2="990" y2="280" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr-gray)"/>
+
+      <!-- =================== COMPONENTS =================== -->
+
+      <!-- Inputs column -->
+      <rect x="60" y="78" width="110" height="44" rx="6" fill="#0f172a"/>
+      <rect x="60" y="78" width="110" height="44" rx="6" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+      <text x="115" y="98" fill="white" font-size="10" font-weight="600" text-anchor="middle">Decompiled Code</text>
+      <text x="115" y="113" fill="#94a3b8" font-size="8" text-anchor="middle">from jadx</text>
+
+      <rect x="60" y="218" width="110" height="44" rx="6" fill="#0f172a"/>
+      <rect x="60" y="218" width="110" height="44" rx="6" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+      <text x="115" y="238" fill="white" font-size="10" font-weight="600" text-anchor="middle">Runtime Hooks</text>
+      <text x="115" y="253" fill="#94a3b8" font-size="8" text-anchor="middle">from Frida</text>
+
+      <rect x="60" y="358" width="110" height="44" rx="6" fill="#0f172a"/>
+      <rect x="60" y="358" width="110" height="44" rx="6" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+      <text x="115" y="378" fill="white" font-size="10" font-weight="600" text-anchor="middle">Network Flows</text>
+      <text x="115" y="393" fill="#94a3b8" font-size="8" text-anchor="middle">from mitmproxy</text>
+
+      <rect x="60" y="478" width="110" height="44" rx="6" fill="#0f172a"/>
+      <rect x="60" y="478" width="110" height="44" rx="6" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+      <text x="115" y="498" fill="white" font-size="10" font-weight="600" text-anchor="middle">Screenshots</text>
+      <text x="115" y="513" fill="#94a3b8" font-size="8" text-anchor="middle">from DroidBot</text>
+
+      <!-- Code Interpreter (AI/amber) -->
+      <rect x="265" y="55" width="165" height="115" rx="6" fill="#0f172a"/>
+      <rect x="265" y="55" width="165" height="115" rx="6" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+      <text x="347" y="78" fill="white" font-size="12" font-weight="600" text-anchor="middle">Code Interpreter</text>
+      <text x="347" y="98" fill="#94a3b8" font-size="9" text-anchor="middle">intent classification</text>
+      <text x="347" y="112" fill="#94a3b8" font-size="9" text-anchor="middle">obfuscated logic reading</text>
+      <text x="347" y="126" fill="#94a3b8" font-size="9" text-anchor="middle">class role mapping</text>
+      <rect x="275" y="145" width="145" height="14" rx="3" fill="rgba(251,191,36,0.25)" stroke="#fbbf24" stroke-width="0.7"/>
+      <text x="347" y="155" fill="#fbbf24" font-size="9" text-anchor="middle" font-weight="600">Claude Sonnet 4.6</text>
+
+      <!-- Behavior Analyst (backend) -->
+      <rect x="265" y="180" width="165" height="105" rx="6" fill="#0f172a"/>
+      <rect x="265" y="180" width="165" height="105" rx="6" fill="rgba(6,78,59,0.4)" stroke="#34d399" stroke-width="1.5"/>
+      <text x="347" y="202" fill="white" font-size="12" font-weight="600" text-anchor="middle">Behavior Analyst</text>
+      <text x="347" y="222" fill="#94a3b8" font-size="9" text-anchor="middle">kill-chain narrative</text>
+      <text x="347" y="236" fill="#94a3b8" font-size="9" text-anchor="middle">IOC extraction</text>
+      <text x="347" y="250" fill="#94a3b8" font-size="9" text-anchor="middle">abuse pattern match</text>
+      <rect x="275" y="265" width="145" height="14" rx="3" fill="rgba(100,116,139,0.25)" stroke="#94a3b8" stroke-width="0.7"/>
+      <text x="347" y="275" fill="#cbd5e1" font-size="9" text-anchor="middle" font-weight="600">GPT-4o-mini</text>
+
+      <!-- Visual Intel (frontend/cyan) -->
+      <rect x="265" y="340" width="165" height="105" rx="6" fill="#0f172a"/>
+      <rect x="265" y="340" width="165" height="105" rx="6" fill="rgba(8,51,68,0.4)" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="347" y="362" fill="white" font-size="12" font-weight="600" text-anchor="middle">Visual Intel</text>
+      <text x="347" y="382" fill="#94a3b8" font-size="9" text-anchor="middle">overlay attack detect</text>
+      <text x="347" y="396" fill="#94a3b8" font-size="9" text-anchor="middle">brand impersonation</text>
+      <text x="347" y="410" fill="#94a3b8" font-size="9" text-anchor="middle">UI phishing signal</text>
+      <rect x="275" y="425" width="145" height="14" rx="3" fill="rgba(34,211,238,0.25)" stroke="#22d3ee" stroke-width="0.7"/>
+      <text x="347" y="435" fill="#22d3ee" font-size="9" text-anchor="middle" font-weight="600">Gemini 2.5 Flash</text>
+
+      <!-- Intel Correlator (AI/amber) -->
+      <rect x="500" y="160" width="160" height="105" rx="6" fill="#0f172a"/>
+      <rect x="500" y="160" width="160" height="105" rx="6" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+      <text x="580" y="182" fill="white" font-size="12" font-weight="600" text-anchor="middle">Intel Correlator</text>
+      <text x="580" y="202" fill="#94a3b8" font-size="9" text-anchor="middle">ATT&CK technique map</text>
+      <text x="580" y="216" fill="#94a3b8" font-size="9" text-anchor="middle">family attribution</text>
+      <text x="580" y="230" fill="#94a3b8" font-size="9" text-anchor="middle">TAIG RAG query</text>
+      <rect x="510" y="245" width="140" height="14" rx="3" fill="rgba(100,116,139,0.25)" stroke="#94a3b8" stroke-width="0.7"/>
+      <text x="580" y="255" fill="#cbd5e1" font-size="9" text-anchor="middle" font-weight="600">GPT-4o-mini + RAG</text>
+
+      <!-- Debate (security/rose) -->
+      <rect x="500" y="370" width="160" height="95" rx="6" fill="#0f172a"/>
+      <rect x="500" y="370" width="160" height="95" rx="6" fill="rgba(136,19,55,0.4)" stroke="#fb7185" stroke-width="1.5"/>
+      <text x="580" y="392" fill="white" font-size="12" font-weight="600" text-anchor="middle">Debate</text>
+      <text x="580" y="412" fill="#94a3b8" font-size="9" text-anchor="middle">static vs dynamic check</text>
+      <text x="580" y="426" fill="#94a3b8" font-size="9" text-anchor="middle">contradiction arbitration</text>
+      <rect x="510" y="442" width="140" height="14" rx="3" fill="rgba(100,116,139,0.25)" stroke="#94a3b8" stroke-width="0.7"/>
+      <text x="580" y="452" fill="#cbd5e1" font-size="9" text-anchor="middle" font-weight="600">GPT-4o-mini</text>
+
+      <!-- Risk Scorer (external/gray) -->
+      <rect x="730" y="195" width="170" height="115" rx="6" fill="#0f172a"/>
+      <rect x="730" y="195" width="170" height="115" rx="6" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.8" stroke-dasharray="4,2"/>
+      <text x="815" y="217" fill="white" font-size="12" font-weight="600" text-anchor="middle">Risk Scorer</text>
+      <text x="815" y="237" fill="#94a3b8" font-size="9" text-anchor="middle">weighted evidence sum</text>
+      <text x="815" y="251" fill="#94a3b8" font-size="9" text-anchor="middle">deterministic — no LLM</text>
+      <text x="815" y="265" fill="#94a3b8" font-size="9" text-anchor="middle">family floor check</text>
+      <rect x="740" y="282" width="150" height="18" rx="3" fill="rgba(251,191,36,0.25)" stroke="#fbbf24" stroke-width="0.7"/>
+      <text x="815" y="295" fill="#fbbf24" font-size="10" text-anchor="middle" font-weight="700">score: 0.0 → 100.0</text>
+
+      <!-- Synthesis (AI/amber) -->
+      <rect x="730" y="410" width="170" height="115" rx="6" fill="#0f172a"/>
+      <rect x="730" y="410" width="170" height="115" rx="6" fill="rgba(120,53,15,0.3)" stroke="#fbbf24" stroke-width="1.5"/>
+      <text x="815" y="432" fill="white" font-size="12" font-weight="600" text-anchor="middle">Synthesis</text>
+      <text x="815" y="452" fill="#94a3b8" font-size="9" text-anchor="middle">evidence narrative</text>
+      <text x="815" y="466" fill="#94a3b8" font-size="9" text-anchor="middle">PDF report generation</text>
+      <text x="815" y="480" fill="#94a3b8" font-size="9" text-anchor="middle">STIX 2.1 export</text>
+      <rect x="740" y="498" width="150" height="18" rx="3" fill="rgba(251,191,36,0.25)" stroke="#fbbf24" stroke-width="0.7"/>
+      <text x="815" y="511" fill="#fbbf24" font-size="10" text-anchor="middle" font-weight="700">Claude Sonnet 4.6</text>
+
+      <!-- CortexResult (external) -->
+      <rect x="990" y="240" width="170" height="120" rx="6" fill="#0f172a"/>
+      <rect x="990" y="240" width="170" height="120" rx="6" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.8"/>
+      <text x="1075" y="262" fill="white" font-size="12" font-weight="600" text-anchor="middle">CortexResult</text>
+      <line x1="1000" y1="275" x2="1150" y2="275" stroke="#475569" stroke-width="0.5"/>
+      <text x="1000" y="293" fill="#94a3b8" font-size="9">• verdict (CLEAN/SUS/MAL)</text>
+      <text x="1000" y="307" fill="#94a3b8" font-size="9">• risk score 0-100</text>
+      <text x="1000" y="321" fill="#94a3b8" font-size="9">• ATT&CK technique list</text>
+      <text x="1000" y="335" fill="#94a3b8" font-size="9">• family attribution</text>
+      <text x="1000" y="349" fill="#94a3b8" font-size="9">• evidence chain links</text>
+
+      <!-- TAIG box at bottom -->
+      <rect x="500" y="565" width="160" height="60" rx="8" fill="#0f172a"/>
+      <rect x="500" y="565" width="160" height="60" rx="8" fill="rgba(76,29,149,0.3)" stroke="#a78bfa" stroke-width="1.2" stroke-dasharray="4,3"/>
+      <text x="580" y="585" fill="white" font-size="11" font-weight="600" text-anchor="middle">TAIG</text>
+      <text x="580" y="600" fill="#94a3b8" font-size="8" text-anchor="middle">Neo4j + Qdrant</text>
+      <text x="580" y="613" fill="#a78bfa" font-size="8" text-anchor="middle">prior samples · RAG</text>
+
+      <!-- =================== LEGEND =================== -->
+      <rect x="60" y="660" width="1060" height="50" rx="6" fill="rgba(15,23,42,0.5)" stroke="#1e293b" stroke-width="0.8"/>
+      <text x="80" y="678" fill="white" font-size="10" font-weight="600">Cost per APK  ≈  $0.16   ·   Code Interpreter + Synthesis account for ~90%   ·   other agents are sub-cent</text>
+      <text x="80" y="697" fill="#94a3b8" font-size="9">Solid arrows = evidence flow · dashed arrows = aggregation to synthesis · violet dashed = RAG query to TAIG</text>
+    </svg>
+  </div>
+</div>
+</body>
+</html>

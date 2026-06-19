@@ -1,0 +1,5 @@
+VesperGrid: multimodal industrial-safety AI on AMD MI300X (Vision & Multimodal AI Hackathon). Fuses drone/CCTV, sensor telemetry, and voice into source-linked risk maps. Stack: Qwen2.5-VL via vLLM, ChromaDB RAG, IsolationForest, FastAPI+SSE, React/TS, Gazebo. Surfaces contradictions in an "Uncertainty Ledger."
+
+Tendril: GTM intelligence platform that scans public web for buying signals, persists account memory in Cognee, and generates human-approved outreach with source-linked claims. Stack: FastAPI, Next.js, aimlapi.com, Speechmatics.
+
+Constella: offline Android Braille-to-speech app in Kotlin. CameraX + on-device TFLite/OpenCV recognizes dot patterns; Jetpack Compose UI. Fully offline for visually impaired learners and caregivers with limited connectivity.

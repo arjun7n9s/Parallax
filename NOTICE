@@ -1,0 +1,26 @@
+PARALLAX
+Copyright 2026 Kunapareddy Tejesh
+
+This product includes software developed by:
+- Kunapareddy Tejesh <arjun7n9s@gmail.com>
+
+Third-party components:
+
+- React (MIT) — Facebook, Inc. and contributors
+- FastAPI (MIT) — Sebastián Ramírez
+- Pydantic (MIT) — Samuel Colvin and contributors
+- Celery (BSD-3-Clause) — Ask Solem and contributors
+- androguard (GPL-3.0) — Anthony Desnos et al.
+- Frida (wxWindows Library License, Version 3.1) — Frida Project contributors
+- mitmproxy (MIT) — Maximilian Hils and contributors
+- alembic (MIT) — Michael Bayer
+- psycopg (LGPL-3.0) — Federico Di Gregorio et al.
+- redis-py (MIT) — Redis Inc.
+- fpdf2 (LGPL-3.0) — Olivier PLATHEY
+- and many others — see pyproject.toml and frontend/package.json for full lists
+
+Band.ai integration uses the band-sdk (MIT) — https://docs.band.ai/
+
+For the full list of dependencies and their licenses, see:
+- parallax/pyproject.toml (Python)
+- parallax/frontend/package.json (JavaScript)

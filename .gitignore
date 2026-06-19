@@ -30,3 +30,14 @@ __pycache__/
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
+
+# Local runtime and tunnel logs (cloudflared, fastapi, worker, etc.)
+*.err.log
+*.out.log
+
+# Local scratch / work directories
+tmp-live/
+parallax/tmp-live/
+
+# Generated build outputs (rendered diagrams, puppeteer, etc.)
+node_modules/
