@@ -77,6 +77,13 @@ dev = [
     "mypy>=1.11.2",
     "ruff>=0.6.4",
 ]
+band = [
+    # Keep optional: band-sdk[langgraph] currently upgrades websockets and
+    # cryptography beyond frida-tools/mitmproxy constraints used by dynamic
+    # analysis. Install in a separate demo venv when running live Band agents.
+    "band-sdk[langgraph]>=1.0.0",
+    "langchain-openai>=1.3.2",
+]
 
 [build-system]
 requires = ["hatchling"]

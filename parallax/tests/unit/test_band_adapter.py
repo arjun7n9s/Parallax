@@ -27,5 +27,12 @@ def test_mock_adapter_creates_room_and_records_messages():
 def test_live_adapter_requires_rest_key():
     adapter = BandAdapter(BandConfig(mode="live", rest_api_key=""))
 
-    with pytest.raises(BandAdapterError):
+    with pytest.raises(BandAdapterError, match="SDK-connected remote agents"):
         adapter.create_chatroom("PARALLAX CASE", ["agent-a"])
+
+
+def test_live_adapter_does_not_fake_message_transport():
+    adapter = BandAdapter(BandConfig(mode="live", rest_api_key="test-key"))
+
+    with pytest.raises(BandAdapterError, match="SDK-connected remote agents"):
+        adapter.post_message("room-1", sender_id="agent-a", body="hello")

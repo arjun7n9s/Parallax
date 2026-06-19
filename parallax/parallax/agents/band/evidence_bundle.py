@@ -58,10 +58,10 @@ async def collect_submission_evidence(submission_id: str | UUID) -> dict[str, An
         )
     return build_evidence_bundle(
         submission=submission,
-        hypotheses=hypotheses,
-        observations=observations,
-        iocs=iocs,
-        taint_flows=taint_flows,
+        hypotheses=list(hypotheses),
+        observations=list(observations),
+        iocs=list(iocs),
+        taint_flows=list(taint_flows),
         snapshot_at=_utc_now(),
     )
 

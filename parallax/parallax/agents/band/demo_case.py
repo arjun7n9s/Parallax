@@ -11,6 +11,7 @@ from pathlib import Path
 
 from parallax.agents.band.agents import (
     add_challenge,
+    agent_by_role,
     build_action_packet,
     resolve_challenge,
     run_room_round,
@@ -97,10 +98,11 @@ async def run_demo(
         round_one = await run_room_round_live(room, adapter=adapter)
     else:
         round_one = run_room_round(room, adapter=adapter)
+    device_agent = agent_by_role("device_compromise").participant_ref
     device_claim = next(
         claim
         for message in round_one
-        if "device-compromi" in message.sender_id
+        if message.sender_id == device_agent
         for claim in message.attached_claims
     )
     challenge_message = add_challenge(

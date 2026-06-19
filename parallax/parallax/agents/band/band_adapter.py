@@ -1,21 +1,22 @@
-"""Band SDK and API adapter. Part of PARALLAX x Band integration. See Claude/band_plan.md."""
+"""Offline Band adapter for PARALLAX demos. Part of PARALLAX x Band integration. See Claude/band_plan.md.
+
+Live Band agents are not driven through PARALLAX REST pushes. They run as
+remote-agent processes over the Band SDK/WebSocket runtime; see
+``band_orchestrator.py``. This adapter intentionally stays mock-only so local
+tests and transcript generation keep working without implying the wrong API.
+"""
 
 from __future__ import annotations
 
 import hashlib
-import logging
 from dataclasses import dataclass
 from typing import Any
 
-import httpx
-
 from parallax.core.config import settings
-
-logger = logging.getLogger(__name__)
 
 
 class BandAdapterError(RuntimeError):
-    """Raised when a live Band API call cannot be completed."""
+    """Raised when a caller tries to use mock-only helpers as live transport."""
 
 
 @dataclass(frozen=True)
@@ -31,25 +32,24 @@ class BandConfig:
 
 
 class BandAdapter:
-    """Thin REST wrapper with deterministic mock mode for tests and demos."""
+    """Deterministic in-memory Band room for offline demos and tests."""
 
     def __init__(self, config: BandConfig | None = None):
         self.config = config or BandConfig()
         self._mock_messages: dict[str, list[dict[str, Any]]] = {}
 
     def create_chatroom(self, name: str, participants: list[str]) -> dict[str, Any]:
-        if not self.config.live:
-            room_id = (
-                "mock-room-"
-                + hashlib.sha256(f"{name}|{','.join(participants)}".encode("utf-8")).hexdigest()[
-                    :12
-                ]
+        if self.config.live:
+            raise BandAdapterError(
+                "Live Band rooms are created by SDK-connected remote agents, "
+                "not the offline BandAdapter. Use band_orchestrator.py."
             )
-            self._mock_messages.setdefault(room_id, [])
-            return {"id": room_id, "name": name, "participants": participants, "mock": True}
-
-        payload = {"name": name, "participants": participants}
-        return self._request("POST", self.config.chatrooms_path, json=payload)
+        room_id = (
+            "mock-room-"
+            + hashlib.sha256(f"{name}|{','.join(participants)}".encode("utf-8")).hexdigest()[:12]
+        )
+        self._mock_messages.setdefault(room_id, [])
+        return {"id": room_id, "name": name, "participants": participants, "mock": True}
 
     def post_message(
         self,
@@ -60,59 +60,34 @@ class BandAdapter:
         mentions: list[str] | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
+        if self.config.live:
+            raise BandAdapterError(
+                "Live Band messages are sent by SDK-connected remote agents, "
+                "not the offline BandAdapter. Use band_orchestrator.py."
+            )
         payload = {
             "sender_id": sender_id,
             "body": body,
             "mentions": mentions or [],
             "metadata": metadata or {},
         }
-        if not self.config.live:
-            message = {
-                "id": "mock-msg-"
-                + hashlib.sha256(
-                    f"{room_id}|{sender_id}|{body}|{len(self._mock_messages.get(room_id, []))}".encode(
-                        "utf-8"
-                    )
-                ).hexdigest()[:12],
-                "room_id": room_id,
-                **payload,
-                "mock": True,
-            }
-            self._mock_messages.setdefault(room_id, []).append(message)
-            return message
-
-        return self._request(
-            "POST",
-            f"{self.config.chatrooms_path}/{room_id}/messages",
-            json=payload,
-        )
+        message = {
+            "id": "mock-msg-"
+            + hashlib.sha256(
+                f"{room_id}|{sender_id}|{body}|{len(self._mock_messages.get(room_id, []))}".encode(
+                    "utf-8"
+                )
+            ).hexdigest()[:12],
+            "room_id": room_id,
+            **payload,
+            "mock": True,
+        }
+        self._mock_messages.setdefault(room_id, []).append(message)
+        return message
 
     def get_messages(self, room_id: str, since: str | None = None) -> list[dict[str, Any]]:
-        if not self.config.live:
-            return list(self._mock_messages.get(room_id, []))
-        params = {"since": since} if since else None
-        response = self._request(
-            "GET",
-            f"{self.config.chatrooms_path}/{room_id}/messages",
-            params=params,
-        )
-        if isinstance(response, list):
-            return response
-        return list(response.get("messages", []))
-
-    def _request(self, method: str, path: str, **kwargs) -> dict[str, Any] | list[dict[str, Any]]:
-        if not self.config.rest_api_key:
-            raise BandAdapterError("BAND_REST_API_KEY is required when BAND_MODE=live")
-        headers = {"Authorization": f"Bearer {self.config.rest_api_key}"}
-        try:
-            with httpx.Client(
-                base_url=self.config.rest_url,
-                headers=headers,
-                timeout=30.0,
-            ) as client:
-                response = client.request(method, path, **kwargs)
-                response.raise_for_status()
-                return response.json()
-        except httpx.HTTPError as exc:
-            logger.warning("Band API request failed: %s %s: %s", method, path, exc)
-            raise BandAdapterError(str(exc)) from exc
+        if self.config.live:
+            raise BandAdapterError(
+                "Live Band transcript reads should use the Band Agent API/context endpoint."
+            )
+        return list(self._mock_messages.get(room_id, []))

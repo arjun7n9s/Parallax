@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import Literal, Protocol
+from typing import Literal, Protocol, cast
 
 from parallax.agents.band.band_adapter import BandAdapter
 from parallax.agents.band.room_protocol import (
@@ -179,8 +179,15 @@ class BaseStubAgent:
         )
 
     async def respond_live(self, room: CaseRoom) -> list[EvidenceClaim]:
-        """Return LLM-backed claims when a subclass supports live reasoning."""
-        return self.respond(room)
+        """Return LLM-backed claims when a subclass supports live reasoning.
+
+        Subclasses MUST override `respond_live`; this default falls back to the
+        deterministic stub. Mypy can't see subclass methods without an explicit
+        Protocol, so we cast.
+        """
+        from typing import cast
+
+        return cast(list[EvidenceClaim], self.respond(room))
 
 
 class IntakeAgent(BaseStubAgent):
@@ -469,15 +476,18 @@ class DecisionConvenorAgent(BaseStubAgent):
         ]
 
 
-AGENTS: tuple[CaseAgent, ...] = (
-    IntakeAgent(),
-    DeviceCompromiseAgent(),
-    TransactionTraceAgent(),
-    MuleGraphAgent(),
-    EvidenceValidatorAgent(),
-    LiabilityAgent(),
-    LegalEvidenceAgent(),
-    DecisionConvenorAgent(),
+AGENTS: tuple[CaseAgent, ...] = cast(
+    tuple[CaseAgent, ...],
+    (
+        IntakeAgent(),
+        DeviceCompromiseAgent(),
+        TransactionTraceAgent(),
+        MuleGraphAgent(),
+        EvidenceValidatorAgent(),
+        LiabilityAgent(),
+        LegalEvidenceAgent(),
+        DecisionConvenorAgent(),
+    ),
 )
 
 
@@ -735,7 +745,9 @@ def resolve_challenge(
 def build_action_packet(room: CaseRoom) -> ActionPacket:
     """Create a deterministic human-officer action packet from room state."""
     unresolved = [challenge.challenge_id for challenge in room.open_challenges]
-    status = "provisional" if unresolved else "final"
+    status = cast(
+        Literal["provisional", "final", "escalated"], "provisional" if unresolved else "final"
+    )
     packet = ActionPacket(
         status=status,
         summary=(
