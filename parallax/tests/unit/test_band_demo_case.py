@@ -21,4 +21,5 @@ async def test_run_demo_exports_transcript_artifacts(tmp_path):
     assert transcript["status"] == "converged"
     assert action_packet["status"] == "final"
     assert action_packet["unresolved_challenge_ids"] == []
-    assert "Band Transcript" in markdown
+    assert "PARALLAX x Band Case Transcript" in markdown
+    assert (out / "transcript.pdf").exists()

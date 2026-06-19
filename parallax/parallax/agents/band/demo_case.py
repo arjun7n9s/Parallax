@@ -19,7 +19,11 @@ from parallax.agents.band.agents import (
 from parallax.agents.band.band_adapter import BandAdapter, BandConfig
 from parallax.agents.band.case_room import open_case_room
 from parallax.agents.band.room_protocol import EvidenceBundleRef
-from parallax.agents.band.transcript_export import export_markdown
+from parallax.agents.band.transcript_export import (
+    default_pdf_converter_path,
+    export_markdown,
+    export_pdf,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -73,6 +77,7 @@ async def run_demo(
     case_id: str = "CASE-FR-2026-00421",
     adapter: BandAdapter | None = None,
     use_llm: bool = False,
+    export_pdf_artifact: bool = True,
 ) -> Path:
     """Drive the deterministic eight-agent room loop and export transcript artifacts."""
     out = Path(output_dir)
@@ -131,7 +136,16 @@ async def run_demo(
     build_action_packet(room)
 
     (out / "transcript.json").write_text(room.model_dump_json(indent=2), encoding="utf-8")
-    (out / "transcript.md").write_text(export_markdown(room), encoding="utf-8")
+    markdown_path = out / "transcript.md"
+    markdown_path.write_text(export_markdown(room), encoding="utf-8")
+    converter = default_pdf_converter_path()
+    if export_pdf_artifact and converter.exists():
+        try:
+            export_pdf(markdown_path, out / "transcript.pdf", converter_path=converter)
+        except (ImportError, ModuleNotFoundError) as exc:
+            logger.warning("PDF export dependencies unavailable; wrote markdown only: %s", exc)
+    elif export_pdf_artifact:
+        logger.warning("PDF converter not found at %s; wrote markdown transcript only", converter)
     if room.final_action_packet:
         (out / "action_packet.json").write_text(
             room.final_action_packet.model_dump_json(indent=2),
@@ -151,6 +165,11 @@ def main() -> None:
         action="store_true",
         help="Use PARALLAX LLM gateway for Device, Validator, and Convenor agents.",
     )
+    parser.add_argument(
+        "--no-pdf",
+        action="store_true",
+        help="Skip transcript.pdf generation and export markdown/JSON only.",
+    )
     args = parser.parse_args()
     asyncio.run(
         run_demo(
@@ -158,6 +177,7 @@ def main() -> None:
             output_dir=args.output_dir,
             case_id=args.case_id,
             use_llm=args.live_llm,
+            export_pdf_artifact=not args.no_pdf,
         )
     )
 

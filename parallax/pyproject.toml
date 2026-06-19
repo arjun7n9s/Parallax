@@ -51,6 +51,7 @@ dependencies = [
     "jinja2>=3.1.4",
     "weasyprint>=63.1",
     "reportlab>=4.2.0",
+    "fpdf2>=2.7.9",
     "stix2>=3.0.1",
     # Observability
     "opentelemetry-api>=1.27.0",
