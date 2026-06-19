@@ -178,6 +178,10 @@ class BaseStubAgent:
             supports_or_contradicts=supports_or_contradicts or [],
         )
 
+    async def respond_live(self, room: CaseRoom) -> list[EvidenceClaim]:
+        """Return LLM-backed claims when a subclass supports live reasoning."""
+        return self.respond(room)
+
 
 class IntakeAgent(BaseStubAgent):
     role: AgentRole = "intake"
@@ -225,6 +229,35 @@ class DeviceCompromiseAgent(BaseStubAgent):
                 0.87,
                 summary="SMS and notification collection.",
             ),
+        ]
+
+    async def respond_live(self, room: CaseRoom) -> list[EvidenceClaim]:
+        prompt = _room_prompt(
+            room,
+            focus=(
+                "Assess whether the Android device is compromised. Use the evidence bundle "
+                "metadata and prior room claims only; do not invent package names, phone "
+                "numbers, hashes, or URLs not present in context."
+            ),
+        )
+        text = await llm_claim(
+            prompt,
+            system=(
+                "You are PARALLAX Device Compromise Agent. Write one concise, evidence-first "
+                "claim about APK/device compromise. Include uncertainty when evidence is sparse."
+            ),
+            role="behavior_analyst",
+            fallback=self.respond(room)[0].claim_text,
+        )
+        return [
+            self._claim(
+                text,
+                "bundle.device_compromise",
+                "bundle",
+                "$.submission",
+                _confidence_from_text(text, default=0.84),
+                summary="LLM-reviewed device compromise claim.",
+            )
         ]
 
 
@@ -310,6 +343,36 @@ class EvidenceValidatorAgent(BaseStubAgent):
             )
         ]
 
+    async def respond_live(self, room: CaseRoom) -> list[EvidenceClaim]:
+        fallback = self.respond(room)[0].claim_text
+        prompt = _room_prompt(
+            room,
+            focus=(
+                "Challenge overconfident or weakly cited claims. If open challenges exist, "
+                "state whether they still block final convergence. If no challenge is needed, "
+                "say why the evidence is sufficient."
+            ),
+        )
+        text = await llm_claim(
+            prompt,
+            system=(
+                "You are PARALLAX Evidence Validator Agent. Be skeptical, citation-driven, "
+                "and concise. Prefer one actionable validation or challenge claim."
+            ),
+            role="evidence_validator",
+            fallback=fallback,
+        )
+        return [
+            self._claim(
+                text,
+                "room.validation",
+                "protocol",
+                "$.messages",
+                _confidence_from_text(text, default=0.9),
+                summary="LLM validation pass over room claims.",
+            )
+        ]
+
 
 class LiabilityAgent(BaseStubAgent):
     role: AgentRole = "liability"
@@ -376,6 +439,35 @@ class DecisionConvenorAgent(BaseStubAgent):
             )
         ]
 
+    async def respond_live(self, room: CaseRoom) -> list[EvidenceClaim]:
+        fallback = self.respond(room)[0].claim_text
+        prompt = _room_prompt(
+            room,
+            focus=(
+                "Synthesize the room into a final or provisional action recommendation. "
+                "Refuse final convergence if material challenges remain open."
+            ),
+        )
+        text = await llm_claim(
+            prompt,
+            system=(
+                "You are PARALLAX Decision Convenor Agent. Produce one bank-officer-facing "
+                "decision claim grounded in the transcript. Do not overrule open challenges."
+            ),
+            role="synthesis",
+            fallback=fallback,
+        )
+        return [
+            self._claim(
+                text,
+                "room.decision",
+                "decision",
+                "$.messages",
+                _confidence_from_text(text, default=0.86),
+                summary="LLM synthesis of room state.",
+            )
+        ]
+
 
 AGENTS: tuple[CaseAgent, ...] = (
     IntakeAgent(),
@@ -430,6 +522,127 @@ def run_room_round(
         messages.append(message)
         logger.debug("Posted deterministic Band message from %s", descriptor.role)
     return messages
+
+
+async def llm_claim(
+    prompt: str,
+    system: str,
+    *,
+    role: str = "debate",
+    fallback: str,
+    temperature: float = 0.2,
+) -> str:
+    """Call the PARALLAX LLM gateway for one Band claim with deterministic fallback."""
+    try:
+        from parallax.ai.llm import llm
+
+        text = await llm.complete_text(role, prompt, system=system, temperature=temperature)
+    except Exception as exc:  # noqa: BLE001 - demo room must degrade gracefully
+        logger.warning("Band LLM claim failed for role %s; using fallback: %s", role, exc)
+        return fallback
+    text = _clean_llm_text(text)
+    return text or fallback
+
+
+async def run_room_round_live(
+    room: CaseRoom,
+    *,
+    adapter: BandAdapter | None = None,
+    agents: tuple[CaseAgent, ...] = AGENTS,
+) -> list[AgentMessage]:
+    """Post one round, using LLM-backed responses for live-enabled agents."""
+    adapter = adapter or BandAdapter()
+    messages: list[AgentMessage] = []
+    for agent in agents:
+        respond_live = getattr(agent, "respond_live", None)
+        claims = await respond_live(room) if respond_live else agent.respond(room)
+        descriptor = agent.descriptor
+        body = f"**{descriptor.display_name}**\n\n{_format_claims(claims)}"
+        message = AgentMessage(
+            message_type="evidence" if descriptor.role != "decision_convenor" else "decision",
+            sender_id=descriptor.participant_ref,
+            sender_type="agent",
+            body=body,
+            attached_claims=claims,
+            bundle_sha256=room.evidence_bundle.sha256,
+        )
+        posted = adapter.post_message(
+            room.band_room_id,
+            sender_id=descriptor.participant_ref,
+            body=body,
+            mentions=[],
+            metadata=message.model_dump(mode="json"),
+        )
+        message.message_id = str(posted.get("id", message.message_id))
+        room.messages.append(message)
+        messages.append(message)
+    return messages
+
+
+def _clean_llm_text(text: str) -> str:
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.strip("`").strip()
+        if text.lower().startswith(("text", "markdown")):
+            text = text.split("\n", 1)[-1].strip()
+    lines = [line.strip(" -") for line in text.splitlines() if line.strip()]
+    return " ".join(lines)[:900]
+
+
+def _confidence_from_text(text: str, *, default: float) -> float:
+    lowered = text.lower()
+    if any(word in lowered for word in ("provisional", "uncertain", "sparse", "insufficient")):
+        return min(default, 0.74)
+    if any(word in lowered for word in ("confirmed", "strong", "corroborated", "resolved")):
+        return max(default, 0.88)
+    return default
+
+
+def _room_prompt(room: CaseRoom, *, focus: str) -> str:
+    messages = [
+        {
+            "type": message.message_type,
+            "sender": message.sender_id,
+            "body": message.body[:900],
+            "claims": [
+                {
+                    "claim_id": claim.claim_id,
+                    "confidence": claim.confidence,
+                    "text": claim.claim_text,
+                    "evidence_refs": [ref.model_dump(mode="json") for ref in claim.evidence_refs],
+                }
+                for claim in message.attached_claims[:4]
+            ],
+            "challenges": [
+                challenge.model_dump(mode="json") for challenge in message.attached_challenges[:4]
+            ],
+        }
+        for message in room.messages[-12:]
+    ]
+    import json
+
+    return "\n".join(
+        [
+            focus,
+            "",
+            "CASE:",
+            json.dumps(
+                {
+                    "case_id": room.case_id,
+                    "submission_id": room.submission_id,
+                    "band_room_id": room.band_room_id,
+                    "bundle": room.evidence_bundle.model_dump(mode="json"),
+                    "open_challenge_ids": [c.challenge_id for c in room.open_challenges],
+                },
+                indent=2,
+            ),
+            "",
+            "RECENT TRANSCRIPT:",
+            json.dumps(messages, indent=2),
+            "",
+            "Return exactly one short claim sentence. No markdown table.",
+        ]
+    )
 
 
 def add_challenge(

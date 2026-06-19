@@ -14,6 +14,7 @@ from parallax.agents.band.agents import (
     build_action_packet,
     resolve_challenge,
     run_room_round,
+    run_room_round_live,
 )
 from parallax.agents.band.band_adapter import BandAdapter, BandConfig
 from parallax.agents.band.case_room import open_case_room
@@ -71,6 +72,7 @@ async def run_demo(
     output_dir: str = "demo-output",
     case_id: str = "CASE-FR-2026-00421",
     adapter: BandAdapter | None = None,
+    use_llm: bool = False,
 ) -> Path:
     """Drive the deterministic eight-agent room loop and export transcript artifacts."""
     out = Path(output_dir)
@@ -86,7 +88,10 @@ async def run_demo(
     (out / "room.opened.json").write_text(room.model_dump_json(indent=2), encoding="utf-8")
     logger.info("Room opened: %s", room.case_id)
 
-    round_one = run_room_round(room, adapter=adapter)
+    if use_llm:
+        round_one = await run_room_round_live(room, adapter=adapter)
+    else:
+        round_one = run_room_round(room, adapter=adapter)
     device_claim = next(
         claim
         for message in round_one
@@ -104,7 +109,10 @@ async def run_demo(
         adapter=adapter,
     )
 
-    run_room_round(room, adapter=adapter)
+    if use_llm:
+        await run_room_round_live(room, adapter=adapter)
+    else:
+        run_room_round(room, adapter=adapter)
     challenge = challenge_message.attached_challenges[0]
     resolve_challenge(
         room,
@@ -116,7 +124,10 @@ async def run_demo(
         ),
         adapter=adapter,
     )
-    run_room_round(room, adapter=adapter)
+    if use_llm:
+        await run_room_round_live(room, adapter=adapter)
+    else:
+        run_room_round(room, adapter=adapter)
     build_action_packet(room)
 
     (out / "transcript.json").write_text(room.model_dump_json(indent=2), encoding="utf-8")
@@ -135,8 +146,20 @@ def main() -> None:
     parser.add_argument("submission_id", nargs="?", default="demo-submission-001")
     parser.add_argument("--output-dir", default="demo-output")
     parser.add_argument("--case-id", default="CASE-FR-2026-00421")
+    parser.add_argument(
+        "--live-llm",
+        action="store_true",
+        help="Use PARALLAX LLM gateway for Device, Validator, and Convenor agents.",
+    )
     args = parser.parse_args()
-    asyncio.run(run_demo(args.submission_id, output_dir=args.output_dir, case_id=args.case_id))
+    asyncio.run(
+        run_demo(
+            args.submission_id,
+            output_dir=args.output_dir,
+            case_id=args.case_id,
+            use_llm=args.live_llm,
+        )
+    )
 
 
 if __name__ == "__main__":
