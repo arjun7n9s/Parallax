@@ -1,12 +1,22 @@
 # Local virtualenvs
 .venv/
 .venv-fast/
+.venv-band/
 parallax/.venv/
 parallax/.venv-fast/
+parallax/.venv-band/
 
 # Local analysis artifacts - never commit
 samples/
 tools/
+
+# Generated demo / scratch artifacts - never commit
+demo-output/
+demo-output-live/
+parallax/demo-output/
+parallax/demo-output-live/
+parallax/yt_transcript.txt
+yt_transcript.txt
 
 # Private internal build plan - keep out of the public repo until shipped
 Claude/

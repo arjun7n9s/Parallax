@@ -86,6 +86,45 @@ def missing_credentials(specs: Iterable[RemoteAgentSpec]) -> list[str]:
     return [spec.descriptor.role for spec in specs if not spec.ready]
 
 
+# Per-role model routing on the AI/ML API gateway (OpenAI-compatible). Economy
+# models for high-frequency structured roles; a premium model for the reasoning,
+# challenge, synthesis, and narrative roles where output quality is decisive.
+# IDs match PARALLAX's own roster (parallax.ai.llm.ROSTER) for consistency.
+_AIML_ECONOMY = "gpt-4o-mini"
+_AIML_PREMIUM = "anthropic/claude-sonnet-4.6"
+_AGENT_MODELS: dict[str, str] = {
+    "intake": _AIML_ECONOMY,
+    "transaction_trace": _AIML_ECONOMY,
+    "mule_graph": _AIML_ECONOMY,
+    "device_compromise": _AIML_PREMIUM,
+    "evidence_validator": _AIML_PREMIUM,
+    "liability": _AIML_PREMIUM,
+    "legal_evidence": _AIML_PREMIUM,
+    "decision_convenor": _AIML_PREMIUM,
+}
+
+
+def _llm_kwargs(role: str) -> dict[str, Any]:
+    """ChatOpenAI kwargs for a Band agent. Routes through the AI/ML API gateway
+    when ``AIML_API`` is set (the sponsor path PARALLAX already uses), else a
+    direct OpenAI key. Raises a clear error if neither is configured rather than
+    letting agents connect to Band and then 401 on their first message."""
+    model = _AGENT_MODELS.get(role, _AIML_ECONOMY)
+    if settings.AIML_API:
+        return {
+            "model": model,
+            "base_url": settings.AIML_BASE_URL,
+            "api_key": settings.AIML_API,
+            "temperature": 0.2,
+        }
+    if settings.OPENAI_API_KEY:
+        return {"model": model, "api_key": settings.OPENAI_API_KEY, "temperature": 0.2}
+    raise ValueError(
+        "No LLM provider configured for Band agents: set AIML_API (AI/ML API gateway) "
+        "or OPENAI_API_KEY before connecting remote agents."
+    )
+
+
 def create_band_agent(spec: RemoteAgentSpec) -> Any:
     """Create one Band remote agent with the official SDK adapter path."""
     if not spec.ready:
@@ -102,7 +141,7 @@ def create_band_agent(spec: RemoteAgentSpec) -> Any:
         ) from exc
 
     adapter = LangGraphAdapter(
-        llm=ChatOpenAI(model="gpt-4o-mini", temperature=0.2),
+        llm=ChatOpenAI(**_llm_kwargs(spec.descriptor.role)),
         checkpointer=InMemorySaver(),
         custom_section=spec.system_prompt,
         inject_system_prompt=True,
