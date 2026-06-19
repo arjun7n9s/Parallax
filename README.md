@@ -144,13 +144,13 @@ This is the stage with the story.
 <p align="center">
   <a href="docs/assets/agents_debate.mp4"><img src="docs/assets/agents_debate.gif" alt="Eight PARALLAX agents debating a fraud case in a Band chat room" width="720"/></a>
   <br/>
-  <sub>3 MB GIF · <a href="docs/assets/agents_debate.mp4">190 KB MP4 version</a> · 18 s loop, real Band room</sub>
+  <sub>9 MB GIF · <a href="docs/assets/agents_debate.mp4">300 KB MP4 version</a> · 15 s loop, real Band room</sub>
 </p>
 
 *Above: a real Band room running eight PARALLAX agents against a
 synthetic fraud case. The Decision Convenor is mid-sentence. Click the
 image to play the video, or open the <a href="docs/assets/agents_debate.mp4">MP4
-version</a> for a 190 KB download.*
+version</a> for a 300 KB download.*
 
 ## Stage 5 — Report
 
