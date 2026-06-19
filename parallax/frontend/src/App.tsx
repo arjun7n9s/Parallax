@@ -64,10 +64,23 @@ type HuntResponse = { hunt?: string; results?: Array<Record<string, unknown>>; c
 
 const API_BASE_KEY = "parallax.apiBase";
 const API_KEY_KEY = "parallax.apiKey";
-const DEFAULT_API_BASE = "http://localhost:8077/api/v1";
+const DEFAULT_API_BASE = import.meta.env.VITE_API_BASE_URL ?? "/api/v1";
 
 function stored(key: string, fallback: string) {
   return window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key) ?? fallback;
+}
+
+function normalizeApiBase(value: string) {
+  const trimmed = value.trim() || DEFAULT_API_BASE;
+  return trimmed.replace(/\/+$/, "");
+}
+
+function apiPath(apiBase: string, path: string) {
+  return `${normalizeApiBase(apiBase)}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+function browserUrl(apiBase: string, path: string) {
+  return new URL(apiPath(apiBase, path), window.location.origin);
 }
 
 function formatBytes(bytes: number) {
@@ -107,6 +120,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
 
 function useApi(apiBase: string, apiKey: string) {
   return useMemo(() => {
+    const base = normalizeApiBase(apiBase);
     const headers = () => ({
       ...(apiKey ? { "X-API-Key": apiKey } : {})
     });
@@ -115,14 +129,14 @@ function useApi(apiBase: string, apiKey: string) {
       history: (status: string) => {
         const params = new URLSearchParams({ page: "1", page_size: "30" });
         if (status !== "all") params.set("status", status);
-        return fetch(`${apiBase}/history?${params}`, { headers: headers() }).then(
+        return fetch(`${base}/history?${params}`, { headers: headers() }).then(
           parseResponse<HistoryResponse>
         );
       },
       status: (id: string) =>
-        fetch(`${apiBase}/analysis/${id}`, { headers: headers() }).then(parseResponse<Submission>),
+        fetch(`${base}/analysis/${id}`, { headers: headers() }).then(parseResponse<Submission>),
       result: (id: string) =>
-        fetch(`${apiBase}/analysis/${id}/result`, { headers: headers() }).then(
+        fetch(`${base}/analysis/${id}/result`, { headers: headers() }).then(
           parseResponse<Record<string, unknown>>
         ),
       submit: (files: FileList, webhookUrl: string) => {
@@ -130,27 +144,31 @@ function useApi(apiBase: string, apiKey: string) {
         Array.from(files).forEach((file) => data.append(files.length > 1 ? "files" : "file", file));
         if (webhookUrl.trim()) data.set("webhook_url", webhookUrl.trim());
         const path = files.length > 1 ? "/analyze/batch" : "/analyze";
-        return fetch(`${apiBase}${path}`, {
+        return fetch(`${base}${path}`, {
           method: "POST",
           headers: headers(),
           body: data
         }).then(parseResponse<Submission | BatchResponse>);
       },
       quarantineUrl: (id: string) =>
-        fetch(`${apiBase}/analysis/${id}/quarantine-url`, { headers: headers() }).then(
+        fetch(`${base}/analysis/${id}/quarantine-url`, { headers: headers() }).then(
           parseResponse<{ url: string; expires_in_seconds: number }>
         ),
-      artifactUrl: (id: string, artifact: string) => `${apiBase}/analysis/${id}/${artifact}?api_key=${apiKey}`,
+      artifactUrl: (id: string, artifact: string) => {
+        const url = browserUrl(base, `/analysis/${id}/${artifact}`);
+        if (apiKey) url.searchParams.set("api_key", apiKey);
+        return url.toString();
+      },
       graphHealth: () =>
-        fetch(`${apiBase}/graph/health`, { headers: headers() }).then(
+        fetch(`${base}/graph/health`, { headers: headers() }).then(
           parseResponse<Record<string, unknown>>
         ),
       huntTemplates: () =>
-        fetch(`${apiBase}/hunt/templates`, { headers: headers() }).then(
+        fetch(`${base}/hunt/templates`, { headers: headers() }).then(
           parseResponse<HuntTemplateResponse>
         ),
       hunt: (hunt: string, query: string) =>
-        fetch(`${apiBase}/hunt`, {
+        fetch(`${base}/hunt`, {
           method: "POST",
           headers: { ...headers(), "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -200,7 +218,16 @@ export function App() {
   // Real-time SSE for History
   useEffect(() => {
     if (!isAuthenticated || !apiKey) return;
-    const url = new URL(`${apiBase}/history/stream`);
+    api.history(statusFilter)
+      .then((data) => {
+        setHistory(data);
+        if (!selectedId && data.items.length > 0) {
+          setSelectedId(data.items[0].id);
+        }
+      })
+      .catch(() => undefined);
+
+    const url = browserUrl(apiBase, "/history/stream");
     url.searchParams.set("api_key", apiKey);
     if (statusFilter !== "all") url.searchParams.set("status", statusFilter);
 
@@ -218,12 +245,12 @@ export function App() {
       // Silently reconnect
     };
     return () => es.close();
-  }, [apiBase, apiKey, statusFilter, isAuthenticated, selectedId]);
+  }, [api, apiBase, apiKey, statusFilter, isAuthenticated, selectedId]);
 
   // Real-time SSE for Selected Analysis
   useEffect(() => {
     if (!isAuthenticated || !apiKey || !selectedId) return;
-    const url = new URL(`${apiBase}/analysis/${selectedId}/stream`);
+    const url = browserUrl(apiBase, `/analysis/${selectedId}/stream`);
     url.searchParams.set("api_key", apiKey);
 
     const es = new EventSource(url.toString());
@@ -243,7 +270,7 @@ export function App() {
       return;
     }
     api.result(selectedId).then(setResult).catch(() => setResult(null));
-  }, [api, selectedId, isAuthenticated]);
+  }, [api, selectedId, selected?.status, isAuthenticated]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
