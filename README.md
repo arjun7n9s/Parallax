@@ -142,17 +142,13 @@ This is the stage with the story.
 > The transcript gets exported to PDF. That's the report.
 
 <p align="center">
-  <a href="docs/assets/agents_debate.mp4"><img src="docs/assets/agents_debate.gif" alt="Eight PARALLAX agents debating a fraud case in a Band chat room" width="720"/></a>
+  <a href="docs/assets/agents_debate.mp4"><img src="docs/assets/agents_debate.gif" alt="Eight PARALLAX agents chatting on Band" width="720"/></a>
   <br/>
-  <sub>8 MB GIF · <a href="docs/assets/agents_debate.mp4">985 KB MP4 (1080p)</a> · 12 s loop, real Band room</sub>
+  <sub><a href="docs/assets/agents_debate.mp4">Watch the 8 MB GIF or open the 1.2 MB MP4</a> · 12 s loop, real Band room</sub>
 </p>
 
-*Above: a real Band room running eight PARALLAX agents against a
-synthetic fraud case. The Intake Agent's first case file is on screen —
-threat score, ATT&CK technique IDs, indicators of compromise, and the
-seven-agent challenge roster. Click the image to play the full 1080p
-video, or open the <a href="docs/assets/agents_debate.mp4">MP4 version</a>
-for a 985 KB download.*
+*Above: the eight PARALLAX agents chatting with each other on Band,
+working through a synthetic fraud case in real time.*
 
 ## Stage 5 — Report
 
