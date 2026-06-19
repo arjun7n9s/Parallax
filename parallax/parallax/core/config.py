@@ -140,6 +140,31 @@ class Settings(BaseSettings):
     WEBHOOK_URLS: str = ""
     WEBHOOK_SECRET: str = ""
 
+    # Band integration. Mock mode keeps tests and local demos independent from
+    # external credentials; live mode uses the REST key plus per-agent keys.
+    BAND_MODE: str = "mock"  # mock | live
+    BAND_REST_URL: str = "https://app.band.ai"
+    BAND_WS_URL: str = "wss://app.band.ai/api/v1/socket/websocket"
+    BAND_REST_API_KEY: str = ""
+    BAND_CHATROOMS_PATH: str = "/api/v1/chatrooms"
+
+    BAND_AGENT_INTAKE_ID: str = ""
+    BAND_AGENT_INTAKE_API_KEY: str = ""
+    BAND_AGENT_DEVICE_COMPROMISE_ID: str = ""
+    BAND_AGENT_DEVICE_COMPROMISE_API_KEY: str = ""
+    BAND_AGENT_TRANSACTION_TRACE_ID: str = ""
+    BAND_AGENT_TRANSACTION_TRACE_API_KEY: str = ""
+    BAND_AGENT_MULE_GRAPH_ID: str = ""
+    BAND_AGENT_MULE_GRAPH_API_KEY: str = ""
+    BAND_AGENT_EVIDENCE_VALIDATOR_ID: str = ""
+    BAND_AGENT_EVIDENCE_VALIDATOR_API_KEY: str = ""
+    BAND_AGENT_LIABILITY_ID: str = ""
+    BAND_AGENT_LIABILITY_API_KEY: str = ""
+    BAND_AGENT_LEGAL_EVIDENCE_ID: str = ""
+    BAND_AGENT_LEGAL_EVIDENCE_API_KEY: str = ""
+    BAND_AGENT_DECISION_CONVENOR_ID: str = ""
+    BAND_AGENT_DECISION_CONVENOR_API_KEY: str = ""
+
     # Threat-intel API keys (Phase 5 IoC matching / MISP sync). Optional.
     VIRUSTOTAL_API_KEY: str = ""
     MALWAREBAZAAR_API_KEY: str = ""
