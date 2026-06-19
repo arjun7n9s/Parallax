@@ -222,6 +222,10 @@ async def _async_run_static_pipeline(submission_id_str: str):
             await db.commit()
             logger.info(f"Static pipeline complete for {sha256}. Status set to 'dynamic'.")
 
+            from parallax.workers.dynamic_worker import run_dynamic_pipeline
+
+            run_dynamic_pipeline.delay(submission_id_str)
+
         except TransientError:
             raise  # transient (infra/LLM/circuit-open): let Celery retry the task
         except Exception as exc:

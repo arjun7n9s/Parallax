@@ -64,7 +64,7 @@ type HuntResponse = { hunt?: string; results?: Array<Record<string, unknown>>; c
 
 const API_BASE_KEY = "parallax.apiBase";
 const API_KEY_KEY = "parallax.apiKey";
-const DEFAULT_API_BASE = "http://localhost:8000/api/v1";
+const DEFAULT_API_BASE = "http://localhost:8077/api/v1";
 
 function stored(key: string, fallback: string) {
   return window.sessionStorage.getItem(key) ?? window.localStorage.getItem(key) ?? fallback;

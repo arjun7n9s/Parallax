@@ -141,6 +141,7 @@ async def _ingest_apk(
             batch_id=batch_id,
         )
         db.add(new_submission)
+        await db.flush()
         await write_audit_log(
             db,
             tenant_id=tenant_id,

@@ -2,6 +2,7 @@ import asyncio
 import logging
 import threading
 import time
+from contextlib import suppress
 from typing import Callable, Optional
 
 from mitmproxy import http
@@ -120,6 +121,25 @@ class MitmproxyRunner:
         finally:
             loop.close()
 
+    @staticmethod
+    def _detach_mitmproxy_handlers() -> None:
+        """Remove mitmproxy handlers whose event loop is already shut down.
+
+        Embedded mitmproxy installs a root logging handler that forwards records
+        to its master loop. After ``shutdown()`` that loop is closed, and a later
+        Celery success log can crash the worker with ``RuntimeError: Event loop
+        is closed``. Detaching only mitmproxy-owned handlers keeps PARALLAX
+        logging intact while preventing a successful sandbox run from killing
+        the worker.
+        """
+        root_logger = logging.getLogger()
+        for handler in list(root_logger.handlers):
+            module = handler.__class__.__module__
+            if module.startswith("mitmproxy."):
+                root_logger.removeHandler(handler)
+                with suppress(Exception):
+                    handler.close()
+
     async def start(self) -> None:
         """
         Starts the mitmproxy master asynchronously.
@@ -153,3 +173,5 @@ class MitmproxyRunner:
             # Wait briefly for thread to finish after shutdown
             self.runner_thread.join(timeout=2.0)
             self.runner_thread = None
+
+        self._detach_mitmproxy_handlers()

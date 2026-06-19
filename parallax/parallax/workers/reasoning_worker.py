@@ -188,9 +188,6 @@ async def _async_run_reasoning_pipeline(submission_id_str: str):
             # Persist extracted IOCs (deduped per submission).
             await _persist_iocs(db, submission_id, cortex, observations)
 
-            # Enrich the TAIG graph + vector store (the self-improving loop).
-            await _enrich_knowledge(sha256, submission_id_str, artifact, cortex)
-
             submission.status = "complete"
             await db.commit()
             logger.info(
@@ -199,6 +196,21 @@ async def _async_run_reasoning_pipeline(submission_id_str: str):
                 cortex.verdict,
                 cortex.risk.calibrated_score,
             )
+
+            # Enrich the TAIG graph + vector store (the self-improving loop)
+            # after the analyst-facing result is committed. This keeps optional
+            # knowledge backends from blocking webhooks, Band room creation, or
+            # the dashboard's complete state during live demos.
+            try:
+                await asyncio.wait_for(
+                    _enrich_knowledge(sha256, submission_id_str, artifact, cortex),
+                    timeout=20.0,
+                )
+            except TimeoutError:
+                logger.warning(
+                    "Knowledge enrichment timed out for %s; result already complete.",
+                    sha256,
+                )
 
             # Phase 6 delivery is triggered here once the delivery worker exists.
             try:
