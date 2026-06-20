@@ -152,6 +152,11 @@ class BaseStubAgent:
     def agent_id(self) -> str:
         return self.descriptor.participant_ref
 
+    def respond(self, room: CaseRoom) -> list[EvidenceClaim]:
+        """Return deterministic claims for the current room state. Subclasses
+        override this with their per-role logic."""
+        raise NotImplementedError
+
     def _claim(
         self,
         text: str,
@@ -180,14 +185,9 @@ class BaseStubAgent:
 
     async def respond_live(self, room: CaseRoom) -> list[EvidenceClaim]:
         """Return LLM-backed claims when a subclass supports live reasoning.
-
-        Subclasses MUST override `respond_live`; this default falls back to the
-        deterministic stub. Mypy can't see subclass methods without an explicit
-        Protocol, so we cast.
-        """
-        from typing import cast
-
-        return cast(list[EvidenceClaim], self.respond(room))
+        Subclasses override this; the default falls back to the deterministic
+        stub so a non-live agent still produces claims."""
+        return self.respond(room)
 
 
 class IntakeAgent(BaseStubAgent):
