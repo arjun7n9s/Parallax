@@ -1,0 +1,251 @@
+/* ================================================================
+   PARALLAX — Bauhaus Brutalist Editorial
+   The design is the brand.
+   ================================================================ */
+
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@300;400;500;600&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --bone: #F4F1EA;
+    --bone-50: #FBFAF6;
+    --bone-200: #EAE6DC;
+    --bone-300: #DAD3C2;
+    --ink: #0A0A0A;
+    --ink-100: #121212;
+    --ink-300: #0A0A0A;
+    --oxblood: #7C1F2D;
+    --oxblood-500: #5E1620;
+    --acid: #9FE870;
+    --ok: #3F8A4A;
+    --warn: #C9923A;
+    --danger: #7C1F2D;
+
+    font-family: "Geist", system-ui, sans-serif;
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color-scheme: light;
+  }
+
+  html, body {
+    margin: 0;
+    background: var(--bone);
+    color: var(--ink);
+    overflow-x: hidden;
+  }
+
+  body {
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(124, 31, 45, 0.03) 0%, transparent 50%),
+      radial-gradient(circle at 80% 100%, rgba(159, 232, 112, 0.04) 0%, transparent 50%);
+    background-attachment: fixed;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  ::selection {
+    background: var(--ink);
+    color: var(--bone);
+  }
+
+  /* Scrollbar — invisible, minimal */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(10, 10, 10, 0.2);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(10, 10, 10, 0.4);
+  }
+}
+
+@layer components {
+  /* ============ Editorial primitives ============ */
+
+  .eyebrow {
+    @apply font-mono text-eyebrow uppercase tracking-widest text-ink/60;
+  }
+
+  .display-1 {
+    @apply font-display text-display-xl;
+  }
+  .display-2 {
+    @apply font-display text-display-lg;
+  }
+  .display-3 {
+    @apply font-display text-display-md;
+  }
+
+  .rule {
+    @apply h-px w-full bg-ink/20;
+  }
+  .rule-thick {
+    @apply h-[2px] w-full bg-ink;
+  }
+
+  /* ============ Cards ============ */
+
+  .panel {
+    @apply bg-bone-50 border border-ink/10 transition-colors duration-300;
+  }
+  .panel-ink {
+    @apply bg-ink text-bone border border-ink;
+  }
+  .panel-oxblood {
+    @apply bg-oxblood text-bone border border-oxblood-500;
+  }
+
+  /* ============ Buttons ============ */
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-5 h-11 text-sm font-medium
+           transition-all duration-300 ease-editorial
+           border border-ink bg-bone-50 text-ink
+           hover:bg-ink hover:text-bone
+           focus:outline-none focus-visible:shadow-brutal-sm
+           disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-bone-50 disabled:hover:text-ink;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-5 h-11 text-sm font-medium
+           transition-all duration-300 ease-editorial
+           bg-ink text-bone border border-ink
+           hover:bg-oxblood hover:border-oxblood hover:shadow-brutal-sm
+           focus:outline-none focus-visible:shadow-brutal
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .btn-acid {
+    @apply inline-flex items-center justify-center gap-2 px-5 h-11 text-sm font-medium
+           transition-all duration-300 ease-editorial
+           bg-acid text-ink border border-acid
+           hover:shadow-brutal-sm
+           focus:outline-none focus-visible:shadow-brutal;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-3 h-9 text-sm
+           text-ink/60 hover:text-ink transition-colors duration-200;
+  }
+
+  .btn-icon {
+    @apply inline-flex items-center justify-center w-9 h-9
+           border border-ink/20 bg-bone-50 text-ink
+           hover:border-ink hover:shadow-brutal-sm
+           transition-all duration-300 ease-editorial;
+  }
+
+  /* ============ Inputs ============ */
+
+  .input {
+    @apply w-full h-11 px-4 bg-bone-50 border border-ink/20 text-ink
+           font-mono text-sm placeholder:text-ink/40
+           transition-colors duration-200
+           focus:outline-none focus:border-ink;
+  }
+
+  /* ============ Pills / Status ============ */
+
+  .pill {
+    @apply inline-flex items-center gap-1.5 h-6 px-2.5
+           text-[10px] font-mono uppercase tracking-widest
+           border;
+  }
+
+  .pill-ok {
+    @apply pill border-ok/40 bg-ok/10 text-ok;
+  }
+  .pill-warn {
+    @apply pill border-warn/40 bg-warn/10 text-warn;
+  }
+  .pill-danger {
+    @apply pill border-oxblood bg-oxblood/10 text-oxblood;
+  }
+  .pill-muted {
+    @apply pill border-ink/20 bg-ink/5 text-ink/60;
+  }
+  .pill-ink {
+    @apply pill border-ink bg-ink text-bone;
+  }
+  .pill-acid {
+    @apply pill border-acid bg-acid text-ink;
+  }
+  .pill-bone {
+    @apply pill border-ink/20 bg-bone-100 text-ink/80;
+  }
+  .pill-oxblood {
+    @apply pill border-oxblood bg-oxblood text-bone;
+  }
+
+  /* ============ Tabular data ============ */
+
+  .grid-row {
+    @apply grid items-center gap-4 px-5 h-14 border-b border-ink/10
+           transition-colors duration-150
+           hover:bg-ink/3 cursor-pointer;
+  }
+
+  .grid-header {
+    @apply grid items-center gap-4 px-5 h-10
+           font-mono text-[10px] uppercase tracking-widest
+           text-ink/50 border-b border-ink/20;
+  }
+
+  /* ============ Live indicator dot ============ */
+
+  .live-dot {
+    @apply inline-block w-2 h-2 rounded-full bg-acid;
+    animation: blink-dot 1.4s ease-in-out infinite;
+  }
+
+  /* ============ Ticker (rolling marquee) ============ */
+
+  .ticker-track {
+    @apply flex gap-12 whitespace-nowrap;
+    animation: ticker 80s linear infinite;
+  }
+
+  /* ============ Skeleton / loading ============ */
+
+  .skeleton {
+    @apply bg-ink/10 animate-pulse;
+  }
+
+  /* ============ Mono number — used for metrics ============ */
+
+  .num {
+    @apply font-mono tabular-nums tracking-tight;
+  }
+}
+
+@layer utilities {
+  .text-balance { text-wrap: balance; }
+  .text-pretty { text-wrap: pretty; }
+
+  /* Hairline border that's a single pixel even on retina */
+  .hairline-b {
+    @apply border-b border-ink/10;
+  }
+  .hairline-t {
+    @apply border-t border-ink/10;
+  }
+  .hairline-l {
+    @apply border-l border-ink/10;
+  }
+  .hairline-r {
+    @apply border-r border-ink/10;
+  }
+}
