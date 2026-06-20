@@ -30,11 +30,16 @@ const stagger = {
 
 export default function Landing() {
   const navigate = useNavigate();
-  const { signIn } = useAuth();
+  const { signIn, signOut, key } = useAuth();
   // Drop straight into the demo console — no auth-page flash.
   const startDemo = () => {
     signIn("demo-7c1f2d-a87e9-9fe870");
     navigate("/console");
+  };
+  // Always land on the real sign-in form; clear a leftover demo session first.
+  const openConsole = () => {
+    if (key?.startsWith("demo-")) signOut();
+    navigate("/auth");
   };
 
   return (
@@ -58,10 +63,10 @@ export default function Landing() {
             <button onClick={startDemo} className="btn-ghost hidden sm:inline-flex">
               Try the demo
             </button>
-            <Link to="/auth" className="btn-primary">
+            <button onClick={openConsole} className="btn-primary">
               Analyst Console
               <ArrowUpRight className="w-4 h-4" strokeWidth={2} />
-            </Link>
+            </button>
           </div>
         </div>
       </header>
@@ -96,10 +101,10 @@ export default function Landing() {
                   <PlayCircle className="w-4 h-4" strokeWidth={2} />
                   Try the live demo
                 </button>
-                <Link to="/auth" className="btn h-12 px-6 text-base">
+                <button onClick={openConsole} className="btn h-12 px-6 text-base">
                   Open analyst console
                   <ArrowUpRight className="w-4 h-4" strokeWidth={2} />
-                </Link>
+                </button>
                 <a
                   href="https://github.com/arjun7n9s/Parallax"
                   className="font-mono text-xs text-ink/60 hover:text-ink ml-2"

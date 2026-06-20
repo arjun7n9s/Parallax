@@ -8,7 +8,8 @@ import { API_BASE, isDemo } from "../lib/api";
 export default function Auth() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
-  const { signIn, isAuthed } = useAuth();
+  const { signIn, isAuthed, key: sessionKey } = useAuth();
+  const isDemoSession = !!sessionKey && sessionKey.startsWith("demo-");
   const [key, setKey] = useState(params.get("key") || "");
   const [show, setShow] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -22,10 +23,11 @@ export default function Auth() {
     }
   }, [signIn, isAuthed, navigate]);
 
-  // If already authed, skip the page.
+  // Skip the page only for a real (non-demo) session. A lingering demo session
+  // must still see the form here, so "Analyst Console" doesn't bounce to demo.
   useEffect(() => {
-    if (isAuthed) navigate("/console", { replace: true });
-  }, [isAuthed, navigate]);
+    if (isAuthed && !isDemoSession) navigate("/console", { replace: true });
+  }, [isAuthed, isDemoSession, navigate]);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
