@@ -7,6 +7,7 @@ import { Panel, PanelHeader } from "../components/primitives/Panel";
 import { Kpi } from "../components/primitives/Kpi";
 import { Pill, VerdictPill } from "../components/primitives/Pill";
 import { Distribution } from "../components/primitives/Graph";
+import { ErrorDialog } from "../components/primitives/Dialog";
 import {
   getKpi,
   getRecentFamilies,
@@ -31,6 +32,7 @@ export default function Console() {
   const [live, setLive] = useState<Submission[] | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitErr, setSubmitErr] = useState<string | null>(null);
+  const [popup, setPopup] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const list = useAsync(() => getSubmissions(1, 24), []);
@@ -50,7 +52,13 @@ export default function Console() {
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
+    // Reset immediately so re-selecting the same file still fires onChange.
+    if (fileRef.current) fileRef.current.value = "";
     if (!file) return;
+    if (!file.name.toLowerCase().endsWith(".apk")) {
+      setPopup(`"${file.name}" is not an Android package. Only .apk files are allowed.`);
+      return;
+    }
     setSubmitErr(null);
     setSubmitting(true);
     try {
@@ -61,7 +69,6 @@ export default function Console() {
       setSubmitErr(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setSubmitting(false);
-      if (fileRef.current) fileRef.current.value = "";
     }
   }
 
@@ -73,6 +80,7 @@ export default function Console() {
 
   return (
     <div>
+      <ErrorDialog message={popup} onClose={() => setPopup(null)} title="Only .apk files allowed" />
       <Topbar
         eyebrow="Analyst Console"
         title="Submissions"
