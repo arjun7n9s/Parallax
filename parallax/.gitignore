@@ -27,6 +27,12 @@ share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+
+# The Python build-artifact rules above (lib/, dist/, build/) accidentally match
+# the React frontend's source dir. Re-include the frontend source tree; its own
+# node_modules/ and dist/ are still ignored by the patterns above.
+!frontend/src/lib/
+!frontend/src/lib/**
 MANIFEST
 
 # PyInstaller

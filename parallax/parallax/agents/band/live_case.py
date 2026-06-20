@@ -63,10 +63,10 @@ def build_intake_message(bundle: dict) -> str:
     finding_lines = [f"  - {f}" for f in findings] or ["  - (see evidence bundle)"]
     lines = [
         f"**PARALLAX case opened — {sub.get('package_name') or sub.get('file_name')}**",
-        f"Immutable evidence bundle sha256 `{bundle.get('_bundle_sha256','')[:16]}` "
-        f"(snapshot {bundle.get('snapshot_at','')}).",
+        f"Immutable evidence bundle sha256 `{bundle.get('_bundle_sha256', '')[:16]}` "
+        f"(snapshot {bundle.get('snapshot_at', '')}).",
         "",
-        f"- APK sha256: `{sub.get('sha256','')}`",
+        f"- APK sha256: `{sub.get('sha256', '')}`",
         f"- Verdict: **{risk.get('verdict') or sub.get('verdict')}**  "
         f"(score {risk.get('final_score') or sub.get('final_score')}/100)",
         f"- Family attribution: {risk.get('family') or 'unattributed'} "
@@ -146,7 +146,9 @@ async def open_live_case(submission_id: str, *, case_id: str | None = None) -> s
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Open a live Band case from a PARALLAX submission.")
+    parser = argparse.ArgumentParser(
+        description="Open a live Band case from a PARALLAX submission."
+    )
     parser.add_argument("submission_id")
     parser.add_argument("--case-id", default=None)
     args = parser.parse_args()

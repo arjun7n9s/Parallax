@@ -14,6 +14,17 @@ def mock_db():
     return db
 
 
+@pytest.fixture(autouse=True)
+def _stub_dynamic_dispatch(monkeypatch):
+    """The static worker enqueues the dynamic stage via Celery .delay() on
+    success. Stub it so the unit test never needs a live Redis broker — in CI
+    the real .delay() fails to connect and the worker marks the submission
+    'failed' instead of advancing to 'dynamic'."""
+    import parallax.workers.dynamic_worker as dw
+
+    monkeypatch.setattr(dw.run_dynamic_pipeline, "delay", lambda *a, **k: None, raising=False)
+
+
 @pytest.mark.asyncio
 @patch("parallax.workers.static_worker.get_minio_client")
 @patch("parallax.workers.static_worker.run_androguard")
