@@ -1,5 +1,6 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useAuth } from "../hooks/useAuth";
 import {
   ArrowUpRight,
   Brain,
@@ -28,6 +29,14 @@ const stagger = {
 };
 
 export default function Landing() {
+  const navigate = useNavigate();
+  const { signIn } = useAuth();
+  // Drop straight into the demo console — no auth-page flash.
+  const startDemo = () => {
+    signIn("demo-7c1f2d-a87e9-9fe870");
+    navigate("/console");
+  };
+
   return (
     <div className="min-h-screen bg-bone text-ink">
       {/* ============ Top Bar ============ */}
@@ -46,9 +55,9 @@ export default function Landing() {
             <a href="#open" className="hover:text-oxblood transition-colors">Open Source</a>
           </nav>
           <div className="flex items-center gap-2">
-            <Link to="/auth?demo=true" className="btn-ghost hidden sm:inline-flex">
+            <button onClick={startDemo} className="btn-ghost hidden sm:inline-flex">
               Try the demo
-            </Link>
+            </button>
             <Link to="/auth" className="btn-primary">
               Analyst Console
               <ArrowUpRight className="w-4 h-4" strokeWidth={2} />
@@ -83,10 +92,10 @@ export default function Landing() {
                 argues with itself in a chat room until the verdict stops moving.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-3">
-                <Link to="/auth?demo=true" className="btn-primary h-12 px-6 text-base">
+                <button onClick={startDemo} className="btn-primary h-12 px-6 text-base">
                   <PlayCircle className="w-4 h-4" strokeWidth={2} />
                   Try the live demo
-                </Link>
+                </button>
                 <Link to="/auth" className="btn h-12 px-6 text-base">
                   Open analyst console
                   <ArrowUpRight className="w-4 h-4" strokeWidth={2} />
@@ -181,10 +190,10 @@ export default function Landing() {
                 other, and converging on an action packet. No script, no actors. This is the system.
               </p>
               <div className="mt-6 flex items-center gap-3">
-                <Link to="/auth?demo=true" className="btn-primary">
+                <button onClick={startDemo} className="btn-primary">
                   Open the demo
                   <ArrowUpRight className="w-4 h-4" />
-                </Link>
+                </button>
               </div>
             </div>
             <div className="col-span-12 lg:col-span-7">

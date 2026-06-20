@@ -17,7 +17,7 @@ export function Ticker({ items }: { items: string[] }) {
         </div>
         <div className="flex-1 overflow-hidden relative h-9">
           <div
-            className="absolute inset-0 flex items-center transition-transform duration-500 ease-editorial"
+            className="absolute inset-x-0 top-0 flex flex-col transition-transform duration-500 ease-editorial"
             style={{ transform: `translateY(-${idx * 36}px)` }}
           >
             {items.map((it, i) => (
