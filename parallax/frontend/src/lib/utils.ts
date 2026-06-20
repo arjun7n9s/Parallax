@@ -58,26 +58,29 @@ export function relTime(isoOrDate: string | Date): string {
   return new Date(t).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
-/** Risk-level color resolver. 0=safe, 1-3=low, 4-6=med, 7-9=high, 10=critical. */
+/** Risk-level color resolver on the real 0-100 calibrated scale, aligned to the
+ *  backend verdict bands (LOW<40, MEDIUM 40-59, HIGH/CRITICAL >=60). */
 export function riskColor(score: number): "ok" | "warn" | "danger" {
-  if (score <= 3) return "ok";
-  if (score <= 6) return "warn";
+  if (score < 40) return "ok";
+  if (score < 60) return "warn";
   return "danger";
 }
 
-/** Risk-level label. */
+/** Risk-level label on the 0-100 scale. */
 export function riskLabel(score: number): string {
-  if (score <= 3) return "Clean";
-  if (score <= 6) return "Suspicious";
-  if (score <= 8) return "Malicious";
+  if (score < 15) return "Clean";
+  if (score < 40) return "Low";
+  if (score < 60) return "Medium";
+  if (score < 80) return "High";
   return "Critical";
 }
 
-/** Verdict pill class. */
+/** Verdict pill class for the CLEAN/LOW/MEDIUM/HIGH/CRITICAL scale (legacy
+ *  SUSPICIOUS/MALICIOUS kept for safety). */
 export function verdictPill(v: string): string {
-  const upper = v.toUpperCase();
-  if (upper === "CLEAN" || upper === "OK") return "pill-ok";
-  if (upper === "SUSPICIOUS" || upper === "PENDING") return "pill-warn";
-  if (upper === "MALICIOUS" || upper === "CRITICAL") return "pill-danger";
+  const u = (v || "").toUpperCase();
+  if (u === "CLEAN" || u === "LOW" || u === "OK") return "pill-ok";
+  if (u === "MEDIUM" || u === "SUSPICIOUS" || u === "PENDING") return "pill-warn";
+  if (u === "HIGH" || u === "MALICIOUS" || u === "CRITICAL") return "pill-danger";
   return "pill-muted";
 }

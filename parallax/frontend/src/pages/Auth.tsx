@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Eye, EyeOff, KeyRound, ShieldCheck, Sparkles, Terminal } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
-import { isDemo } from "../lib/api";
+import { API_BASE, isDemo } from "../lib/api";
 
 export default function Auth() {
   const [params] = useSearchParams();
@@ -27,18 +27,31 @@ export default function Auth() {
     if (isAuthed) navigate("/console", { replace: true });
   }, [isAuthed, navigate]);
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (key.trim().length < 8) {
+    const k = key.trim();
+    if (k.length < 8) {
       setError("Key must be at least 8 characters.");
       return;
     }
     setLoading(true);
-    setTimeout(() => {
-      signIn(key);
-      navigate("/console");
-    }, 600);
+    // Validate against the backend when reachable; reject a bad key, but allow
+    // sign-in if the API isn't up yet (key is verified on first real call).
+    try {
+      const r = await fetch(`${API_BASE}/history?page=1&page_size=1`, {
+        headers: { "X-API-Key": k, Accept: "application/json" },
+      });
+      if (r.status === 401 || r.status === 403) {
+        setError("API key was rejected by the backend.");
+        setLoading(false);
+        return;
+      }
+    } catch {
+      /* backend unreachable — proceed; calls will surface errors in-app */
+    }
+    signIn(k);
+    navigate("/console");
   }
 
   return (

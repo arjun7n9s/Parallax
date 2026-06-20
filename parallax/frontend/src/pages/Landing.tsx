@@ -176,8 +176,9 @@ export default function Landing() {
                 Not a marketing video.<br />A <em className="italic text-oxblood">real</em> chat room.
               </h3>
               <p className="mt-5 text-ink/70 leading-relaxed">
-                The eight PARALLAX agents arguing in a Band chat room about a SharkBot dropper.
-                No script, no actors, no smoke. This is the real system.
+                The eight PARALLAX agents collaborating in a live Band room over a real
+                banking-trojan case — reasoning over the actual evidence bundle, challenging each
+                other, and converging on an action packet. No script, no actors. This is the system.
               </p>
               <div className="mt-6 flex items-center gap-3">
                 <Link to="/auth?demo=true" className="btn-primary">
@@ -187,33 +188,22 @@ export default function Landing() {
               </div>
             </div>
             <div className="col-span-12 lg:col-span-7">
-              <a
-                href="https://github.com/arjun7n9s/Parallax/blob/feat/band-integration/docs/assets/agents_debate.mp4"
-                target="_blank"
-                rel="noreferrer"
-                className="block relative aspect-[16/9] overflow-hidden border border-ink group"
-              >
-                <div className="absolute inset-0 bg-gradient-to-br from-oxblood via-ink to-ink opacity-90" />
-                <div className="absolute inset-0 flex flex-col justify-between p-6 text-bone">
-                  <div className="flex items-center justify-between">
-                    <div className="eyebrow text-bone/80">/case-room/CR-2401</div>
-                    <div className="flex items-center gap-1.5">
-                      <span className="live-dot" />
-                      <span className="eyebrow text-bone/80">live recording</span>
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-display text-4xl mb-1">SHARKBOT — CRITICAL 9.2</div>
-                    <div className="font-mono text-xs text-bone/70">
-                      8 agents · 14 messages · 12s verdict · 4 Frida hooks
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="font-mono text-xs text-bone/70">click to play full 1080p</div>
-                    <PlayCircle className="w-10 h-10 group-hover:scale-110 transition-transform" strokeWidth={1.2} />
-                  </div>
+              <div className="relative border border-ink bg-ink">
+                <video
+                  className="block w-full aspect-video"
+                  src="/agents-case-room.mp4"
+                  controls
+                  playsInline
+                  preload="metadata"
+                  poster="/favicon.svg"
+                >
+                  Your browser does not support the video tag.
+                </video>
+                <div className="flex items-center justify-between px-4 py-2 border-t border-bone/15 text-bone">
+                  <div className="eyebrow text-bone/70">Band case room · recorded</div>
+                  <div className="font-mono text-[10px] text-bone/60">8 agents · real PARALLAX evidence</div>
                 </div>
-              </a>
+              </div>
             </div>
           </div>
         </div>
@@ -223,9 +213,9 @@ export default function Landing() {
       <section className="max-w-[1400px] mx-auto px-6 py-20">
         <div className="border border-ink p-8 sm:p-12">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            <Stat n="338" l="Tests passing" tone="ink" />
-            <Stat n="$0.16" l="Per APK" tone="ink" />
-            <Stat n="<12s" l="Verdict latency" tone="oxblood" />
+            <Stat n="371" l="Tests passing" tone="ink" />
+            <Stat n="~$0.16" l="Per APK" tone="ink" />
+            <Stat n="5-stage" l="Analysis pipeline" tone="oxblood" />
             <Stat n="8" l="Agents in a room" tone="ink" />
           </div>
         </div>

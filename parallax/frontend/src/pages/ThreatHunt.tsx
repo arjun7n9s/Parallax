@@ -68,7 +68,7 @@ export default function ThreatHunt() {
             title={`${visible.length} indicators`}
             right={
               <span className="font-mono text-[10px] uppercase tracking-widest text-ink/50">
-                live · last sync 12s ago
+                cross-submission IOC index
               </span>
             }
           />

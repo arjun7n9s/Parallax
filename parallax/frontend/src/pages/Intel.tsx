@@ -36,13 +36,13 @@ export default function Intel() {
             <Kpi eyebrow="Families tracked" value={kpi?.familiesTracked ?? 0} emphasis="bone" />
           </motion.div>
           <motion.div custom={1} initial="hidden" animate="show" variants={fadeUp}>
-            <Kpi eyebrow="New (7d)" value={kpi?.newFamilies ?? 0} emphasis="bone" delta={18} />
+            <Kpi eyebrow="New families" value={kpi?.newFamilies ?? 0} emphasis="bone" />
           </motion.div>
           <motion.div custom={2} initial="hidden" animate="show" variants={fadeUp}>
-            <Kpi eyebrow="IOCs (7d)" value={kpi?.iocsDiscovered ?? 0} emphasis="bone" delta={4} />
+            <Kpi eyebrow="IOCs discovered" value={kpi?.iocsDiscovered ?? 0} emphasis="bone" />
           </motion.div>
           <motion.div custom={3} initial="hidden" animate="show" variants={fadeUp}>
-            <Kpi eyebrow="Calibration drift" value="0.03" unit="Brier" emphasis="acid" delta={-12} />
+            <Kpi eyebrow="Active threats" value={kpi?.activeThreats ?? 0} emphasis="acid" />
           </motion.div>
         </div>
 
