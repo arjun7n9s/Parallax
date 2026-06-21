@@ -85,16 +85,17 @@ export default function Landing() {
             <motion.div variants={fadeUp} className="col-span-12 lg:col-span-8">
               <div className="eyebrow mb-5 flex items-center gap-2">
                 <span className="w-6 h-px bg-ink" />
-                Agentic malware analysis · v0.1.0
+                Autonomous Android malware analysis · open source
               </div>
               <h1 className="font-display text-display-2xl text-balance">
-                The <em className="italic text-oxblood">uncomfortable</em> truth,<br />
-                in twelve seconds.
+                Drop an APK.<br />
+                Get a verdict you can <em className="italic text-oxblood">defend</em>.
               </h1>
               <p className="mt-8 max-w-2xl text-lg text-ink/70 leading-relaxed text-pretty">
-                PARALLAX is a multi-agent analyst that reverse-engineers Android malware end-to-end —
-                static analysis, dynamic Frida hooks, attribution, and a signed evidence bundle — and
-                argues with itself in a chat room until the verdict stops moving.
+                PARALLAX is a multi-agent analyst that takes an Android app apart end to end —
+                static decompile, live Frida instrumentation, malware-family attribution — then sits
+                eight AI specialists in one case room to argue the evidence into a verdict. You leave with
+                the call, the reasoning behind it, and a signed evidence bundle — not a black-box score.
               </p>
               <div className="mt-8 flex flex-wrap items-center gap-3">
                 <button onClick={startDemo} className="btn-primary h-12 px-6 text-base">
