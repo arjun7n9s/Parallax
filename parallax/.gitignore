@@ -82,3 +82,6 @@ parallax/analysis/dynamic/cache/
 
 # Production secrets (filled on the server)
 .env.prod
+
+# Deployment runbook — kept local only, not published
+deploy/DEPLOY.md
