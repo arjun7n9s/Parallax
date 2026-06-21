@@ -1,0 +1,12 @@
+# Caddy reverse proxy with automatic HTTPS (Let's Encrypt).
+# API_DOMAIN and ACME_EMAIL are injected from .env.prod via the compose file.
+
+{
+	email {$ACME_EMAIL}
+}
+
+{$API_DOMAIN} {
+	encode gzip
+	# Forward everything to the FastAPI app on the private network.
+	reverse_proxy api:8000
+}

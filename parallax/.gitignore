@@ -79,3 +79,6 @@ apks/
 data/
 logs/
 parallax/analysis/dynamic/cache/
+
+# Production secrets (filled on the server)
+.env.prod

@@ -1,0 +1,112 @@
+# PARALLAX — production backend (single VM + Caddy auto-TLS).
+#
+# Lean, GPU-free, KVM-free deployment: API + Celery worker + Postgres + Redis +
+# MinIO, with the LLM served by the AI/ML API gateway and the dynamic/emulator
+# stage disabled (static + cortex pipeline, the path proven on the Alien run).
+# Neo4j/Qdrant are intentionally omitted — the cortex degrades gracefully; add
+# them later if you want the graph/vector features.
+#
+# Usage (on the VM):
+#   cp .env.prod.example .env.prod && edit secrets
+#   docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+#
+# Only Caddy is internet-facing (80/443). Postgres/Redis/MinIO/API stay on the
+# private network.
+
+services:
+  caddy:
+    image: caddy:2.8-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_DOMAIN: ${API_DOMAIN}
+      ACME_EMAIL: ${ACME_EMAIL}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api
+    networks: [parallax_net]
+
+  api:
+    build: .
+    restart: unless-stopped
+    env_file: [.env.prod]
+    # Apply DB migrations, then serve. Migrations are idempotent.
+    command: sh -c "alembic upgrade head && uvicorn parallax.api.main:app --host 0.0.0.0 --port 8000"
+    expose:
+      - "8000"
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      minio: { condition: service_healthy }
+    networks: [parallax_net]
+
+  worker:
+    build: .
+    restart: unless-stopped
+    env_file: [.env.prod]
+    command: celery -A parallax.workers.celery_app worker -Q celery,triage --loglevel=info --concurrency=2
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      minio: { condition: service_healthy }
+    networks: [parallax_net]
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [parallax_net]
+
+  redis:
+    image: redis:7.2-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [parallax_net]
+
+  minio:
+    image: minio/minio:RELEASE.2024-03-15T01-07-19Z
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [parallax_net]
+
+volumes:
+  pg_data:
+  redis_data:
+  minio_data:
+  caddy_data:
+  caddy_config:
+
+networks:
+  parallax_net:
+    driver: bridge
