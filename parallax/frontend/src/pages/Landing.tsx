@@ -116,24 +116,54 @@ export default function Landing() {
             </motion.div>
 
             <motion.aside variants={fadeUp} className="col-span-12 lg:col-span-4">
-              <div className="border border-ink p-6 h-full bg-bone-50 relative">
+              <div className="border border-ink h-full bg-bone-50 relative flex flex-col">
                 <div className="absolute -top-px -right-px bg-ink text-bone px-2 h-6 inline-flex items-center eyebrow">
                   In production
                 </div>
-                <div className="eyebrow mb-4">A typical case</div>
-                <div className="font-display text-3xl leading-none">12s</div>
-                <div className="font-mono text-xs text-ink/60 mt-1">mean verdict latency</div>
-                <div className="rule my-5" />
-                <dl className="space-y-3 font-mono text-xs">
-                  <Row k="Static analysis" v="2.4s" />
-                  <Row k="Dynamic hooks" v="3.1s · 4 hooks" />
-                  <Row k="LLM reasoning" v="6.2s · 2 layers" />
-                  <Row k="Evidence bundle" v="0.3s · SHA-256" />
-                </dl>
-                <div className="rule my-5" />
-                <div className="flex items-center gap-2 text-xs">
-                  <span className="live-dot" />
-                  <span className="font-mono text-ink/70">$0.16 / analysis</span>
+
+                {/* Verdict */}
+                <div className="p-6 pb-5">
+                  <div className="eyebrow mb-3">A typical case</div>
+                  <div className="font-mono text-xs text-ink/50">sha256 · 9f3a…b7c1 · 14.2 MB</div>
+                  <div className="mt-4 flex items-baseline justify-between gap-3">
+                    <div className="font-display text-3xl leading-none text-oxblood">MALICIOUS</div>
+                    <div className="font-mono text-sm text-ink/70 tabular-nums">
+                      96<span className="text-ink/40">/100</span>
+                    </div>
+                  </div>
+                  <div className="mt-2 font-mono text-xs text-ink/60">
+                    family · <span className="text-ink">Alien</span> banking trojan
+                  </div>
+                  <div className="mt-3 h-1.5 w-full bg-ink/10">
+                    <div className="h-full bg-oxblood" style={{ width: "96%" }} />
+                  </div>
+                </div>
+
+                <div className="rule" />
+
+                {/* Timing breakdown */}
+                <div className="p-6 py-5">
+                  <div className="flex items-baseline justify-between mb-4">
+                    <div className="font-display text-2xl leading-none">12s</div>
+                    <div className="eyebrow">verdict latency</div>
+                  </div>
+                  <dl className="space-y-2.5 font-mono text-xs">
+                    <Row k="Static analysis" v="2.4s" />
+                    <Row k="Dynamic hooks" v="3.1s · 4 hooks" />
+                    <Row k="LLM reasoning" v="6.2s · 2 layers" />
+                    <Row k="Evidence bundle" v="0.3s · SHA-256" />
+                  </dl>
+                </div>
+
+                <div className="rule" />
+
+                {/* Footer — pinned to the bottom so the card fills its height */}
+                <div className="mt-auto p-6 pt-5 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="live-dot" />
+                    <span className="font-mono text-xs text-ink/70">8 agents · consensus</span>
+                  </div>
+                  <span className="font-mono text-xs text-ink/70 tabular-nums">$0.16 / run</span>
                 </div>
               </div>
             </motion.aside>
