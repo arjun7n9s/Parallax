@@ -3,6 +3,7 @@ import { Route, Routes, useLocation } from "react-router-dom";
 import { AuthProvider, RequireAuth } from "./hooks/useAuth";
 import { Sidebar } from "./components/layout/Sidebar";
 import { Ticker } from "./components/layout/Ticker";
+import { DemoBanner, DemoGuardProvider } from "./components/DemoNotice";
 import { tickerItems } from "./lib/mock-data";
 
 const Landing = lazy(() => import("./pages/Landing"));
@@ -21,13 +22,16 @@ function AppShell({ children }: { children: React.ReactNode }) {
   const showTicker = !pathname.startsWith("/auth") && pathname !== "/";
 
   return (
-    <div className="min-h-screen flex bg-bone text-ink">
-      <Sidebar />
-      <main className="flex-1 min-w-0 flex flex-col">
-        {showTicker && <Ticker items={tickerItems} />}
-        <div className="flex-1 min-w-0">{children}</div>
-      </main>
-    </div>
+    <DemoGuardProvider>
+      <div className="min-h-screen flex bg-bone text-ink">
+        <Sidebar />
+        <main className="flex-1 min-w-0 flex flex-col">
+          <DemoBanner />
+          {showTicker && <Ticker items={tickerItems} />}
+          <div className="flex-1 min-w-0">{children}</div>
+        </main>
+      </div>
+    </DemoGuardProvider>
   );
 }
 

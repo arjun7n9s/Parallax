@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Filter, Network, Search } from "lucide-react";
 import { Topbar } from "../components/layout/Topbar";
@@ -9,7 +10,9 @@ import { type ThreatHuntHit } from "../lib/mock-data";
 import { cn, relTime } from "../lib/utils";
 
 export default function ThreatHunt() {
-  const [q, setQ] = useState("");
+  const [params] = useSearchParams();
+  const navigate = useNavigate();
+  const [q, setQ] = useState(params.get("q") ?? "");
   const [hits, setHits] = useState<ThreatHuntHit[]>([]);
   const [type, setType] = useState<string | null>(null);
 
@@ -102,7 +105,11 @@ export default function ThreatHunt() {
                 <div className="font-mono text-xs text-ink/60">{h.type}</div>
                 <div className="font-mono text-xs text-ink/50">{relTime(h.firstSeen)}</div>
                 <div>
-                  <button className="btn-icon w-8 h-8">
+                  <button
+                    onClick={() => navigate(h.matchedIn?.startsWith("sub_") ? `/console/${h.matchedIn.split(",")[0].trim()}` : "/graph")}
+                    title="View in graph / open submission"
+                    className="btn-icon w-8 h-8"
+                  >
                     <Network className="w-3.5 h-3.5" strokeWidth={1.6} />
                   </button>
                 </div>

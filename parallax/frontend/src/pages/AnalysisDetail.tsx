@@ -27,6 +27,7 @@ import {
   type TAIGNodes,
 } from "../lib/api";
 import { useAsync } from "../hooks/useAsync";
+import { useDemoGuard } from "../components/DemoNotice";
 import { cn, dur, relTime, riskColor, riskLabel } from "../lib/utils";
 
 type Tab = "overview" | "static" | "reasoning" | "evidence" | "graph";
@@ -34,6 +35,7 @@ const TABS: Tab[] = ["overview", "static", "reasoning", "evidence", "graph"];
 
 export default function AnalysisDetail() {
   const { id = "" } = useParams();
+  const guard = useDemoGuard();
   const [tab, setTab] = useState<Tab>("overview");
   const [liveSub, setLiveSub] = useState<Submission | null>(null);
 
@@ -69,7 +71,12 @@ export default function AnalysisDetail() {
         right={
           <>
             <Link to={`/graph?from=${sub.id}`} className="btn h-9 px-3 text-xs"><Network className="w-3.5 h-3.5" /> TAIG</Link>
-            <a href={artifactUrl(sub.id, "report.pdf")} target="_blank" rel="noreferrer" className="btn h-9 px-3 text-xs"><Download className="w-3.5 h-3.5" /> Report</a>
+            <button
+              onClick={() => guard("Downloading the PDF report") && window.open(artifactUrl(sub.id, "report.pdf"), "_blank")}
+              className="btn h-9 px-3 text-xs"
+            >
+              <Download className="w-3.5 h-3.5" /> Report
+            </button>
           </>
         }
       >
@@ -315,6 +322,7 @@ const ARTIFACTS: { name: string; label: string }[] = [
 ];
 
 function Evidence({ sub, r }: { sub: Submission; r: AnalysisResult }) {
+  const guard = useDemoGuard();
   const [quarantine, setQuarantine] = useState<string | null>(null);
   const [qErr, setQErr] = useState<string | null>(null);
   return (
@@ -349,9 +357,13 @@ function Evidence({ sub, r }: { sub: Submission; r: AnalysisResult }) {
           <PanelHeader eyebrow="Downloads" title="Delivery artifacts" />
           <div className="px-6 pb-5 space-y-2">
             {ARTIFACTS.map((a) => (
-              <a key={a.name} href={artifactUrl(sub.id, a.name)} target="_blank" rel="noreferrer" className="btn w-full justify-between h-10 px-3 text-xs">
+              <button
+                key={a.name}
+                onClick={() => guard(`Downloading ${a.label}`) && window.open(artifactUrl(sub.id, a.name), "_blank")}
+                className="btn w-full justify-between h-10 px-3 text-xs"
+              >
                 <span>{a.label}</span><Download className="w-3.5 h-3.5" />
-              </a>
+              </button>
             ))}
           </div>
         </Panel>
@@ -360,7 +372,7 @@ function Evidence({ sub, r }: { sub: Submission; r: AnalysisResult }) {
           <div className="px-6 pb-6 space-y-2 font-mono text-xs text-bone/70">
             <p>The raw APK lives in a quarantine bucket. Request a short-lived signed URL — it is never executed on the API host.</p>
             <button
-              onClick={async () => { setQErr(null); try { setQuarantine((await quarantineUrl(sub.id)).url); } catch (e) { setQErr(e instanceof Error ? e.message : "Failed"); } }}
+              onClick={async () => { if (!guard("Generating a signed APK URL")) return; setQErr(null); try { setQuarantine((await quarantineUrl(sub.id)).url); } catch (e) { setQErr(e instanceof Error ? e.message : "Failed"); } }}
               className="h-10 px-3 w-full border border-bone/40 text-bone hover:bg-bone hover:text-ink transition-colors flex items-center justify-center gap-2"
             >
               Generate signed URL

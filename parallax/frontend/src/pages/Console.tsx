@@ -18,6 +18,7 @@ import {
   type Submission,
 } from "../lib/api";
 import { useAsync } from "../hooks/useAsync";
+import { useDemoGuard } from "../components/DemoNotice";
 import { cn, dur, relTime, riskColor, shortHash } from "../lib/utils";
 
 const GRID_COLS = "minmax(220px, 1.7fr) 110px 140px 60px 90px 110px 30px";
@@ -35,6 +36,7 @@ export default function Console() {
   const [popup, setPopup] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const guard = useDemoGuard();
   const list = useAsync(() => getSubmissions(1, 24), []);
   const kpi = useAsync(getKpi, []);
   const families = useAsync(getRecentFamilies, []);
@@ -59,6 +61,7 @@ export default function Console() {
       setPopup(`"${file.name}" is not an Android package. Only .apk files are allowed.`);
       return;
     }
+    if (!guard("Submitting an APK for analysis")) return;
     setSubmitErr(null);
     setSubmitting(true);
     try {

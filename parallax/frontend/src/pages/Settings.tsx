@@ -15,16 +15,29 @@ import {
   Webhook,
   Zap,
 } from "lucide-react";
+import { Info } from "lucide-react";
 import { Topbar } from "../components/layout/Topbar";
 import { Panel, PanelHeader } from "../components/primitives/Panel";
 import { useAuth } from "../hooks/useAuth";
+import { useDemoGuard } from "../components/DemoNotice";
+import { isDemo } from "../lib/api";
 import { cn } from "../lib/utils";
 
 export default function Settings() {
   const { key } = useAuth();
+  const guard = useDemoGuard();
   return (
     <div>
       <Topbar eyebrow="Account" title="Settings" />
+      {isDemo() && (
+        <div className="mx-6 mt-6 flex items-start gap-2 border border-ink/15 bg-bone-50 p-3 font-mono text-[11px] text-ink/70">
+          <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" strokeWidth={1.8} />
+          <span>
+            Illustrative configuration. Notifications, webhooks and budget controls are managed by
+            the live backend — changes here are not persisted in the demo.
+          </span>
+        </div>
+      )}
       <div className="p-6 max-w-[1400px] grid grid-cols-12 gap-6">
         <motion.div
           initial={{ opacity: 0, y: 8 }}
@@ -89,7 +102,7 @@ export default function Settings() {
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {["$10", "$25", "$50", "$100", "$250", "—"].map((v) => (
-                  <button key={v} className="h-9 border border-bone/20 text-bone/80 hover:bg-bone/10 font-mono text-xs">
+                  <button key={v} onClick={() => guard("Setting the cost budget")} className="h-9 border border-bone/20 text-bone/80 hover:bg-bone/10 font-mono text-xs">
                     {v}
                   </button>
                 ))}
@@ -97,8 +110,8 @@ export default function Settings() {
               <div>
                 <div className="font-mono text-[10px] uppercase tracking-widest text-bone/60 mb-2">Behavior on hit</div>
                 <div className="flex gap-2">
-                  <button className="h-9 px-3 border border-bone bg-bone text-ink font-mono text-xs">Stop & notify</button>
-                  <button className="h-9 px-3 border border-bone/20 text-bone/80 font-mono text-xs">Throttle to LLM-lite</button>
+                  <button onClick={() => guard("Changing the budget behavior")} className="h-9 px-3 border border-bone bg-bone text-ink font-mono text-xs">Stop & notify</button>
+                  <button onClick={() => guard("Changing the budget behavior")} className="h-9 px-3 border border-bone/20 text-bone/80 font-mono text-xs">Throttle to LLM-lite</button>
                 </div>
               </div>
             </div>

@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
-import { BarChart3, DollarSign, Timer, TrendingDown, TrendingUp, Zap } from "lucide-react";
+import { Info } from "lucide-react";
 import { Topbar } from "../components/layout/Topbar";
 import { Panel, PanelHeader } from "../components/primitives/Panel";
 import { Kpi } from "../components/primitives/Kpi";
 import { Distribution } from "../components/primitives/Graph";
-import { cn } from "../lib/utils";
+import { isDemo } from "../lib/api";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 8 },
@@ -20,6 +20,15 @@ export default function Economics() {
     <div>
       <Topbar eyebrow="Cost guard" title="Economics" />
       <div className="p-6 max-w-[1600px] space-y-6">
+        {isDemo() && (
+          <div className="flex items-start gap-2 border border-ink/15 bg-bone-50 p-3 font-mono text-[11px] text-ink/70">
+            <Info className="w-3.5 h-3.5 mt-0.5 shrink-0" strokeWidth={1.8} />
+            <span>
+              Illustrative cost figures. Live spend, per-stage cost and budget tracking come from the
+              backend's Prometheus metrics on an authenticated deployment.
+            </span>
+          </div>
+        )}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-ink/20 border border-ink/10">
           <motion.div custom={0} initial="hidden" animate="show" variants={fadeUp}>
             <Kpi eyebrow="Today" value="$24.18" delta={-12} trend={[28, 32, 30, 28, 26, 25, 24]} />
