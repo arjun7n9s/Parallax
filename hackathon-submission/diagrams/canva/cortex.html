@@ -1,0 +1,93 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;background:#ffffff;}
+  .diagram-container{width:1280px;height:760px;background:#ffffff;}
+  text{font-family:'Inter',-apple-system,Segoe UI,Helvetica,Arial,sans-serif;}
+</style>
+</head>
+<body>
+<div class="diagram-container">
+<svg width="1280" height="760" viewBox="0 0 1280 760" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="sh" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="5" stdDeviation="8" flood-color="#1C3A5E" flood-opacity="0.13"/>
+    </filter>
+    <marker id="ag" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 Z" fill="#8A96A0"/>
+    </marker>
+  </defs>
+
+  <!-- legend -->
+  <g>
+    <rect x="40" y="34" width="13" height="13" rx="3" fill="#1C3A5E"/>
+    <text x="60" y="45" font-size="13" font-weight="600" fill="#5A6672">Crown-jewel</text>
+    <rect x="200" y="34" width="13" height="13" rx="3" fill="#0E7C86"/>
+    <text x="220" y="45" font-size="13" font-weight="600" fill="#5A6672">Economy</text>
+    <rect x="330" y="34" width="13" height="13" rx="3" fill="#B07A18"/>
+    <text x="350" y="45" font-size="13" font-weight="600" fill="#5A6672">Vision</text>
+    <rect x="440" y="34" width="13" height="13" rx="3" fill="#13202E"/>
+    <text x="460" y="45" font-size="13" font-weight="600" fill="#5A6672">Deterministic</text>
+  </g>
+
+  <!-- input -->
+  <rect x="450" y="70" width="380" height="54" rx="12" fill="#F1F5F8" stroke="#CBD6DE" stroke-width="1.3"/>
+  <text x="640" y="103" font-size="17" font-weight="600" fill="#13202E" text-anchor="middle">Evidence in  ·  static + dynamic</text>
+
+  <!-- arrows input -> 3 agents -->
+  <line x1="600" y1="124" x2="300" y2="168" stroke="#8A96A0" stroke-width="1.6" marker-end="url(#ag)"/>
+  <line x1="640" y1="124" x2="640" y2="168" stroke="#8A96A0" stroke-width="1.6" marker-end="url(#ag)"/>
+  <line x1="680" y1="124" x2="980" y2="168" stroke="#8A96A0" stroke-width="1.6" marker-end="url(#ag)"/>
+
+  <!-- 3 parallel agents -->
+  <!-- Code Interpreter navy -->
+  <rect x="130" y="172" width="300" height="98" rx="13" fill="#1C3A5E" filter="url(#sh)"/>
+  <text x="280" y="214" font-size="19" font-weight="700" fill="#ffffff" text-anchor="middle">Code Interpreter</text>
+  <text x="280" y="240" font-size="13.5" font-weight="500" fill="#C9D6E5" text-anchor="middle">classifies decompiled code intent</text>
+  <!-- Behaviour Analyst teal -->
+  <rect x="490" y="172" width="300" height="98" rx="13" fill="#0E7C86" filter="url(#sh)"/>
+  <text x="640" y="214" font-size="19" font-weight="700" fill="#ffffff" text-anchor="middle">Behaviour Analyst</text>
+  <text x="640" y="240" font-size="13.5" font-weight="500" fill="#D6EEF0" text-anchor="middle">reconstructs the runtime kill-chain</text>
+  <!-- Visual Intel gold -->
+  <rect x="850" y="172" width="300" height="98" rx="13" fill="#B07A18" filter="url(#sh)"/>
+  <text x="1000" y="214" font-size="19" font-weight="700" fill="#ffffff" text-anchor="middle">Visual Intel</text>
+  <text x="1000" y="240" font-size="13.5" font-weight="500" fill="#F3E6CC" text-anchor="middle">overlay &amp; brand impersonation</text>
+
+  <!-- arrows agents -> correlator -->
+  <line x1="280" y1="270" x2="600" y2="316" stroke="#8A96A0" stroke-width="1.6" marker-end="url(#ag)"/>
+  <line x1="640" y1="270" x2="640" y2="316" stroke="#8A96A0" stroke-width="1.6" marker-end="url(#ag)"/>
+  <line x1="1000" y1="270" x2="680" y2="316" stroke="#8A96A0" stroke-width="1.6" marker-end="url(#ag)"/>
+
+  <!-- Intel Correlator -->
+  <rect x="410" y="320" width="460" height="74" rx="13" fill="#0E7C86" filter="url(#sh)"/>
+  <text x="640" y="352" font-size="18" font-weight="700" fill="#ffffff" text-anchor="middle">Intel Correlator</text>
+  <text x="640" y="376" font-size="13" font-weight="500" fill="#D6EEF0" text-anchor="middle">MITRE ATT&amp;CK mapping + family / campaign attribution (graph RAG)</text>
+  <line x1="640" y1="394" x2="640" y2="424" stroke="#8A96A0" stroke-width="1.8" marker-end="url(#ag)"/>
+
+  <!-- Debate -->
+  <rect x="410" y="428" width="460" height="62" rx="13" fill="#5A6672" filter="url(#sh)"/>
+  <text x="640" y="455" font-size="18" font-weight="700" fill="#ffffff" text-anchor="middle">Debate</text>
+  <text x="640" y="477" font-size="13" font-weight="500" fill="#E2E7EB" text-anchor="middle">adversarial static-vs-dynamic check; contradiction is signal</text>
+  <line x1="640" y1="490" x2="640" y2="520" stroke="#8A96A0" stroke-width="1.8" marker-end="url(#ag)"/>
+
+  <!-- Risk Scorer -->
+  <rect x="410" y="524" width="460" height="66" rx="13" fill="#13202E" stroke="#B07A18" stroke-width="2.2" filter="url(#sh)"/>
+  <text x="640" y="552" font-size="18" font-weight="700" fill="#ffffff" text-anchor="middle">Risk Scorer  ·  deterministic</text>
+  <text x="640" y="575" font-size="13" font-weight="500" fill="#E7C98A" text-anchor="middle">auditable weighted evidence score — not an LLM output</text>
+  <line x1="640" y1="590" x2="640" y2="620" stroke="#8A96A0" stroke-width="1.8" marker-end="url(#ag)"/>
+
+  <!-- Synthesis -->
+  <rect x="410" y="624" width="460" height="66" rx="13" fill="#1C3A5E" filter="url(#sh)"/>
+  <text x="640" y="652" font-size="18" font-weight="700" fill="#ffffff" text-anchor="middle">Synthesis  →  CortexResult</text>
+  <text x="640" y="675" font-size="13" font-weight="500" fill="#C9D6E5" text-anchor="middle">evidence-first verdict · narrative · IOCs</text>
+
+  <text x="640" y="730" font-size="13" font-style="italic" fill="#8A96A0" text-anchor="middle">Seven specialist agents; models tiered by task. The score is computed deterministically, then explained.</text>
+</svg>
+</div>
+</body>
+</html>

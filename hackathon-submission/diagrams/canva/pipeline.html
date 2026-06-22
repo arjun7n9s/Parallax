@@ -1,0 +1,105 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;background:#ffffff;}
+  .diagram-container{width:1280px;height:470px;background:#ffffff;}
+  text{font-family:'Inter',-apple-system,Segoe UI,Helvetica,Arial,sans-serif;}
+</style>
+</head>
+<body>
+<div class="diagram-container">
+<svg width="1280" height="470" viewBox="0 0 1280 470" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="160%">
+      <feDropShadow dx="0" dy="6" stdDeviation="9" flood-color="#1C3A5E" flood-opacity="0.13"/>
+    </filter>
+    <marker id="arrow" markerWidth="9" markerHeight="9" refX="6" refY="4.5" orient="auto">
+      <path d="M0,0 L8,4.5 L0,9 Z" fill="#0E7C86"/>
+    </marker>
+  </defs>
+
+  <!-- stage cards -->
+  <!-- card geometry: x = 40 + i*244, w=220, top=44, h=158 -->
+  <g>
+    <!-- connectors between cards -->
+    <line x1="262" y1="123" x2="282" y2="123" stroke="#0E7C86" stroke-width="2.4" marker-end="url(#arrow)"/>
+    <line x1="506" y1="123" x2="526" y2="123" stroke="#0E7C86" stroke-width="2.4" marker-end="url(#arrow)"/>
+    <line x1="750" y1="123" x2="770" y2="123" stroke="#0E7C86" stroke-width="2.4" marker-end="url(#arrow)"/>
+    <line x1="994" y1="123" x2="1014" y2="123" stroke="#0E7C86" stroke-width="2.4" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- CARD 1 Triage -->
+  <g>
+    <rect x="40" y="44" width="220" height="158" rx="14" fill="#ffffff" stroke="#E3E9ED" stroke-width="1" filter="url(#cardShadow)"/>
+    <rect x="40" y="44" width="220" height="6" rx="3" fill="#0E7C86"/>
+    <circle cx="74" cy="86" r="17" fill="#1C3A5E"/>
+    <text x="74" y="92" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">1</text>
+    <text x="150" y="118" font-size="21" font-weight="700" fill="#13202E" text-anchor="middle">Triage</text>
+    <text x="150" y="146" font-size="13" font-weight="500" fill="#5A6672" text-anchor="middle">Manifest &amp; permission</text>
+    <text x="150" y="166" font-size="13" font-weight="500" fill="#5A6672" text-anchor="middle">fast routing</text>
+  </g>
+  <!-- CARD 2 Static -->
+  <g>
+    <rect x="284" y="44" width="220" height="158" rx="14" fill="#ffffff" stroke="#E3E9ED" stroke-width="1" filter="url(#cardShadow)"/>
+    <rect x="284" y="44" width="220" height="6" rx="3" fill="#0E7C86"/>
+    <circle cx="318" cy="86" r="17" fill="#1C3A5E"/>
+    <text x="318" y="92" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">2</text>
+    <text x="394" y="118" font-size="21" font-weight="700" fill="#13202E" text-anchor="middle">Static</text>
+    <text x="394" y="146" font-size="13" font-weight="500" fill="#5A6672" text-anchor="middle">jadx · Androguard</text>
+    <text x="394" y="166" font-size="13" font-weight="500" fill="#5A6672" text-anchor="middle">YARA · FlowDroid taint</text>
+  </g>
+  <!-- CARD 3 Dynamic -->
+  <g>
+    <rect x="528" y="44" width="220" height="158" rx="14" fill="#ffffff" stroke="#E3E9ED" stroke-width="1" filter="url(#cardShadow)"/>
+    <rect x="528" y="44" width="220" height="6" rx="3" fill="#0E7C86"/>
+    <circle cx="562" cy="86" r="17" fill="#1C3A5E"/>
+    <text x="562" y="92" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">3</text>
+    <text x="638" y="118" font-size="21" font-weight="700" fill="#13202E" text-anchor="middle">Dynamic</text>
+    <text x="638" y="146" font-size="13" font-weight="500" fill="#5A6672" text-anchor="middle">Isolated emulator</text>
+    <text x="638" y="166" font-size="13" font-weight="500" fill="#5A6672" text-anchor="middle">Frida hooks · mitmproxy</text>
+  </g>
+  <!-- CARD 4 Cortex -->
+  <g>
+    <rect x="772" y="44" width="220" height="158" rx="14" fill="#1C3A5E" stroke="#1C3A5E" stroke-width="1" filter="url(#cardShadow)"/>
+    <rect x="772" y="44" width="220" height="6" rx="3" fill="#9FE870"/>
+    <circle cx="806" cy="86" r="17" fill="#0E7C86"/>
+    <text x="806" y="92" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">4</text>
+    <text x="884" y="118" font-size="21" font-weight="700" fill="#ffffff" text-anchor="middle">Cortex</text>
+    <text x="884" y="146" font-size="13" font-weight="500" fill="#C9D6E5" text-anchor="middle">Multi-agent GenAI</text>
+    <text x="884" y="166" font-size="13" font-weight="500" fill="#C9D6E5" text-anchor="middle">reasoning &amp; verdict</text>
+  </g>
+  <!-- CARD 5 Delivery -->
+  <g>
+    <rect x="1016" y="44" width="220" height="158" rx="14" fill="#ffffff" stroke="#E3E9ED" stroke-width="1" filter="url(#cardShadow)"/>
+    <rect x="1016" y="44" width="220" height="6" rx="3" fill="#0E7C86"/>
+    <circle cx="1050" cy="86" r="17" fill="#1C3A5E"/>
+    <text x="1050" y="92" font-size="16" font-weight="700" fill="#ffffff" text-anchor="middle">5</text>
+    <text x="1126" y="118" font-size="21" font-weight="700" fill="#13202E" text-anchor="middle">Delivery</text>
+    <text x="1126" y="146" font-size="13" font-weight="500" fill="#5A6672" text-anchor="middle">Report · STIX</text>
+    <text x="1126" y="166" font-size="13" font-weight="500" fill="#5A6672" text-anchor="middle">YARA · IOCs</text>
+  </g>
+
+  <!-- dashed connectors down to TAIG band -->
+  <g stroke="#B6C2CC" stroke-width="1.3" stroke-dasharray="3 4" opacity="0.85">
+    <line x1="150" y1="202" x2="150" y2="300" stroke="#B6C2CC"/>
+    <line x1="394" y1="202" x2="394" y2="300" stroke="#B6C2CC"/>
+    <line x1="638" y1="202" x2="638" y2="300" stroke="#B6C2CC"/>
+    <line x1="884" y1="202" x2="884" y2="300" stroke="#B6C2CC"/>
+    <line x1="1126" y1="202" x2="1126" y2="300" stroke="#B6C2CC"/>
+  </g>
+
+  <!-- TAIG band -->
+  <rect x="40" y="300" width="1196" height="104" rx="14" fill="#EAF4F4" stroke="#0E7C86" stroke-width="1.4"/>
+  <text x="638" y="342" font-size="20" font-weight="700" fill="#0E5C64" text-anchor="middle">TAIG · Threat Analytics Intelligence Graph</text>
+  <text x="638" y="372" font-size="14" font-weight="500" fill="#3E6F74" text-anchor="middle">Neo4j graph + Qdrant vectors  ·  pattern memory · family attribution · campaign clustering · cross-sample search</text>
+
+  <text x="638" y="438" font-size="13" font-style="italic" font-weight="400" fill="#8A96A0" text-anchor="middle">Every analysis enriches the graph; the graph informs every later analysis.</text>
+</svg>
+</div>
+</body>
+</html>
