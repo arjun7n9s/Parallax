@@ -28,7 +28,7 @@ It does not try to replace the analyst. It tries to be the 10× force multiplier
 analyst needs.
 
 The full 2-page writeup of how a verdict actually happens is in
-[`hackathon-submission/SOLUTION_APPROACH.pdf`](hackathon-submission/SOLUTION_APPROACH.pdf).
+[`docs/submission/SOLUTION_APPROACH.pdf`](docs/submission/SOLUTION_APPROACH.pdf).
 The architecture overview is below.
 
 ---
@@ -115,7 +115,7 @@ In our last 5 test runs against real Cerberus / Hydra / SharkBot
 samples, this chain produced at least one hook fire per sample, every
 time.
 
-![Sandbox fallback chain](hackathon-submission/diagrams/diag3_sandbox.png)
+![Sandbox fallback chain](docs/assets/diagrams/diag3_sandbox.png)
 
 ## Stage 4 — Synthesis *(1–2 minutes)*
 
@@ -126,7 +126,7 @@ verdict and confidence score.
 
 This is the stage with the story.
 
-![Agent debate room](hackathon-submission/diagrams/diag2_cortex.png)
+![Agent debate room](docs/assets/diagrams/diag2_cortex.png)
 
 > **The Band room, in action.**
 >
@@ -162,7 +162,7 @@ customer's detection pipeline. A signed webhook fires. The analyst
 gets a verdict, a confidence, an evidence trail, and concrete next
 actions — instead of a 50,000-line log dump.
 
-![Pipeline overview](hackathon-submission/diagrams/diag1_pipeline.png)
+![Pipeline overview](docs/assets/diagrams/diag1_pipeline.png)
 
 ---
 
@@ -170,7 +170,7 @@ actions — instead of a 50,000-line log dump.
 
 PARALLAX uses **two-tier scoring** so analysts focus on what's real:
 
-![Two-tier scoring](hackathon-submission/diagrams/diag4_scoring.png)
+![Two-tier scoring](docs/assets/diagrams/diag4_scoring.png)
 
 | Tier | Computed | When | What it does |
 |---|---|---|---|
@@ -206,9 +206,8 @@ parallax/
 ├── frontend/             React 19 + Vite + glassmorphism + SSE consumer
 ├── deploy/helm/          14-template Helm chart (api, worker, datastores, …)
 ├── tests/                338 unit + integration tests
-├── docs/                 mkdocs site (whitepaper, API, runbooks, admin)
+├── docs/                 mkdocs site, submission PDF, README assets
 ├── grafana/              Dashboards + Alertmanager rules
-└── hackathon-submission/ Diagrams, solution PDF, build script
 ```
 
 ---
