@@ -18,6 +18,9 @@ parallax/demo-output-live/
 parallax/yt_transcript.txt
 yt_transcript.txt
 
+# Generated docs and submission assets
+docs/
+
 # Private internal build plan - keep out of the public repo until shipped
 Claude/
 Other-Plans/

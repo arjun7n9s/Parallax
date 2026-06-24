@@ -28,7 +28,7 @@ It does not try to replace the analyst. It tries to be the 10× force multiplier
 analyst needs.
 
 The full 2-page writeup of how a verdict actually happens is in
-[`docs/submission/SOLUTION_APPROACH.pdf`](docs/submission/SOLUTION_APPROACH.pdf).
+[`assets/submission/SOLUTION_APPROACH.pdf`](assets/submission/SOLUTION_APPROACH.pdf).
 The architecture overview is below.
 
 ---
@@ -115,7 +115,7 @@ In our last 5 test runs against real Cerberus / Hydra / SharkBot
 samples, this chain produced at least one hook fire per sample, every
 time.
 
-![Sandbox fallback chain](docs/assets/diagrams/diag3_sandbox.png)
+![Sandbox fallback chain](assets/diagrams/diag3_sandbox.png)
 
 ## Stage 4 — Synthesis *(1–2 minutes)*
 
@@ -126,7 +126,7 @@ verdict and confidence score.
 
 This is the stage with the story.
 
-![Agent debate room](docs/assets/diagrams/diag2_cortex.png)
+![Agent debate room](assets/diagrams/diag2_cortex.png)
 
 > **The Band room, in action.**
 >
@@ -142,16 +142,16 @@ This is the stage with the story.
 > The transcript gets exported to PDF. That's the report.
 
 <p align="center">
-  <a href="docs/assets/agents_debate.mp4"><img src="docs/assets/agents_debate.gif" alt="Eight PARALLAX agents debating a fraud case in a Band chat room" width="720"/></a>
+  <a href="assets/agents_debate.mp4"><img src="assets/agents_debate.gif" alt="Eight PARALLAX agents debating a fraud case in a Band chat room" width="720"/></a>
   <br/>
-  <sub>8 MB GIF · <a href="docs/assets/agents_debate.mp4">985 KB MP4 (1080p)</a> · 12 s loop, real Band room</sub>
+  <sub>8 MB GIF · <a href="assets/agents_debate.mp4">985 KB MP4 (1080p)</a> · 12 s loop, real Band room</sub>
 </p>
 
 *Above: a real Band room running eight PARALLAX agents against a
 synthetic fraud case. The Intake Agent's first case file is on screen —
 threat score, ATT&CK technique IDs, indicators of compromise, and the
 seven-agent challenge roster. Click the image to play the full 1080p
-video, or open the <a href="docs/assets/agents_debate.mp4">MP4 version</a>
+video, or open the <a href="assets/agents_debate.mp4">MP4 version</a>
 for a 985 KB download.*
 
 ## Stage 5 — Report
@@ -162,7 +162,7 @@ customer's detection pipeline. A signed webhook fires. The analyst
 gets a verdict, a confidence, an evidence trail, and concrete next
 actions — instead of a 50,000-line log dump.
 
-![Pipeline overview](docs/assets/diagrams/diag1_pipeline.png)
+![Pipeline overview](assets/diagrams/diag1_pipeline.png)
 
 ---
 
@@ -170,7 +170,7 @@ actions — instead of a 50,000-line log dump.
 
 PARALLAX uses **two-tier scoring** so analysts focus on what's real:
 
-![Two-tier scoring](docs/assets/diagrams/diag4_scoring.png)
+![Two-tier scoring](assets/diagrams/diag4_scoring.png)
 
 | Tier | Computed | When | What it does |
 |---|---|---|---|
@@ -206,7 +206,7 @@ parallax/
 ├── frontend/             React 19 + Vite + glassmorphism + SSE consumer
 ├── deploy/helm/          14-template Helm chart (api, worker, datastores, …)
 ├── tests/                338 unit + integration tests
-├── docs/                 mkdocs site, submission PDF, README assets
+├── assets/               README media and submission PDF
 ├── grafana/              Dashboards + Alertmanager rules
 ```
 
@@ -258,7 +258,7 @@ PARALLAX is designed to be boring to operate.
 - **Local-only mode**: an `AIML_API` switch lets the gateway reject all
   outbound calls and run on a local model. Useful for offline analysis.
 
-The full operational runbook is at [`docs/runbooks/`](docs/runbooks/).
+The operational runbook lives with the private docs bundle and is not tracked on this branch.
 
 ---
 
@@ -272,16 +272,15 @@ uv run pytest tests/integration/ -p no:cacheprovider # 12 integration tests
 Unit tests run against `.venv-fast` (no sqlalchemy/celery). Integration
 tests require the Docker datastores up.
 
-The test counts are verified, not aspirational — see
-[`docs/fixes.md`](docs/fixes.md) for the test-counter that watches for
-hangs (the test-driven-development skill). It is real.
+The test counts are verified, not aspirational. A test-counter watches
+for hangs during local runs, so the number reflects real execution.
 
 ---
 
 ## Honest limitations
 
-We document these in [`docs/whitepaper.md`](docs/whitepaper.md) and
-[`docs/security.md`](docs/security.md) too. Recapping here:
+The longer whitepaper and security notes live with the private docs bundle.
+Recapping here:
 
 - **Calibration model is untrained.** `ai/calibration/` ships the
   architecture and a safe-format fix, but no model on disk yet. The
