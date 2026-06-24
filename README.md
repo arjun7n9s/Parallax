@@ -7,7 +7,7 @@ Static reading + dynamic instrumentation + multi-agent debate → a verdict you 
 
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-0F172A?style=flat-square&logo=python&logoColor=14B8A6)](https://www.python.org)
 [![React 19](https://img.shields.io/badge/react-19-0F172A?style=flat-square&logo=react&logoColor=14B8A6)](https://react.dev)
-[![License MIT](https://img.shields.io/badge/license-MIT-0F172A?style=flat-square)](LICENSE)
+[![License Apache 2.0](https://img.shields.io/badge/license-Apache%202.0-0F172A?style=flat-square)](LICENSE)
 [![Tests](https://img.shields.io/badge/tests-338%20passing-14B8A6?style=flat-square)](#)
 [![LLM cost](https://img.shields.io/badge/%2F%20APK-%240.16-06B6D4?style=flat-square)](#)
 [![frida 16.7.19](https://img.shields.io/badge/frida-16.7.19-DC2626?style=flat-square)](https://frida.re)
@@ -303,7 +303,7 @@ Recapping here:
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+Apache License 2.0. See [LICENSE](LICENSE).
 
 ---
 
